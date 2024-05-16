@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+.dot {
+    @apply w-2 h-2 bg-gray-700 rounded-full mx-1;
+    animation-duration: 0.8s;
+    animation-iteration-count: infinite;
+  }
+  
+  .first {
+    animation-name: bounceFirst;
+  }
+  
+  .second {
+    animation-delay: 0.2s;
+    animation-name: bounceSecond;
+  }
+  
+  .third {
+    animation-delay: 0.4s;
+    animation-name: bounceThird;
+  }
+  
+  @keyframes bounceFirst {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  
+  @keyframes bounceSecond {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(5px); }
+  }
+  
+  @keyframes bounceThird {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }

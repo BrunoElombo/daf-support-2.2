@@ -1,0 +1,84 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id        String      @id @default(uuid())
+  name String @unique
+  email String @unique
+  phone String @unique
+  password String
+  avatar String?
+  is_active Boolean @default(true)
+  is_admin Boolean @default(false)
+  is_staff Boolean @default(false)
+
+  departement Department?
+  employee Employee?
+}
+
+model Entity {
+  uuid       String  @id @default(uuid())
+  nom        String
+  Sigle      String?
+  raison_social String?
+  niu        String?
+
+  department Department[]
+}
+
+model Department {
+  uuid       String  @id @default(uuid())
+  id_entity  String
+  id_user    String @unique
+  budget     Float?
+  Entity     Entity  @relation(fields: [id_entity], references: [uuid])
+  User       User     @relation(fields: [id_user], references: [id])
+}
+
+model Function {
+  uuid       String  @id @default(uuid())
+  name       String
+  power      String?
+
+  employee Employee[]
+}
+
+model Grade {
+  uuid       String  @id @default(uuid())
+  name       String
+
+  employee Employee?
+}
+
+model EchelonCategory {
+  uuid       String  @id @default(uuid())
+  name       String
+  category   String
+
+  employee Employee?
+}
+
+model Employee {
+  uuid           String  @id @default(uuid())
+  id_echelon     String @unique
+  id_grade       String @unique
+  id_fonction    String
+  id_user        String @unique
+  Fonction      Function  @relation(fields: [id_fonction], references: [uuid])
+  EchelonCategory EchelonCategory @relation(fields: [id_echelon], references: [uuid])
+  Grade          Grade      @relation(fields: [id_grade], references: [uuid])
+  User           User      @relation(fields: [id_user], references: [id])
+}
