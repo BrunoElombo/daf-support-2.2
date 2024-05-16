@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(customParseFormat);
 
-const [selectedDate, setSelectedDate] = useState("");
+// const [selectedDate, setSelectedDate] = useState(undefined);
 const { RangePicker } = DatePicker;
 const dateFormat = 'YYYY/MM/DD';
 const currentDate = new Date();
@@ -19,7 +19,6 @@ function Topfilter() {
         <RangePicker
             defaultValue={[dayjs(currentDate, dateFormat), dayjs(currentDate, dateFormat)]}
             format={dateFormat}
-            value={selectedDate}
         />
     </div>
   )

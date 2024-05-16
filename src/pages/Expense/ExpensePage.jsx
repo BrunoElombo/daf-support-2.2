@@ -564,7 +564,7 @@ function ExpensePage() {
                     <select name="" id="" value={site} onChange={e=>setSite(e.target.value)}>
                       <option value="">Choisir le site</option>
                       {
-                        sites?.map(site=><option value={site.id} key={site.id}>{site.name}</option>)
+                        sites?.map(site=><option value={site?.id} key={site?.id}>{site?.name}</option>)
                       }
                     </select>
                     <select className='' name="" id="" value={beneficiaire} onChange={e=>setBeneficiaire(e.target.value)}>

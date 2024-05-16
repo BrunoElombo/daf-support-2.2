@@ -301,7 +301,7 @@ function CreateRecetteForm(
                     <select name="" id="" value={siteValue} onChange={e=>setSiteValue(e.target.value)}>
                         <option value="">Choisir le site</option>
                         {
-                            sites.map(site => <option value={site?.id} key={site?.id}>{site?.name}</option>)
+                            sites?.map(site => <option value={site?.id} key={site?.id}>{site?.name}</option>)
                         }
                     </select>
                     {
