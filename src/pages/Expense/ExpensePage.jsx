@@ -9,6 +9,7 @@ const { Dragger } = Upload;
 import { ChevronDoubleLeftIcon, ChevronDoubleRightIcon, TrashIcon, EllipsisHorizontalIcon, PaperClipIcon, PlusIcon, EyeIcon, PencilIcon, CheckIcon, XMarkIcon, BanknotesIcon, CalculatorIcon, ArrowUpRightIcon, ArrowTopRightOnSquareIcon  } from '@heroicons/react/24/outline';
 import { AUTHCONTEXT } from '../../context/AuthProvider';
 import Collapsible from '../../components/Collapsible/Collapsible';
+import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
 
 
 const props = {
@@ -474,10 +475,15 @@ function ExpensePage() {
             <h3 className='py-2 bold'>FICHE DE DÉPENSE</h3>
             <PageHeader>
               <input type="search" className='text-sm' placeholder='Rechercher une operation'/>
-              <button 
-                className='text-white bg-green-500 p-2 rounded-lg shadow text-sm'
-                onClick={handleToggleOpenForm}
-              >Initier une dépense</button>
+              <VerifyPermissions
+                expected={["is_director" || "is_president"]}
+                received={"cassier"}
+              >
+                <button 
+                  className='text-white bg-green-500 p-2 rounded-lg shadow text-sm'
+                  onClick={handleToggleOpenForm}
+                >Initier une dépense</button>
+              </VerifyPermissions>
             </PageHeader>
             <div className='border-[1px] border-gray-100 w-full p-3 rounded-md mt-3 overflow-x-auto'>
               <div className='flex items-center mb-3 space-x-3 justify-end'>
@@ -564,7 +570,7 @@ function ExpensePage() {
                     <select name="" id="" value={site} onChange={e=>setSite(e.target.value)}>
                       <option value="">Choisir le site</option>
                       {
-                        sites?.map(site=><option value={site.id} key={site.id}>{site.name}</option>)
+                        // sites?.map(site=><option value={site?.id} key={site?.id}>{site?.name}</option>)
                       }
                     </select>
                     <select className='' name="" id="" value={beneficiaire} onChange={e=>setBeneficiaire(e.target.value)}>
