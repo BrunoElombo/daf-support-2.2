@@ -1,17 +1,16 @@
-const express = require("express");
-const router = express().Router()
-const PrismaClient = require('@prisma/client').PrismaClient;
+const express = require('express');
+const router = express.Router();
+const EntityController = require('../controllers/entityController');
+const verifyToken = require("../middlewear/verifyJWT");
 
-const prisma = new PrismaClient();
+// CRUD operations for Entity
+router.get('/', verifyToken, EntityController.getAllEntities);
+router.post('/', verifyToken, EntityController.createEntity);
+router.get('/:id',  verifyToken, EntityController.getEntityById);
+router.put('/:id',  verifyToken, EntityController.updateEntity);
+router.delete('/:id',   verifyToken, EntityController.deleteEntity);
 
+// Get entity detail including specific employees
+router.get('/:id_entity/detail', EntityController.getEntityDetail);
 
-app.get('/entities', async (req, res) => {
-    try {
-      const entities = await prisma.entity.findMany();
-      res.json(entities);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Error fetching entities' });
-    }
-});
-  
+module.exports = router;

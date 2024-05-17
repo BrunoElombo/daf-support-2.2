@@ -20,65 +20,163 @@ model User {
   email String @unique
   phone String @unique
   password String
-  avatar String?
+  profile_picture String?
+  gender String?
+  niu String?
   is_active Boolean @default(true)
   is_admin Boolean @default(false)
   is_staff Boolean @default(false)
-
-  departement Department?
-  employee Employee?
-}
-
-model Entity {
-  uuid       String  @id @default(uuid())
-  nom        String
-  Sigle      String?
-  raison_social String?
-  niu        String?
-
-  department Department[]
-}
-
-model Department {
-  uuid       String  @id @default(uuid())
-  id_entity  String
-  id_user    String @unique
-  budget     Float?
-  Entity     Entity  @relation(fields: [id_entity], references: [uuid])
-  User       User     @relation(fields: [id_user], references: [id])
-}
-
-model Function {
-  uuid       String  @id @default(uuid())
-  name       String
-  power      String?
-
-  employee Employee[]
-}
-
-model Grade {
-  uuid       String  @id @default(uuid())
-  name       String
-
-  employee Employee?
-}
-
-model EchelonCategory {
-  uuid       String  @id @default(uuid())
-  name       String
-  category   String
-
-  employee Employee?
+  employee Employee? 
+  Department Department[]
 }
 
 model Employee {
-  uuid           String  @id @default(uuid())
-  id_echelon     String @unique
-  id_grade       String @unique
-  id_fonction    String
+  id             String  @id @default(uuid())
+  id_level       String
+  id_grade       String
+  id_department    String? 
   id_user        String @unique
-  Fonction      Function  @relation(fields: [id_fonction], references: [uuid])
-  EchelonCategory EchelonCategory @relation(fields: [id_echelon], references: [uuid])
-  Grade          Grade      @relation(fields: [id_grade], references: [uuid])
-  User           User      @relation(fields: [id_user], references: [id])
+
+  // Fonction      Function  @relation(fields: [id_function], references: [id])
+  Departement Department? @relation(fields: [id_department], references: [id], onDelete: Cascade)
+  EchelonCategory EchelonCategory @relation(fields: [id_level], references: [id], onDelete: Cascade)
+  Grade          Grade      @relation(fields: [id_grade], references: [id], onDelete: Cascade)
+  User           User      @relation(fields: [id_user], references: [id], onDelete: Cascade)
+  // role Role?
+  EmployeeRole EmployeeRole[]
+}
+
+
+model Role{
+  id String @id @default(uuid())
+  name String?
+  power Int
+  // id_employee String @unique
+  // employee Employee @relation(fields: [id_employee], references: [id], onDelete: Cascade)
+  id_entity String
+  entity Entity @relation(fields: [id_entity], references: [id], onDelete: Cascade)
+
+  EmployeeRole EmployeeRole[]
+}
+
+model EmployeeRole{
+  id String @id @default(uuid())
+  
+  id_role String
+  Role Role @relation(fields: [id_role], references: [id])
+
+  id_employee String
+  Employee Employee @relation(fields: [id_employee], references: [id])
+}
+
+model Function {
+  id       String  @id @default(uuid())
+  name       String
+  power      String?
+  
+  id_department String
+  department Department @relation(fields: [id_department], references: [id], onDelete: Cascade)
+  // employee Employee[]
+}
+
+model Entity {
+  id       String  @id @default(uuid())
+  Sigle      String?
+  raison_social String
+  logo String?
+  niu        String?
+
+  department Department[]
+  role Role[]
+  site Site[]
+  BankAccount BankAccount[]
+  Product Product[]
+}
+
+model ExternalEntity{
+  id String @id @default(uuid())
+  name String
+  type Type_Entity[]
+  BankAccount BankAccount[]
+}
+model Type_Entity{
+  id String @id @default(uuid())
+  id_entity String
+  ExternalEntity ExternalEntity @relation(fields: [id_entity], references: [id], onDelete: Cascade)
+  id_type String
+  type Type @relation(fields: [id_type], references: [id], onDelete: Cascade)
+
+}
+
+model Type{
+  id String @id @default(uuid())
+  name String?
+
+  type Type_Entity[]
+}
+
+model Department {
+  id       String  @id @default(uuid())
+  id_entity  String
+  name String
+  description String
+  budget     Float?
+  id_employee String?
+  id_user String?
+  User User? @relation(fields: [id_user], references: [id], onDelete: Cascade)
+  Entity     Entity  @relation(fields: [id_entity], references: [id], onDelete: Cascade)
+  employee Employee []
+  fonction Function[]
+}
+
+model Grade {
+  id       String  @id @default(uuid())
+  name       String
+  power Int @default(0)
+  employee Employee[]
+}
+model EchelonCategory {
+  id       String  @id @default(uuid())
+  name       String
+  category   String
+  power Int @default(0)
+  employee Employee[]
+}
+
+model Site{
+  id String @id @default(uuid())
+  name String
+
+  id_entity String
+  Entity Entity @relation(fields: [id_entity], references: [id])
+}
+
+model Bank{
+  id String @id @default(uuid())
+  name String
+  sigle String
+  Acronyme String
+
+  BanAccount BankAccount[]
+}
+model BankAccount{
+  id String @id @default(uuid())
+  account_number String
+  amount String
+  id_external_entity String?
+  ExternalEntity ExternalEntity? @relation(fields: [id_external_entity], references: [id])
+  id_entity String?
+  Entity Entity? @relation(fields: [id_entity], references: [id])
+  id_bank String
+  Bank Bank @relation(fields: [id_bank], references: [id])
+}
+
+
+model Product{
+  id String @id @default(uuid())
+  name String
+  unit Float?
+  description String
+  id_entity String
+  Entity Entity @relation(fields: [id_entity], references: [id])
 }
