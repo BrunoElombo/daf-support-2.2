@@ -4,4 +4,7 @@ const verifyJWT = require("../middlewear/verifyJWT");
 const { getEmployeeBanks, getEntityBanks } = require("../controllers/bankController")
 
 bankRouter.get("/", verifyJWT, getEmployeeBanks);
-bankRouter.get("/entity_bank", verifyJWT, getEntityBanks);
+bankRouter.get("/entity_banks", verifyJWT, getEntityBanks);
+
+
+module.exports = bankRouter

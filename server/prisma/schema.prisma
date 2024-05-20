@@ -48,10 +48,7 @@ model Employee {
   EchelonCategory EchelonCategory @relation(fields: [id_level], references: [id], onDelete: Cascade)
   Grade          Grade      @relation(fields: [id_grade], references: [id], onDelete: Cascade)
   User           User      @relation(fields: [id_user], references: [id], onDelete: Cascade)
-  
-  bank Bank[]
-  // role Role?
-  // EmployeeRole EmployeeRole[]
+  employee_bank EmployeeBank[]
 }
 
 
@@ -59,20 +56,11 @@ model Role{
   id String @id @default(uuid())
   name String?
   power Int @default(0)
-  // id_employee String @unique
-  // employee Employee @relation(fields: [id_employee], references: [id], onDelete: Cascade)
-  // id_entity String
-  // entity Entity @relation(fields: [id_entity], references: [id], onDelete: Cascade)
-
-  // EmployeeRole EmployeeRole[]
   employee Employee[]
 }
 
 model EmployeeRole{
   id String @id @default(uuid())
-  
-  // id_role String
-  // Role Role @relation(fields: [id_role], references: [id])
 
   id_employee String
   // Employee Employee @relation(fields: [id_employee], references: [id])
@@ -83,8 +71,6 @@ model Function {
   name       String
   power      Int? @default(0)
   
-  // id_department String
-  // department Department @relation(fields: [id_department], references: [id], onDelete: Cascade)
   employee Employee[]
 }
 
@@ -97,18 +83,22 @@ model Entity {
 
   department Department[]
   employee Employee[]
-  // role Role[]
   site Site[]
-  Bank Bank[]
   Product Product[]
+  entity_bank EntityBank []
+  external_entity ExternalEntity[]
 }
 
 model ExternalEntity{
   id String @id @default(uuid())
   name String
+  id_entity String
+  entity Entity @relation(fields: [id_entity], references: [id])
+
   type Type_Entity[]
-  Bank Bank[]
+  external_entity ExternalEntityBank[]
 }
+
 model Type_Entity{
   id String @id @default(uuid())
   id_entity String
@@ -161,21 +151,49 @@ model Site{
   Entity Entity @relation(fields: [id_entity], references: [id])
 }
 
+model EntityBank{
+  id String @id @default(uuid())
+
+  id_entity String
+  entity Entity @relation(fields: [id_entity], references: [id])
+
+  id_bank String
+  bank Bank @relation(fields: [id_bank], references: [id])
+}
+
+model ExternalEntityBank{
+  id String @id @default(uuid())
+
+  id_external_entity String
+  external_entity ExternalEntity @relation(fields: [id_external_entity], references: [id])
+
+  id_bank String
+  bank Bank @relation(fields: [id_bank], references: [id])
+}
+
+model EmployeeBank{
+  id String @id @default(uuid())
+
+  id_employee String
+  employee Employee @relation(fields: [id_employee], references: [id])
+
+  id_bank String
+  bank Bank @relation(fields: [id_bank], references: [id])
+}
+
 model Bank{
+
   id String @id @default(uuid())
   name String
   sigle String
   Acronyme String
-  id_entity String?
-  id_employee String?
-  id_external_entity String?
 
-  externalEntity ExternalEntity? @relation(fields: [id_external_entity], references: [id])
-  entity Entity? @relation(fields: [id_entity], references: [id])
-  employee Employee? @relation(fields: [id_employee], references: [id])
-
-  BanAccount BankAccount[]
+  bank_account BankAccount[]
+  entity_bank EntityBank[]
+  external_entity_bank ExternalEntityBank[]
+  employee_bank EmployeeBank[]
 }
+
 model BankAccount{
   id String @id @default(uuid())
   account_number String
