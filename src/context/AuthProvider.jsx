@@ -16,6 +16,15 @@ const AuthProvider = (props)=>{
     const [defaultEntity, setDefaultEntity] = useState(JSON.parse(localStorage.getItem("entity"))||{});
     const [allEntities, setAllEntities] = useState(JSON.parse(localStorage.getItem("entities")) || []);
     const {requestLoading, fetchData, postData, requestError} = useFetch();
+    const [userRole, setUserRole] = useState({});
+
+    useEffect(()=>{
+        const userInfo = localStorage.getItem("user");
+        if(userInfo){
+            const role = JSON.parse(localStorage.getItem("user"));
+            setUserRole(role?.role);
+        }
+    }, [])
 
     const handleGetUserInfo =async ()=>{
         let userData = await fetchData(import.meta.env.VITE_DAF_API+"/users/account");
@@ -65,7 +74,7 @@ const AuthProvider = (props)=>{
     return (
         <AUTHCONTEXT.Provider value={{
             isLoggedIn, setIsLoggedIn, userInfo, setUserInfo, setDefaultEntity, defaultEntity,
-            allEntities, setAllEntities
+            allEntities, setAllEntities, userRole
         }}>
             {props.children}
         </AUTHCONTEXT.Provider>

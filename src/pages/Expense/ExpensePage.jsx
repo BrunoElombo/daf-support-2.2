@@ -64,7 +64,7 @@ function ExpensePage() {
 
     const [isUpdateMode, setIsUpdateMode] = useState(false);
 
-      const { defaultEntity, } = useContext(AUTHCONTEXT);
+      const { userInfo } = useContext(AUTHCONTEXT);
 
       const [isOpenDrawer, setIsOpenDrawer] = useState(false);
       const [isOpen, setIsOpen] = useState(false);
@@ -244,7 +244,7 @@ function ExpensePage() {
           dataIndex: 'employee_beneficiary',
           key: 'employee_beneficiary',
           render: (text, record)=>{
-            const beneficiaire = beneficiaires?.find(benef=>benef.id === record.employee_beneficiary);
+            const beneficiaire = beneficiaires.find(benef=>benef.id === record.employee_beneficiary);
             return <>{!beneficiaire?text:beneficiaire?.first_name}</>
            
           }
@@ -361,6 +361,7 @@ function ExpensePage() {
         setFiles([]);
       }
 
+
       const handleSubmitOperation= async (e)=>{
         e.preventDefault();
         // generateRefNumber();
@@ -476,8 +477,8 @@ function ExpensePage() {
             <PageHeader>
               <input type="search" className='text-sm' placeholder='Rechercher une operation'/>
               <VerifyPermissions
-                expected={["is_director" || "is_president"]}
-                received={"cassier"}
+                expected={["is_director","is_president","paymaster_general"]}
+                received={userInfo?.role.name}
               >
                 <button 
                   className='text-white bg-green-500 p-2 rounded-lg shadow text-sm'
@@ -531,8 +532,6 @@ function ExpensePage() {
               onOk={handleToggleOpenForm}
               onCancel={handleToggleOpenForm}
             >
-              {
-                currentStep === 0 ?
                 <div className='flex flex-col space-y-3'>
                   <form onSubmit={()=>{}} className='flex flex-col space-y-3'>
                     <select name="" id="" value={paymentMode} onChange={e=>setPaymentMode(e.target.value)}>
@@ -570,14 +569,14 @@ function ExpensePage() {
                     <select name="" id="" value={site} onChange={e=>setSite(e.target.value)}>
                       <option value="">Choisir le site</option>
                       {
-                        // sites?.map(site=><option value={site?.id} key={site?.id}>{site?.name}</option>)
+                        sites?.map(site=><option value={site?.id} key={site?.id}>{site?.name}</option>)
                       }
                     </select>
                     <select className='' name="" id="" value={beneficiaire} onChange={e=>setBeneficiaire(e.target.value)}>
                       <option value="">Choisir le beneficiaire</option>
-                      {
-                        beneficiaires?.map(benef=><option value={benef.id} key={benef.id}>{benef.first_name}{" "}{benef.last_name}</option>)
-                      }
+                      {/* {
+                        beneficiaires.map(benef=><option value={benef?.id} key={benef?.id}>{benef?.first_name}{" "}{benef?.last_name}</option>)
+                      } */}
                     </select>
                     <div className='w-full flex items-center space-x-2'>
                       <select name="" id="" className='w-1/2' value={recipientType} onChange={e=>setRecipientType(e.target.value)}>
@@ -589,7 +588,7 @@ function ExpensePage() {
                       <select name="" id="" className='w-1/2' value={recipient} onChange={e=>setRecipient(e.target.value)}>
                         <option value="">Choisir le destinataire</option>
                         {
-                          beneficiaires?.map(benef=><option value={benef.id} key={benef.id}>{benef.first_name}{" "}{benef.last_name}</option>)
+                          // beneficiaires.map(benef=><option value={benef?.id} key={benef?.id}>{benef?.first_name}{" "}{benef?.last_name}</option>)
                         }
                       </select>
                       {/* <input className='w-1/3' type="text" placeholder='Raison social' value={companyName} onChange={e=>setCompanyName(e.target.value)}/> */}
@@ -612,63 +611,7 @@ function ExpensePage() {
                       Initier
                     </button>
                   </div>
-                </div> :
-                currentStep === 1 &&
-                <div className='flex flex-col space-y-3'>
-                  <form className='flex flex-col space-y-3' onSubmit={()=>{}}>
-                    {
-                      isAddingOperation &&
-                      <div className='flex items-center space-x-3 w-full justify-between'>
-                        <select name="" id="" className='w-1/4'>
-                          <option value="">Type d'opération</option>
-                          <option value="">Normale</option>
-                          <option value="">Hors pesée</option>
-                          <option value="">Test</option>
-                        </select>
-                        <input type="number" name="" id="" placeholder='Prix unitaire' className='w-1/4'/>
-                        <input type="number" name="" id="" placeholder='Qté' className='w-1/4'/>
-                        <button className='text-white p-2 text-sm bg-green-500 rounded-lg shadow w-1/4' onClick={()=>setIsAddingOperation(false)}>
-                          <span>Ajouter</span>
-                        </button>
-                      </div>
-                    }
-                    {
-                      !isAddingOperation &&
-                      <div className="flex justify-end">
-                        <button className='bg-green-500 p-2 rounded-lg shadow text-white flex items-center' onClick={()=>setIsAddingOperation(true)}>
-                          <PlusIcon className='text-white h-4 w-4'/>
-                          <span>Ajouter une opération</span>
-                        </button>
-                      </div>
-                    }
-                  </form>
-                  <hr />
-                    <div>
-                      <Table 
-                        columns={operationCol}
-                        dataSource={operationDataSrc}
-                      />
-                      <div className='flex justify-between items-center'>
-                        <p>Total de toutes les opérations:</p>
-                        <div className='bg-gray-100 border-[1px] border-gray-200 rounded-lg px-3'>
-                          <p className=''>0.0</p>
-                        </div>
-                      </div>
-                    </div>
-                  <div className='flex justify-between items-center'>
-                    <button className='btn btn-ptimary bg-green-500 text-white text-sm shadow flex items-center' onClick={handlePrevStep}>
-                      <ChevronDoubleLeftIcon className='text-white h-4 w-4'/> 
-                      <span>Precédent</span>
-                    </button>
-                    <button className='btn btn-ptimary bg-green-500 text-white text-sm shadow flex items-center' onClick={()=>{
-                      setCurrentStep(0);
-                      setIsOpen(false);
-                    }}> 
-                      <span>Initier l'opération</span>
-                    </button>
-                  </div>
                 </div>
-              }
             </Modal>
 
             {/* Validation de la dépense */}

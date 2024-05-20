@@ -42,7 +42,6 @@ function App() {
 
 
   useEffect(()=>{
-    console.log("Something is done")
     const storedToken = localStorage.getItem('token');
     if(storedToken === null){
       setIsLoggedIn(false);
@@ -54,8 +53,8 @@ function App() {
   return (
     <Router>
       {
-        true ? 
-        // isLoggedIn ? 
+        // true ? 
+        isLoggedIn ? 
         (
           <Routes>
             <Route path={'*'} element={<Dashboard />} />

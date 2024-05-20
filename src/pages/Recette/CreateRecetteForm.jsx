@@ -1,11 +1,15 @@
-import React, {useState, useEffect} from 'react'
+import React, {useState, useEffect, useContext} from 'react'
+import { AUTHCONTEXT } from '../../context/AuthProvider';
 import { Modal, Table } from 'antd'
 import { PlusIcon, ChevronDoubleRightIcon, ChevronDoubleLeftIcon } from '@heroicons/react/24/outline';
 import useFetch from '../../hooks/useFetch';
+import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
 
 function CreateRecetteForm(
     {title, centered, open, footer, onOk, onCancel, setIsOpen, onSubmit}
 ) {
+
+    const {userInfo} = useContext(AUTHCONTEXT);
 
     const entityValue = JSON.parse(localStorage.getItem('entity'))?.entity.id;
     const numberWithCommas=(x)=>{
@@ -13,8 +17,9 @@ function CreateRecetteForm(
     }
     const handleGetSites=async()=>{
         let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
+        console.log(response)
         if(!requestError){
-          setSites(response );
+          setSites(response);
         }
     }
 
@@ -29,8 +34,8 @@ function CreateRecetteForm(
     }
     // Recipe and operation types
     const [employeesControllers, setEmployeesControllers] = useState([]);
-    const [sites, setSites] =useState([]);
-    const [recipeType, setRecipeType] = useState("PORT REVENUE");
+    const [sites, setSites] = useState([]);
+    const [recipeType, setRecipeType] = useState("TO BE INVOICED");
     const [employeeController, setEmployeeController] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("");
     const [totalAmount, setTotalAmount] = useState("");
@@ -45,15 +50,18 @@ function CreateRecetteForm(
 
 
     // Operaitons types
-    const [operationQuantity, setOperationQuantity] = useState("");
+    const [operationQuantity, setOperationQuantity] = useState(0);
     const [isAddingOperation , setIsAddingOperation] = useState(false)
-    const [unitPrice, setUnitPrice] = useState("10000");
+    const [unitPrice, setUnitPrice] = useState(0);
     const [operationTypesData, setOperationTypesData] = useState([]);
     const [operationErrMsg, setOperationErrMsg] = useState("");
     const [allOperationsTotal, setAllOperationsTotal] = useState("0.0");
 
     const [nextIsEnabled, setNextIsEnabled] = useState(false);
     const [operations, setOperations] = useState([]);
+
+    const [products, setProducts] = useState([]);
+    // const [product, setPoduct] = useState("");
 
     const operationCol = [
         {
@@ -112,7 +120,7 @@ function CreateRecetteForm(
     const clearOperationsForm=()=>{
         setSelectedOperationType("");
         setOperationQuantity("");
-        setUnitPrice("10000");
+        setUnitPrice(0);
     }
 
     const handleCreateOperation = async (e)=>{
@@ -150,48 +158,7 @@ function CreateRecetteForm(
         setOperationErrMsg("");
     }, [selectedOperationType, operationQuantity, unitPrice])
 
-    useEffect(()=>{
-        if(recipeType === "PORT REVENUE"){
-            if(
-                paymentMethod === "" || 
-                provenanceValue === "" ||
-                siteValue === "" ||
-                employeeController ==="" || 
-                shiftValue === ""
-            ){
-                setNextIsEnabled(true);
-                return;
-            }else{
-                setNextIsEnabled(false);
-                return;
-            }
-        }
-        else if(recipeType === "INVOICE PAYMENT"){
-            if(
-                employeeController=="" || 
-                paymentMethod == "" || 
-                provenanceValue == "" ||
-                siteValue == "" ||
-                shiftValue == ""||
-                totalAmount == "" ||
-                corporateName == "" ||
-                uinClient == ""
-            ){
-                setNextIsEnabled(false);
-            }else{
-                setNextIsEnabled(true);
-            }
-        }
-    },[
-        employeeController, 
-        paymentMethod, 
-        totalAmount, 
-        provenanceValue, 
-        shiftValue, 
-        corporateName, 
-        uinClient, 
-        siteValue
-    ]);
+    
     const handleCancelOperationCreation= (e) =>{
         e.preventDefault();
         setIsAddingOperation(false);
@@ -255,9 +222,19 @@ function CreateRecetteForm(
         }
     }
 
+    const handleGetallProducts = async ()=>{
+        const url = import.meta.env.VITE_USER_API+"/products";
+        let response = await fetchData(url);
+        console.log(response);
+        if(!requestError){
+            setProducts(response);
+        }
+    }
+
     useEffect(()=>{
         handleGetController();
         handleGetSites();
+        handleGetallProducts();
     }, []);
 
 
@@ -276,32 +253,50 @@ function CreateRecetteForm(
                 currentStep === 0 ?
                 <div className='flex flex-col space-y-3'>
                 <form className='flex flex-col space-y-3'>
-                    <select name="" id="" value={recipeType} onChange={e=>setRecipeType(e.target.value)}>
-                    <option value="PORT REVENUE">Recette portuaire</option>
-                    <option value="INVOICE PAYMENT">Règlement de facture</option>
-                    </select>
+                    <VerifyPermissions 
+                        // expected={["accountant"]}
+                        expected={["guerrite_chef"]}
+                        received={userInfo?.role.name}
+                        // received={userInfo?.role.name}
+                        // isExcluded={true}
+                    >
+                        <select name="" id="" value={recipeType} onChange={e=>setRecipeType(e.target.value)}>
+                            {/* <option value="To be invoiced">Recette portuaire</option> */}
+                            <option value="INVOICE PAYMENT">Règlement de facture</option>
+                            <option value="TO BE INVOICED">A facturer</option>
+                        </select>
+                    </VerifyPermissions>
                     <select name="" id="" value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value)}>
                         <option value="">Mode de paiement</option>
                         <option value="ESPECES">Espèces</option>
-                        <option value="CARTE">Carte</option>
-                        <option value="VIREMENT">Virement</option>
-                        <option value="CHEQUE">Cheque</option>
+                        <VerifyPermissions 
+                            expected={["gueritte_chef"]}
+                            received={userInfo?.role.name}
+                        >
+                            <option value="CARTE">Carte</option>
+                            <option value="VIREMENT">Virement</option>
+                            <option value="CHEQUE">Cheque</option>
+                        </VerifyPermissions>
                         <option value="PAIMENT MOBILE">Paiment mobile</option>
                     </select>
-                    <select name="" id="" value={provenanceValue} onChange={e=>setProvenanceValue(e.target.value)}>
-                    <option value="">Provenance</option>
-                    <option value="INVOICE PAYMENT">Règlement facture</option>
-                    <option value="WEIGHBRIDGE PAYMENT">Pesée</option>
-                    <option value="ONSITE SALE">Vente sur site</option>
-                    </select>
+                    <VerifyPermissions
+                        expected={["guerrite_chef"]}
+                        received={userInfo?.role.name}
+                    >
+                        <select name="" id="" value={provenanceValue} onChange={e=>setProvenanceValue(e.target.value)}>
+                            <option value="">Provenance</option>
+                            <option value="INVOICE PAYMENT">Règlement facture</option>
+                            <option value="TO BE INVOICED">A facturer</option>
+                        </select>
+                    </VerifyPermissions>
                     {
                     recipeType === "INVOICE PAYMENT" &&
-                    <input value={totalAmount} onChange={e=>setTotalAmount(e.target.value)} type="number" placeholder='Montant total'/>
+                        <input value={totalAmount} onChange={e=>setTotalAmount(e.target.value)} type="number" placeholder='Montant total'/>
                     }
                     <select name="" id="" value={siteValue} onChange={e=>setSiteValue(e.target.value)}>
                         <option value="">Choisir le site</option>
                         {
-                            sites.map(site => <option value={site?.id} key={site?.id}>{site?.name}</option>)
+                            sites?.map(site => <option value={site?.id} key={site?.id}>{site?.name}</option>)
                         }
                     </select>
                     {
@@ -313,36 +308,50 @@ function CreateRecetteForm(
                     <input type="text" placeholder='Numéro de contribuable' value={uinClient} onChange={e=>setUinClient(e.target.value)}/>
                     }
                     {
-                    recipeType === "PORT REVENUE" &&
+                    recipeType === "TO BE INVOICED" &&
                     <select name="" id="" value={employeeController} onChange={e=>setEmployeeController(e.target.value)}>
                         <option value="">Choisir le controleur</option>
-                        {
-                          employeesControllers?.map(controller=><option value={controller.id} key={controller.id}>{controller.first_name}</option>)
-                        }
+                        {/* {
+                          employeesControllers?.map(controller=><option value={controller?.id} key={controller?.id}>{controller?.first_name}</option>)
+                        } */}
                     </select>
                     }
-                    {recipeType === "PORT REVENUE" &&
-                    <select name="" id="" value={shiftValue} onChange={e=>setShiftValue(e.target.value)}>
-                        <option value="">Choisir le shift</option>
-                        <option value="6h-15h">6h-15h</option>
-                        <option value="15h-22h">15h-22h</option>
-                        <option value="22h-6h">22h-6h</option>
-                    </select>
-                    }
+                    <VerifyPermissions
+                        expected={[""]}
+                        received={userInfo?.role.name}
+                    >
+                        <select name="" id="" value={shiftValue} onChange={e=>setShiftValue(e.target.value)}>
+                            <option value="">Choisir le shift</option>
+                            <option value="6h-15h">6h-15h</option>
+                            <option value="15h-22h">15h-22h</option>
+                            <option value="22h-6h">22h-6h</option>
+                        </select>
+                    </VerifyPermissions>
+                    
                     <textarea name="" id="" className='' placeholder='Description' value={descriptionValue} onChange={e=>setDescriptionValue(e.target.value)}></textarea>
                 </form>
                 <div className="flex justify-end">
-                    {
-                        recipeType === "PORT REVENUE" ?
-                        <button className={`btn ${nextIsEnabled ? "bg-green-500" :"bg-green-300 cursor-not-allowed"} text-white text-sm shadow flex items-center`} onClick={handleNextStep} disabled={nextIsEnabled}> 
+                    <VerifyPermissions
+                        // expected={["gueritte_chef"]}
+                        // received={userInfo?.role.name}
+                        expected={[""]}
+                        received={""}
+                    >
+                        <button className={`btn ${true ? "bg-green-500" :"bg-green-300 cursor-not-allowed"} text-white text-sm shadow flex items-center`} onClick={handleNextStep} disabled={nextIsEnabled}> 
                             Suivant
                             <ChevronDoubleRightIcon className='text-white h-4 w-6'/>
-                        </button>:
+                        </button>
+                    </VerifyPermissions>
+                    <VerifyPermissions
+                        expected={["gueritte_chef"]}
+                        received={userInfo?.role.name}
+                        // isExclude={true} 
+                    >
                         <button className={`btn ${nextIsEnabled || !requestLoading ? "bg-green-500" :"bg-green-300 cursor-not-allowed"} text-white text-sm shadow flex items-center`}  onClick={handleCreateRecettes}> 
                             {requestLoading ? "En cours...":"Initier"}
                             <PlusIcon className='text-white h-4 w-6'/>
                         </button>
-                    }
+                    </VerifyPermissions>
                 </div>
                 </div> :
                 currentStep === 1 &&
@@ -352,16 +361,28 @@ function CreateRecetteForm(
                         isAddingOperation &&
                         <div>
                             <div className='flex items-center space-x-3 w-full justify-between'>
-                                <select name="" id="" className='w-1/4' value={selectedOperationType} onChange={e=>setSelectedOperationType(e.target.value)}>
+                                <select name="" id="" className='w-1/4' value={selectedOperationType} onChange={e=>{
+                                        setSelectedOperationType(e.target.value);
+
+                                        const price = products.find(product=> product.id == e.target.value);
+                                        console.log(price)
+                                        setUnitPrice(+price?.unit);
+                                    }}>
                                     <option value="">Type d'opération</option>
-                                    <option value="NORMALE">Normale</option>
+                                    {
+                                        products.map(product=><option key={product.id} value={product.id}>{product.name}</option>)
+                                    }
+                                    {/* <option value="NORMALE">Normale</option>
                                     <option value="HORS_PESEE">Hors pesée</option>
-                                    <option value="TEST">Test</option>
+                                    <option value="TEST">Test</option> */}
                                 </select>
-                                <input type="number" name="" id="" placeholder='Prix unitaire' className='w-1/4' value={unitPrice} onChange={e=>setUnitPrice(e.target.value)}/>
+                                {/* <input type="number" name="" id="" placeholder='Prix unitaire' className='w-1/4' value={unitPrice} onChange={e=>setUnitPrice(e.target.value)} disabled={true}/> */}
+                                <div className='px-2 py-1 bg-gray-50 border-b-2 border-b-green-500'>
+                                <p>{isNaN(unitPrice) ? 0 : unitPrice}</p>
+                                </div>
                                 <input type="number" name="" id="" placeholder='Qté' className='w-1/4' value={operationQuantity} onChange={e=>setOperationQuantity(e.target.value)}/>
                                 <div className='px-2 py-1 bg-gray-50 border-b-2 border-b-green-500'>
-                                <p>{+operationQuantity * +unitPrice}</p>
+                                <p>{isNaN(+operationQuantity * +unitPrice)?0 : (+operationQuantity * +unitPrice)}</p>
                                 </div>
                                 <div className="flex items space-x-2 w-1/4">
                                 <button className='text-white p-2 text-sm bg-green-500 rounded-lg shadow' onClick={handleCreateOperation}>

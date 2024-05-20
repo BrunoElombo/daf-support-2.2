@@ -3,6 +3,7 @@ import { Drawer, Space } from 'antd';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLongLeftIcon, BanknotesIcon, BellIcon, ChartBarIcon, CogIcon, DocumentArrowDownIcon, DocumentArrowUpIcon, HomeIcon } from "@heroicons/react/24/outline";
 import { AUTHCONTEXT } from '../../context/AuthProvider';
+import VerifyPermissions from '../Permissions/VerifyPermissions';
 
 function DashboardHeader() {
 
@@ -69,10 +70,10 @@ const handleChangedEntity=async (id)=>{
             </div>
             <div className='flex items-center space-x-3'>
                 <div className='relative'>
-                    <div className='bg-red-500 w-3 h-3 rounded-full absolute right-0 -top-1'></div>
+                    <div className='bg-red-500 w-3 h-3 rounded-full absolute right-0 -top-1'>{}</div>
                     <BellIcon className="text-white h-6 w-6" />
                 </div>
-                <p onClick={()=>{setIsOpen(true)}} className='text-white text-sm bold cursor-pointer p-2 hover:bg-green-700'>Hi, {userInfo?.username}</p>
+                <p onClick={()=>{setIsOpen(true)}} className='text-white text-sm bold cursor-pointer p-2 hover:bg-green-700'>Hi, {userInfo?.User.name}</p>
             </div>
         </div>
         <div className='pt-5 px-5'>
@@ -107,12 +108,17 @@ const handleChangedEntity=async (id)=>{
                         <span>Reporting</span>
                     </Link>
                 </li> */}
-                <li>
-                    <Link className={`${pathname.includes("settings") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/settings"}>
-                        <CogIcon className="text-white h-6 w-6" />
-                        <span>Parametres</span>
-                    </Link>
-                </li>
+                <VerifyPermissions
+                    expected={["department_manager", "general_manager", "president", "paymaster_general"]}
+                    received={userInfo?.role.name}
+                >
+                        <li>
+                            <Link className={`${pathname.includes("settings") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/settings"}>
+                                <CogIcon className="text-white h-6 w-6" />
+                                <span>Parametres</span>
+                            </Link>
+                        </li>
+                </VerifyPermissions>
             </ul>
         </div>
         <Drawer
@@ -136,22 +142,28 @@ const handleChangedEntity=async (id)=>{
             <div>
                 <p><b>Nom d'utilisateur :</b></p>
                 <div className='p-2 bg-gray-200 border-gray-300 border-[1px] rounded-lg'>
-                   <p className='text-md'>{userInfo?.username}</p> 
+                   <p className='text-md'>{userInfo?.User.name}</p> 
+                </div>
+            </div>
+            <div>
+                <p><b>Role :</b></p>
+                <div className='p-2 bg-gray-200 border-gray-300 border-[1px] rounded-lg'>
+                   <p className='text-md'>{userInfo?.role.name}</p> 
                 </div>
             </div>
             <div>
                 <p><b>Entité :</b></p>
-                <hr /><br />
+                {/* <hr /><br /> */}
                 <div className='p-2 bg-gray-200 border-gray-300 border-[1px] rounded-lg'>
-                    <p>{defaultEntity.name}</p>
+                    <p>{userInfo?.entity.raison_social}</p>
                 </div>
-                <select name="" id="" className='w-full mt-2' onChange={(e)=>handleChangedEntity(e.target.value)}>
+                {/* <select name="" id="" className='w-full mt-2' onChange={(e)=>handleChangedEntity(e.target.value)}>
                     {
                         allEntities?.map(entity=>(
                             <option value={entity.id} key={entity.id} >{entity.name}</option>
                         ))
                     }
-                </select>
+                </select> */}
             </div>
         </div>
         </Drawer>

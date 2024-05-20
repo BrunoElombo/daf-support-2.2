@@ -36,47 +36,56 @@ model Employee {
   id_grade       String
   id_department    String? 
   id_user        String @unique
-
-  // Fonction      Function  @relation(fields: [id_function], references: [id])
+  id_entity String
+  id_function String?
+  id_role String?
+  is_active Boolean @default(true)
+  
+  entity Entity @relation(fields: [id_entity], references: [id])
+  Function Function? @relation(fields: [id_function], references: [id])
+  role Role? @relation(fields: [id_role], references: [id])
   Departement Department? @relation(fields: [id_department], references: [id], onDelete: Cascade)
   EchelonCategory EchelonCategory @relation(fields: [id_level], references: [id], onDelete: Cascade)
   Grade          Grade      @relation(fields: [id_grade], references: [id], onDelete: Cascade)
   User           User      @relation(fields: [id_user], references: [id], onDelete: Cascade)
+  
+  bank Bank[]
   // role Role?
-  EmployeeRole EmployeeRole[]
+  // EmployeeRole EmployeeRole[]
 }
 
 
 model Role{
   id String @id @default(uuid())
   name String?
-  power Int
+  power Int @default(0)
   // id_employee String @unique
   // employee Employee @relation(fields: [id_employee], references: [id], onDelete: Cascade)
-  id_entity String
-  entity Entity @relation(fields: [id_entity], references: [id], onDelete: Cascade)
+  // id_entity String
+  // entity Entity @relation(fields: [id_entity], references: [id], onDelete: Cascade)
 
-  EmployeeRole EmployeeRole[]
+  // EmployeeRole EmployeeRole[]
+  employee Employee[]
 }
 
 model EmployeeRole{
   id String @id @default(uuid())
   
-  id_role String
-  Role Role @relation(fields: [id_role], references: [id])
+  // id_role String
+  // Role Role @relation(fields: [id_role], references: [id])
 
   id_employee String
-  Employee Employee @relation(fields: [id_employee], references: [id])
+  // Employee Employee @relation(fields: [id_employee], references: [id])
 }
 
 model Function {
   id       String  @id @default(uuid())
   name       String
-  power      String?
+  power      Int? @default(0)
   
-  id_department String
-  department Department @relation(fields: [id_department], references: [id], onDelete: Cascade)
-  // employee Employee[]
+  // id_department String
+  // department Department @relation(fields: [id_department], references: [id], onDelete: Cascade)
+  employee Employee[]
 }
 
 model Entity {
@@ -87,9 +96,10 @@ model Entity {
   niu        String?
 
   department Department[]
-  role Role[]
+  employee Employee[]
+  // role Role[]
   site Site[]
-  BankAccount BankAccount[]
+  Bank Bank[]
   Product Product[]
 }
 
@@ -97,7 +107,7 @@ model ExternalEntity{
   id String @id @default(uuid())
   name String
   type Type_Entity[]
-  BankAccount BankAccount[]
+  Bank Bank[]
 }
 model Type_Entity{
   id String @id @default(uuid())
@@ -126,7 +136,7 @@ model Department {
   User User? @relation(fields: [id_user], references: [id], onDelete: Cascade)
   Entity     Entity  @relation(fields: [id_entity], references: [id], onDelete: Cascade)
   employee Employee []
-  fonction Function[]
+  // fonction Function[]
 }
 
 model Grade {
@@ -156,6 +166,13 @@ model Bank{
   name String
   sigle String
   Acronyme String
+  id_entity String?
+  id_employee String?
+  id_external_entity String?
+
+  externalEntity ExternalEntity? @relation(fields: [id_external_entity], references: [id])
+  entity Entity? @relation(fields: [id_entity], references: [id])
+  employee Employee? @relation(fields: [id_employee], references: [id])
 
   BanAccount BankAccount[]
 }
@@ -163,10 +180,6 @@ model BankAccount{
   id String @id @default(uuid())
   account_number String
   amount String
-  id_external_entity String?
-  ExternalEntity ExternalEntity? @relation(fields: [id_external_entity], references: [id])
-  id_entity String?
-  Entity Entity? @relation(fields: [id_entity], references: [id])
   id_bank String
   Bank Bank @relation(fields: [id_bank], references: [id])
 }

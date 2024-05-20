@@ -4,81 +4,52 @@ const prisma = new PrismaClient();
 const jwt = require('jsonwebtoken');
 
 
-exports.getUser =async (req, res) => {
+  exports.getUser =async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
-    try{
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const userId = decoded.id;
-        // const userId = req.params.userId;
-        // Fetch user details along with related information
-        const userDetails = await prisma.user.findUnique({
-          where: { id: userId },
-          include: {
-            employee: {
-              include: {
-                Departement: {
-                  include: {
-                    Function: true
-                  }
-                },
-                Role: true
-              }
-            }
-          }
-        });
-
-
-        // Fetch hierarchy and colleagues for each entity
-        const entities = userDetails.employee.map(emp => emp.Departement.Entity);
-
-        const hierarchy = await prisma.employee.findMany({
-          where: {
-            id_department: {
-              in: entities.map(entity => entity.id)
-            },
-            id_user: {
-              not: userId
-            },
-            Function: {
-              power: {
-                lt: {
-                  power: userDetails.employee.Function.power
-                }
-              }
+    try {
+      // Extract employee ID from JWT token payload
+      const decodedToken = jwt.decode(req.headers.authorization.split(' ')[1]);
+      const userId = decodedToken.id;
+  
+      // Fetch employee details along with related entities
+      const employee = await prisma.employee.findUnique({
+        where: {
+          id_user: userId,
+        },
+        include: {
+          User: {
+            select:{
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              profile_picture: true,
+              gender: true,
+              niu: true,
+              is_admin: true,
+              is_staff: true
             }
           },
-          include: {
-            User: true
-          }
-        });
+          entity:true,
+          role:true,
+          Departement:true
+        },
+      });
 
-        const colleagues = await prisma.employee.findMany({
-          where: {
-            id_department: {
-              in: entities.map(entity => entity.id)
-            },
-            id_user: {
-              not: userId
-            },
-            Function: {
-              power: {
-                gte: {
-                  power: userDetails.employee.Function.power
-                }
-              }
-            }
-          },
-          include: {
-            User: true
-          }
-        });
-
-        // Respond with the user details and related information
-        res.status(200).json({ userDetails, hierarchy, colleagues });
-      } catch (error) {
-        console.error('Error fetching user details:', error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
+      console.log(employee);
+  
+      // if (!employee) {
+      //   return res.status(200).json({ employee });
+      // }
+  
+      // Extract entities from the employee's departments
+      // const entities = employee.Departement.map((department) => department.Entity);
+  
+      return res.status(200).json(employee);
+    } catch (error) {
+      console.error('Error fetching employee entities:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   }
 
   exports.getAllUsers = async (req, res) => {

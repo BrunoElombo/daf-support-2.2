@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import LoginLayout from '../../Layout/LoginLayout'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import { Table, Modal, Drawer, Space } from 'antd'
@@ -8,8 +8,8 @@ import DetailCard from '../../components/DetailCard/DetailCard';
 import useFetch from '../../hooks/useFetch'
 import ValidationRecette from './ValidationRecette';
 import CreateRecetteForm from './CreateRecetteForm';
-
-
+import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
+import { AUTHCONTEXT } from '../../context/AuthProvider';
 
 const rowSelection = {
   onChange: (selectedRowKeys, selectedRows) => {
@@ -23,6 +23,8 @@ const rowSelection = {
 };
 
 function RecettePage() {
+
+  const { userInfo } = useContext(AUTHCONTEXT);
 
   const handleGetSites=async()=>{
     let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
@@ -391,10 +393,15 @@ const handleGetController = async()=>{
         <PageHeader>
           <input type="search" className='text-sm' placeholder='Rechercher une operation'/>
           <div>
-            <button 
-              className='text-white bg-green-500 p-2 rounded-lg shadow text-sm'
-              onClick={handleToggleOpenForm}
-            >Initier une opération</button>
+            <VerifyPermissions 
+              expected={["gueritte_chef", "accountant"]}
+              received={userInfo?.role.name}
+            >
+              <button 
+                className='text-white bg-green-500 p-2 rounded-lg shadow text-sm'
+                onClick={handleToggleOpenForm}
+              >Initier une opération</button>
+            </VerifyPermissions>
           </div>
         </PageHeader>
 

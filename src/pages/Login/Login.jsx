@@ -23,7 +23,8 @@ function Login() {
         console.log(userData);
         await localStorage.setItem("user", JSON.stringify(userData));
         await setUserInfo(userData);
-        navigate("/entities");
+        await setIsLoggedIn(true);
+        navigate("/");
         
       } catch (error) {
         alert("Failed to get user info");
@@ -57,10 +58,11 @@ function Login() {
       }
 
       try {
-        const response = await postData(import.meta.env.VITE_USER_API+"/api/token/", data, false);
-        const {access, refresh} = await response;
-        if(access && refresh){
-          localStorage.setItem("token", access);
+        const response = await postData(import.meta.env.VITE_USER_API+"/api/login/", data, false);
+        const {token} = await response;
+        
+        if(token){
+          localStorage.setItem("token", token);
           handleGetUserInfo();
           return
         }
