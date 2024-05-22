@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react'
 import LoginLayout from '../../Layout/LoginLayout'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import { InboxOutlined } from '@ant-design/icons';
-import { Table, Modal, Upload, Drawer, Space } from 'antd';
+import { Table, Modal, Upload, Drawer, Space, Select } from 'antd';
 import { v4 as uuidV4 } from 'uuid';
 import useFetch from '../../hooks/useFetch';
 const { Dragger } = Upload;
@@ -10,6 +10,7 @@ import { ChevronDoubleLeftIcon, ChevronDoubleRightIcon, TrashIcon, EllipsisHoriz
 import { AUTHCONTEXT } from '../../context/AuthProvider';
 import Collapsible from '../../components/Collapsible/Collapsible';
 import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
+import SuggestInput from '../../components/SuggestInput/SuggestInput';
 
 
 const props = {
@@ -45,7 +46,8 @@ const rowSelection = {
 
 const MAX_ALLOWED_AMOUNT = 100000;
 const MAX_ALLOWED_AMOUNT_OTHERS = 250000;
-let entityId = JSON.parse(localStorage.getItem("entity"))?.entity.id;
+let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
+
 function ExpensePage() {
 
   const {requestLoading, fetchData, postData, requestError, updateData} = useFetch();
@@ -82,11 +84,15 @@ function ExpensePage() {
       const [files, setFiles] = useState([]);
       const[recipientType, setRecipientType] = useState("");
       const[recipient, setRecipient] = useState("");
+
       const [selectedRecipe, setSelectedRecipe] = useState("");
 
       const [sites, setSites] = useState([]);
       const [beneficiaires, setBeneficiaires] = useState([]);
-
+      const [externalEntities, setExternalEntities] = useState([]);
+      const [bankEntity, setBankEntity] = useState([]);
+      const [accountNumbers, setAccountNumbers] = useState([]);
+      const [bankExternalEntity, setBankExternalEntity] = useState([]);
       const [selectedExpense, setSelectedExpense] = useState({})
 
       // Validation fields
@@ -154,6 +160,17 @@ function ExpensePage() {
 
       const [newRefNumber, setNewRefNumber] = useState('');
     
+      const filterOption = (input, option) =>
+        (option?.account_number ?? '').toLowerCase().includes(input.toLowerCase());
+      
+      const onChange = (value) => {
+        console.log(`selected ${value}`);
+      };
+
+      const onSearch = (value) => {
+        console.log('search:', value);
+      };
+
       const start = () => {
         setLoading(true);
         // ajax request after empty completing
@@ -186,44 +203,6 @@ function ExpensePage() {
 
       const hasSelected = selectedRowKeys.length > 0;
     
-      const operationCol = [
-        {
-          title: 'Type d\'opération',
-          dataIndex: 'operation',
-          key: 'operation',
-        },
-        {
-          title: 'Site',
-          dataIndex: 'site',
-          key: 'operation',
-        },
-        {
-          title: 'P.U',
-          dataIndex: 'unitaire',
-          key: 'unitaire',
-        },
-        {
-          title: 'Qté',
-          dataIndex: 'qty',
-          key: 'qty',
-        },
-        {
-          title: 'Total',
-          render: (text, record)=>(
-            <>{+record.qty*+record.unitaire}</>
-          )
-        },
-        {
-          title: 'Action',
-          render: ()=>(
-            <div className='flex items-start space-x-2 text-xs'>
-              <span className='text-green-500 cursor-pointer'>Éditer</span>
-              <span className='text-red-500 cursor-pointer'>Supprimer</span>
-            </div>
-          )
-        }
-      ]
-      
       const expensesCol = [
         {
           title: 'Numéro de références',
@@ -298,15 +277,6 @@ function ExpensePage() {
       const handleToggleOpenForm = () =>{
         setIsOpen(!isOpen);
       }
-      
-      const handleNextStep = () =>{
-        const step = currentStep;
-        setCurrentStep(step+1);
-      }
-      const handlePrevStep = () =>{
-        const step = currentStep;
-        setCurrentStep(step-1);
-      }
 
       const handleShowDetails=async(id)=>{
         setIsOpenDrawer(true);
@@ -317,18 +287,8 @@ function ExpensePage() {
         const selected = expenseDataSrc.find(expense=>expense.id === id);
         setSelectedExpense(detail.result);
       }
-
-      const generateRefNumber = () => {
-        const existingNumbers = expenseDataSrc.map(expense => parseInt(expense.ref_number.split('/')[0]));
-        const nextNumber = existingNumbers.length === 0 ? 1001 : Math.max(...existingNumbers) + 1;
-        const today = new Date();
-        const formattedDate = `${today.getMonth() + 1}/${today.getFullYear()}`; // Use month + 1 for correct indexing (0-based)
-        return `${nextNumber}/${formattedDate}`;
-      };
-
-      
       const handleGellAllExpenses = async() =>{
-        let entityId = JSON.parse(localStorage.getItem("entity"))?.entity.id
+        let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
         try {
           const response = await fetchData(import.meta.env.VITE_DAF_API+"/expensesheet/?entity_id="+entityId);
           setExpenseDataSrc(response);
@@ -336,19 +296,39 @@ function ExpensePage() {
           console.log(error.message);
         }
       }
-    
       const handleGetSite=async()=>{
         let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
         if(!requestError){
           setSites(response);
         }
       }
-
       const handleBenef = async()=>{
-        const benef = await fetchData(import.meta.env.VITE_USER_API+"/users");
+        const benef = await fetchData(import.meta.env.VITE_USER_API+"/employees");
         if(!requestError){
           let result = benef;
           setBeneficiaires(result);
+        }
+      }
+      const handleExternalEntity = async()=>{
+        const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
+        if(!requestError){
+          let result = external;
+          setExternalEntities(result);
+        }
+      }
+
+      const handleGetBank= async()=>{
+        const banks = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity_banks");
+        if(!requestError){
+          console.log(banks)
+          setBankEntity(banks);
+        }
+      }
+
+      const handleGetExternalBank= async()=>{
+        const banks = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
+        if(!requestError){
+          setBankExternalEntity(banks);
         }
       }
 
@@ -469,6 +449,9 @@ function ExpensePage() {
         handleGellAllExpenses();
         handleGetSite();
         handleBenef();
+        handleExternalEntity();
+        handleGetBank();
+        handleGetExternalBank();
       } , []);
 
       return (
@@ -477,17 +460,18 @@ function ExpensePage() {
             <PageHeader>
               <input type="search" className='text-sm' placeholder='Rechercher une operation'/>
               <VerifyPermissions
-                expected={["is_director","is_president","paymaster_general"]}
-                received={userInfo?.role.name}
+                expected={["coordinator","chief_financial_officer","operations_manager"]}
+                roles={userInfo?.role?.name}
+                functions={userInfo?.Function?.name}
               >
                 <button 
-                  className='text-white bg-green-500 p-2 rounded-lg shadow text-sm'
+                  className={`text-white ${requestLoading? "bg-green-300" : "bg-green-500"}  p-2 rounded-lg shadow text-sm`}
                   onClick={handleToggleOpenForm}
-                >Initier une dépense</button>
+                >{requestLoading ? "En cours de création":"Initier une dépense"}</button>
               </VerifyPermissions>
             </PageHeader>
             <div className='border-[1px] border-gray-100 w-full p-3 rounded-md mt-3 overflow-x-auto'>
-              <div className='flex items-center mb-3 space-x-3 justify-end'>
+              {/* <div className='flex items-center mb-3 space-x-3 justify-end'>
                 <select name="" id="" className='text-sm'>
                   <option value="">choisir une Actions</option>
                   <option value="valider">Valider</option>
@@ -497,14 +481,14 @@ function ExpensePage() {
                 <button className={`${hasSelected?"bg-green-500":"bg-green-200"} text-white btn btn-primary rounded-lg shadow text-sm cursor-pointer`} onClick={start} disabled={!hasSelected} loading={loading}>
                   Soumettre
                 </button>
-              </div>
+              </div> */}
               
               <Table 
                 //  rowSelection={rowSelection}
-                rowSelection={{
-                  type: selectionType,
-                  ...rowSelection,
-                }}
+                // rowSelection={{
+                //   type: selectionType,
+                //   ...rowSelection,
+                // }}
                 dataSource={expenseDataSrc}
                 columns={expensesCol}
                 footer={()=>(
@@ -545,24 +529,25 @@ function ExpensePage() {
                     { paymentMode === "VIREMENT" &&
                       <>
                         <div className='w-full flex items-center space-x-3'>
-                          <select className="w-1/2" name="" id="" value={originAccount} onChange={e=>setOriginAccount(e.target.value)}>
+                          <select className="w-1/2" name="" id="" value={originAccount} onChange={e=>{
+                              setOriginAccount(e.target.value);
+                              const account = bankEntity.filter(account => account?.bank.id === e.target.value);
+                              setAccountNumbers(account[0]?.bank.bank_account);
+                              setDestinationAccount("");
+                            }}>
                             <option value="">Choisir la banque opérateur</option>
-                            <option value="UBA">UBA</option>
-                            <option value="Ecobank">Ecobank</option>
-                            <option value="BGFI">BGFI</option>
-                            <option value="Afriland">Afriland</option>
+                            {
+                              bankEntity.map(bank=><option key={bank?.bank.id} value={bank?.bank.id}>{bank?.bank.sigle}</option>)
+                            }
                           </select>
-                          <input type="text" placeholder='Numéro du compte opérateur' className="w-1/2"/>
+                          <SuggestInput 
+                            inputValue={destinationAccount} 
+                            setInputValue={setDestinationAccount} 
+                            dataList={accountNumbers}
+                          />
                         </div>
                         <div className='w-full flex items-center space-x-3'>
-                          <select className="w-1/2" name="" id="" value={destinationAccount} onChange={e=>setDestinationAccount(e.target.value)}>
-                            <option value="">Choisir la banque bénéficiaire</option>
-                            <option value="UBA">UBA</option>
-                            <option value="Ecobank">Ecobank</option>
-                            <option value="BGFI">BGFI</option>
-                            <option value="Afriland">Afriland</option>
-                          </select>
-                          <input className="w-1/2" type="text" placeholder='Numéro du compte bénéficiaire'/>
+                          <input className="w-full" type="text" placeholder='Numéro du compte bénéficiaire'/>
                         </div>
                       </>
                     }
@@ -572,25 +557,31 @@ function ExpensePage() {
                         sites?.map(site=><option value={site?.id} key={site?.id}>{site?.name}</option>)
                       }
                     </select>
-                    <select className='' name="" id="" value={beneficiaire} onChange={e=>setBeneficiaire(e.target.value)}>
-                      <option value="">Choisir le beneficiaire</option>
-                      {/* {
-                        beneficiaires.map(benef=><option value={benef?.id} key={benef?.id}>{benef?.first_name}{" "}{benef?.last_name}</option>)
-                      } */}
-                    </select>
                     <div className='w-full flex items-center space-x-2'>
                       <select name="" id="" className='w-1/2' value={recipientType} onChange={e=>setRecipientType(e.target.value)}>
                         <option value="">Type de destinaire</option>
                         <option value="PERSONNEPHYSIQUE">Personne physique</option>
                         <option value="PERSONNEMORALE">Personne morale</option>
-                        <option value="EMPLOYEES">Employées</option>
+                        {/* <option value="EMPLOYEES">Employées</option> */}
                       </select>
-                      <select name="" id="" className='w-1/2' value={recipient} onChange={e=>setRecipient(e.target.value)}>
-                        <option value="">Choisir le destinataire</option>
-                        {
-                          // beneficiaires.map(benef=><option value={benef?.id} key={benef?.id}>{benef?.first_name}{" "}{benef?.last_name}</option>)
-                        }
-                      </select>
+                      { 
+                        recipientType === "PERSONNEPHYSIQUE" || recipientType === "" ?
+                          <select name="" id="" className='w-1/2' value={beneficiaire} onChange={e=>setBeneficiaire(e.target.value)}>
+                            <option value="">Choisir le destinataire</option>
+                            {
+                              beneficiaires.map(benef=><option value={benef?.id} key={benef?.id}>{benef?.User.name}</option>)
+                            }
+                          </select>
+                        :
+                        recipientType === "PERSONNEMORALE" &&
+                        <select name="" id="" className='w-1/2' value={recipient} onChange={e=>setRecipient(e.target.value)}>
+                          <option value="">Choisir l'entité</option>
+                          {
+                            externalEntities.map(ext=><option value={ext?.external_entity.id} key={ext?.external_entity.id}>{ext?.external_entity.name}</option>)
+                          }
+                        </select>
+                      
+                      }
                       {/* <input className='w-1/3' type="text" placeholder='Raison social' value={companyName} onChange={e=>setCompanyName(e.target.value)}/> */}
                     </div>
                     {
@@ -598,17 +589,17 @@ function ExpensePage() {
                       <input type="text" placeholder='NIU'/>
                     }
                     <input type="number" className='' placeholder='Montant' value={montant} onChange={e=>setMontant(e.target.value)}/>
-                    <Dragger {...props}>
+                    {/* <Dragger >
                       <p className="ant-upload-text text-xs flex items-center justify-center"> 
                         <PaperClipIcon className='text-gray-500 h-6 w-6'/>
                         Piece jointe
                       </p>
-                    </Dragger>
+                    </Dragger> */}
                     <textarea name="" id="" cols="30" rows="5" placeholder='Description' value={description} onChange={e=>setDescription(e.target.value)}></textarea>
                   </form>
                   <div className="flex justify-end">
                     <button className={`${requestLoading ? "bg-green-300" : "bg-green-500"} btn btn-ptimary  text-white text-sm shadow flex items-center`} onClick={handleSubmitOperation} disabled={requestLoading}> 
-                      Initier
+                      Initier la dépense
                     </button>
                   </div>
                 </div>

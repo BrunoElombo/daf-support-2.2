@@ -6,7 +6,7 @@ import {AUTHCONTEXT} from '../../context/AuthProvider';
 
 function Login() {
 
-  const { setIsLoggedIn, setUserInfo } = useContext(AUTHCONTEXT);
+  const { setIsLoggedIn, setUserInfo, userInfo } = useContext(AUTHCONTEXT);
 
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -24,8 +24,15 @@ function Login() {
         await localStorage.setItem("user", JSON.stringify(userData));
         await setUserInfo(userData);
         await setIsLoggedIn(true);
-        navigate("/");
-        
+        if(userData?.User.role?.name === "president" 
+        || userData?.User.role?.name === "general_manager" 
+        || userData?.User.role?.name === "chief_financial_officer" 
+        || userData?.User.Function?.name === "operations_manager"){
+          navigate("/");
+        }
+        else{
+          navigate("/recette");
+        }
       } catch (error) {
         alert("Failed to get user info");
         console.error(`Error: ${error.message}`);

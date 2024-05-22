@@ -32,6 +32,7 @@ const jwt = require('jsonwebtoken');
           },
           entity:true,
           role:true,
+          Function: true,
           Departement:true
         },
       });

@@ -19,12 +19,12 @@ exports.getEmployeeHierarchy = async (req, res) => {
           { id_entity: currentUser.id_entity },
           {
             role: {
-              power: { lt: currentUser.role ? currentUser.role.power : 0 },
-            }
+              power: { lte: currentUser.role ? currentUser.role.power : 0 },
+            },
           }
         ]
       },
-      include:{
+      select:{
         User: true,
         role:true,
         Function: true
@@ -37,7 +37,7 @@ exports.getEmployeeHierarchy = async (req, res) => {
           { id_department: currentUser.id_department },
           {
             Function: { 
-              power: {lt: currentUser.Function ? currentUser.Function.power : 0}
+              power: {lte: currentUser.Function ? currentUser.Function.power : 0}
              }
           }
         ]
@@ -56,10 +56,12 @@ exports.getEmployeeHierarchy = async (req, res) => {
             is_staff: true
           }
         },
+        role:true,
+        Function:true
       }
     });
 
-    res.json([...entityHierarchy, ...departementHierarchy]);
+    res.json({"entity_hierarchy": (entityHierarchy), "department_hierarchy":(departementHierarchy)});
 
   } catch (error) {
     console.error(error);
@@ -86,8 +88,9 @@ exports.getEmployeeColleagues = async (req, res) => {
 exports.getEmployeeEntities = async (req, res)=>{
   const decodedToken = jwt.decode(req.headers.authorization.split(' ')[1]);
   const userId = decodedToken.id;
-
-  const entity_id = req.query.entity_id;
+  
+  const entity_id = req.params.entity_id;
+  // return res.status(200).send(entity_id)
   
   if(entity_id){
     try {
@@ -95,8 +98,12 @@ exports.getEmployeeEntities = async (req, res)=>{
         where:{
           id_user: userId
         },
-        include:{
-          
+        select:{
+          User:{
+            include:{
+              employee:true
+            }
+          },
           entity:true,
           Function:true,
           role:{
@@ -149,8 +156,11 @@ exports.getEmployeeEntities = async (req, res)=>{
           }
         }
       });
+
+      console.log(employeeInEntity)
       res.status(200).send(employeeInEntity);
     } catch (error) {
+      console.log(error)
       res.status(500).send(error);
     }
   }

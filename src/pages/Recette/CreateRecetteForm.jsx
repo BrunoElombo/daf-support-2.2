@@ -11,7 +11,7 @@ function CreateRecetteForm(
 
     const {userInfo} = useContext(AUTHCONTEXT);
 
-    const entityValue = JSON.parse(localStorage.getItem('entity'))?.entity.id;
+    const entityValue = JSON.parse(localStorage.getItem('user'))?.entity.id;
     const numberWithCommas=(x)=>{
         return x?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
     }
@@ -24,10 +24,11 @@ function CreateRecetteForm(
     }
 
     const handleGetController = async()=>{
-        const controller = await fetchData(import.meta.env.VITE_USER_API+"/users");
+        const controller = await fetchData(import.meta.env.VITE_USER_API+"/employees");
         try {
             let result = controller ;
             setEmployeesControllers(result)
+            console.log(result);
         } catch (error) {
             console.error("Error creating recipe:", error);
         }
@@ -256,7 +257,8 @@ function CreateRecetteForm(
                     <VerifyPermissions 
                         // expected={["accountant"]}
                         expected={["guerrite_chef"]}
-                        received={userInfo?.role.name}
+                        roles={userInfo?.role?.name}
+                        functions={userInfo?.Function?.name}
                         // received={userInfo?.role.name}
                         // isExcluded={true}
                     >
@@ -271,7 +273,10 @@ function CreateRecetteForm(
                         <option value="ESPECES">Espèces</option>
                         <VerifyPermissions 
                             expected={["gueritte_chef"]}
-                            received={userInfo?.role.name}
+                            // received={userInfo?.role.name || userInfo?.Function.name}
+                            roles={userInfo?.role?.name}
+                            functions={userInfo?.Function?.name}
+                            isExclude={true}
                         >
                             <option value="CARTE">Carte</option>
                             <option value="VIREMENT">Virement</option>
@@ -281,7 +286,9 @@ function CreateRecetteForm(
                     </select>
                     <VerifyPermissions
                         expected={["guerrite_chef"]}
-                        received={userInfo?.role.name}
+                        // received={userInfo?.role.name || userInfo?.Function.name}
+                        roles={userInfo?.role?.name}
+                        functions={userInfo?.Function?.name}
                     >
                         <select name="" id="" value={provenanceValue} onChange={e=>setProvenanceValue(e.target.value)}>
                             <option value="">Provenance</option>
@@ -311,14 +318,16 @@ function CreateRecetteForm(
                     recipeType === "TO BE INVOICED" &&
                     <select name="" id="" value={employeeController} onChange={e=>setEmployeeController(e.target.value)}>
                         <option value="">Choisir le controleur</option>
-                        {/* {
-                          employeesControllers?.map(controller=><option value={controller?.id} key={controller?.id}>{controller?.first_name}</option>)
-                        } */}
+                        {
+                          employeesControllers.map(controller=><option value={controller?.User?.id} key={controller?.User?.id}>{controller?.User?.name?.toUpperCase()}</option>)
+                        }
                     </select>
                     }
                     <VerifyPermissions
                         expected={[""]}
-                        received={userInfo?.role.name}
+                        // received={userInfo?.role.name || userInfo?.Function.name}
+                        roles={userInfo?.role?.name}
+                        functions={userInfo?.Function?.name}
                     >
                         <select name="" id="" value={shiftValue} onChange={e=>setShiftValue(e.target.value)}>
                             <option value="">Choisir le shift</option>
@@ -334,8 +343,10 @@ function CreateRecetteForm(
                     <VerifyPermissions
                         // expected={["gueritte_chef"]}
                         // received={userInfo?.role.name}
-                        expected={[""]}
-                        received={""}
+                        expected={["gueritte_chef"]}
+                        // received={""}
+                        roles={userInfo?.role?.name}
+                        functions={userInfo?.Function?.name} 
                     >
                         <button className={`btn ${true ? "bg-green-500" :"bg-green-300 cursor-not-allowed"} text-white text-sm shadow flex items-center`} onClick={handleNextStep} disabled={nextIsEnabled}> 
                             Suivant
@@ -343,9 +354,10 @@ function CreateRecetteForm(
                         </button>
                     </VerifyPermissions>
                     <VerifyPermissions
-                        expected={["gueritte_chef"]}
-                        received={userInfo?.role.name}
-                        // isExclude={true} 
+                        expected={[""]}
+                        roles={userInfo?.role?.name}
+                        functions={userInfo?.Function?.name}
+                        isExclude={true} 
                     >
                         <button className={`btn ${nextIsEnabled || !requestLoading ? "bg-green-500" :"bg-green-300 cursor-not-allowed"} text-white text-sm shadow flex items-center`}  onClick={handleCreateRecettes}> 
                             {requestLoading ? "En cours...":"Initier"}

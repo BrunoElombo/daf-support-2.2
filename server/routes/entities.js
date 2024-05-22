@@ -11,6 +11,6 @@ router.put('/:id',  verifyToken, EntityController.updateEntity);
 router.delete('/:id',   verifyToken, EntityController.deleteEntity);
 
 // Get entity detail including specific employees
-router.get('/:id_entity/detail', EntityController.getEntityDetail);
+router.get('/:entity_id', EntityController.getEmployeeEntities);
 
 module.exports = router;

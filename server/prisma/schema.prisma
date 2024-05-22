@@ -87,8 +87,18 @@ model Entity {
   Product Product[]
   entity_bank EntityBank []
   external_entity ExternalEntity[]
+  associer Associer[]
 }
 
+
+model Associer{
+  id String @id @default(uuid())
+  id_entity String
+  id_external_entity String
+
+  entity Entity @relation(fields: [id_entity], references: [id])
+  external_entity ExternalEntity @relation(fields: [id_external_entity], references: [id])
+}
 model ExternalEntity{
   id String @id @default(uuid())
   name String
@@ -97,6 +107,7 @@ model ExternalEntity{
 
   type Type_Entity[]
   external_entity ExternalEntityBank[]
+  associer Associer[]
 }
 
 model Type_Entity{

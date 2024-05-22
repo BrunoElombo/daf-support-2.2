@@ -78,24 +78,42 @@ const handleChangedEntity=async (id)=>{
         </div>
         <div className='pt-5 px-5'>
             <ul className='space-x-4 flex text-sm text-white'>
-                <li>
-                    <Link to={"/dashboard"} className={`${(pathname.includes("dashboard") || pathname === "/") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`}>
-                        <HomeIcon className="text-white h-6 w-6" />
-                        <span>Dashboard</span>
-                    </Link>
-                </li>
-                <li>
-                    <Link to={"/recette"} className={`${pathname.includes("recette") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`}>
-                        <DocumentArrowDownIcon className="text-white h-6 w-6" />
-                        <span>Fiche de recette</span>
-                    </Link>
-                </li>
-                <li>
-                    <Link className={`${pathname.includes("expense") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/expense"}>
-                        <DocumentArrowUpIcon className="text-white h-6 w-6" />
-                        <span>Fiche de dépense</span>
-                    </Link>
-                </li>
+                <VerifyPermissions
+                    expected={["department_manager", "general_manager", "president", "operations_manager"]}
+                    roles={userInfo?.role?.name}
+                    functions={userInfo?.Function?.name}
+                >
+                    <li>
+                        <Link to={"/dashboard"} className={`${(pathname.includes("dashboard") || pathname === "/") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`}>
+                            <HomeIcon className="text-white h-6 w-6" />
+                            <span>Dashboard</span>
+                        </Link>
+                    </li>
+                </VerifyPermissions>
+                    <li>
+                        <Link to={"/recette"} className={`${pathname.includes("recette") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`}>
+                            <DocumentArrowDownIcon className="text-white h-6 w-6" />
+                            <span>Fiche de recette</span>
+                        </Link>
+                    </li>
+                {/* <VerifyPermissions
+                    expected={["department_manager", "general_manager", "president", "paymaster_general", "gueritte_chef"]}
+                    roles={userInfo?.role.name}
+                    functions={userInfo?.Function.name}
+                >
+                </VerifyPermissions> */}
+                <VerifyPermissions
+                    expected={["department_manager", "general_manager", "president", "operations_manager", "paymaster_general", "coordinator", "chief_financial_officer"]}
+                    roles={userInfo?.role?.name}
+                    functions={userInfo?.Function?.name}
+                >
+                    <li>
+                        <Link className={`${pathname.includes("expense") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/expense"}>
+                            <DocumentArrowUpIcon className="text-white h-6 w-6" />
+                            <span>Fiche de dépense</span>
+                        </Link>
+                    </li>
+                </VerifyPermissions>
                 {/* <li>
                     <Link className={`${pathname.includes("caisse") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/caisse"}>
                         <BanknotesIcon className="text-white h-6 w-6" />
@@ -109,15 +127,16 @@ const handleChangedEntity=async (id)=>{
                     </Link>
                 </li> */}
                 <VerifyPermissions
-                    expected={["department_manager", "general_manager", "president", "paymaster_general"]}
-                    received={userInfo?.role.name}
+                    expected={["chief_financial_officer", "general_manager", "president", "operations_manager"]}
+                    roles={userInfo?.role?.name}
+                    functions={userInfo?.Function?.name}
                 >
-                        <li>
-                            <Link className={`${pathname.includes("settings") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/settings"}>
-                                <CogIcon className="text-white h-6 w-6" />
-                                <span>Parametres</span>
-                            </Link>
-                        </li>
+                    <li>
+                        <Link className={`${pathname.includes("settings") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/settings"}>
+                            <CogIcon className="text-white h-6 w-6" />
+                            <span>Parametres</span>
+                        </Link>
+                    </li>
                 </VerifyPermissions>
             </ul>
         </div>
@@ -142,13 +161,13 @@ const handleChangedEntity=async (id)=>{
             <div>
                 <p><b>Nom d'utilisateur :</b></p>
                 <div className='p-2 bg-gray-200 border-gray-300 border-[1px] rounded-lg'>
-                   <p className='text-md'>{userInfo?.User.name}</p> 
+                   <p className='text-md'>{userInfo?.User?.name}</p> 
                 </div>
             </div>
             <div>
-                <p><b>Role :</b></p>
+                <p><b>Role / Function :</b></p>
                 <div className='p-2 bg-gray-200 border-gray-300 border-[1px] rounded-lg'>
-                   <p className='text-md'>{userInfo?.role.name}</p> 
+                   <p className='text-md'>{userInfo?.role?.name || userInfo?.Function?.name}</p> 
                 </div>
             </div>
             <div>

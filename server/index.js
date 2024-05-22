@@ -7,13 +7,14 @@ const userRoutes = require("./routes/user");
 const authRoutes = require("./routes/auth");
 const employeeRoutes = require("./routes/employee");
 const entitiesRoutes = require("./routes/entities");
+const externalEntitiesRoutes = require("./routes/externalEntity");
 const sitesRoutes = require("./routes/site");
 const productRoutes = require("./routes/product");
 const bankRoutes = require("./routes/bank");
 
 const app = express();
 
-// const ipAddress = '172.19.120.187';
+const ipAddress = '172.19.120.187';
 
 const corsOptions = {
     origin: "*"
@@ -36,10 +37,11 @@ app.use("/api", authRoutes);
 app.use("/users", userRoutes);
 app.use("/employees", employeeRoutes);
 app.use("/entities",entitiesRoutes);
+app.use("/external_entities",externalEntitiesRoutes);
 app.use("/sites",sitesRoutes);
 app.use("/products", productRoutes);
 app.use("/banks", bankRoutes);
 
-app.listen(process.env.PORT, ()=>{
-    console.log(`Server listening on http://127.0.0.1:${process.env.PORT}`)
+app.listen(process.env.PORT, ipAddress, ()=>{
+    console.log(`Server listening on http://${ipAddress}:${process.env.PORT}`)
 })

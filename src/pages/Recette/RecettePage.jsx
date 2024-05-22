@@ -43,7 +43,7 @@ const handleGetController = async()=>{
     }
 }
   const {fetchData, postData, requestError} = useFetch();
-  const entityValue = JSON.parse(localStorage.getItem('entity'))?.entity.id;
+  const entityValue = JSON.parse(localStorage.getItem('user'))?.entity.id;
   const [selectionType, setSelectionType] = useState('checkbox');
   // Recette can be of 2 types, Recette Portiere and Reglement de Factures. The inputs depends on what is selected
   const  [recipeDataSrc, setRecetteDataSrc] = useState([]);
@@ -226,11 +226,11 @@ const handleGetController = async()=>{
       title: 'Controleur',
       dataIndex: 'employee_controller',
       key: 'employee_controller',
-      render:(text, record)=>{
-        const employee = employeesControllers?.find(controller => controller.id === text);
-        console.log(employee)
-        return <>{employee? employee.first_name : text}</>
-      }
+      // render:(text, record)=>{
+      //   // const employee = employeesControllers?.find(controller=>controller?.id === text);
+      //   // console.log(employee)
+      //   return <>{employee? employee?.first_name : text}</>
+      // }
     },
     {
       title: 'Provenance',
@@ -295,7 +295,7 @@ const handleGetController = async()=>{
     try {
       const response = await fetchData(url);
       console.log(response);
-      setRecetteDataSrc(response);
+      setRecetteDataSrc(response?.results);
     } catch (error) {
       console.error("Error creating recipe:", error);
       // alert(`Failed to create recipe: ${error.message || 'An unknown error occurred.'}`);
@@ -395,7 +395,9 @@ const handleGetController = async()=>{
           <div>
             <VerifyPermissions 
               expected={["gueritte_chef", "accountant"]}
-              received={userInfo?.role.name}
+              // received={userInfo?.role.name || userInfo?.Function.name}
+              roles={userInfo?.role?.name}
+              functions={userInfo?.Function?.name}
             >
               <button 
                 className='text-white bg-green-500 p-2 rounded-lg shadow text-sm'
@@ -409,7 +411,7 @@ const handleGetController = async()=>{
         <div className='border-[1px] border-gray-100 w-full p-3 rounded-md mt-3'>
 
           {/* Action to perform on selected recettes */}
-          <div className='flex items-center mb-3 space-x-3 justify-end'>
+          {/* <div className='flex items-center mb-3 space-x-3 justify-end'>
             <select name="" id="" className='text-sm'>
               <option value="">choisir une Actions</option>
               <option value="valider">Valider</option>
@@ -418,7 +420,7 @@ const handleGetController = async()=>{
             <button className={`${hasSelected?"bg-green-500":"bg-green-200"} text-white btn btn-primary rounded-lg shadow text-sm cursor-pointer`} onClick={()=>{}} disabled={!hasSelected}>
               Soumettre
             </button>
-          </div>
+          </div> */}
 
 
           {/* Recette Table */}
@@ -430,7 +432,7 @@ const handleGetController = async()=>{
                 }}
                 footer={() => <div className='flex'>
                   <p className='text-sm'>
-                    Total : <b className='bg-yellow-300 p-2 rounded-lg'>{recipeDataSrc.length > 0 ? numberWithCommas(sumMontants(recipeDataSrc)): "0"} XAF</b>
+                    Total : <b className='bg-yellow-300 p-2 rounded-lg'>{recipeDataSrc?.length > 0 ? numberWithCommas(sumMontants(recipeDataSrc)): "0"} XAF</b>
                   </p>
                 </div>}
                 dataSource={recipeDataSrc}

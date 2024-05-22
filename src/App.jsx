@@ -11,6 +11,7 @@ import ExpensePage from './pages/Expense/ExpensePage';
 import ReportingPage from './pages/Reporting/ReportingPage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import Caisse from './pages/Caisse/Caisse';
+import VerifyPermissions from './components/Permissions/VerifyPermissions';
 
 function App() {
 
@@ -58,6 +59,7 @@ function App() {
         (
           <Routes>
             <Route path={'*'} element={<Dashboard />} />
+            <Route path={'/'} element={<Dashboard />} />
             <Route path={'/dashboard'} element={<Dashboard />} />
             <Route path={'/recette'} element={<RecettePage />} />
             <Route path={'/expense'} element={<ExpensePage />} />

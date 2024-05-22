@@ -71,93 +71,89 @@ const EntityController = {
 
       
 
-      // const userInfo = await prisma.user.findUnique({
-      //   where:{id: userId},
-      //   select:{
-      //     id: true,
-      //     name: true,
-      //     email: true,
-      //     phone: true,
-      //     profile_picture: true,
-      //     gender: true,
-      //     niu: true,
-      //     is_admin: true,
-      //     is_staff: true,
-      //   },
-      // });
+      const userInfo = await prisma.user.findUnique({
+        where:{id: userId},
+        select:{
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          profile_picture: true,
+          gender: true,
+          niu: true,
+          is_admin: true,
+          is_staff: true,
+        },
+      });
 
-      // const employeeInfo = await prisma.employee.findUnique({
-      //   where: {id_user:userInfo.id}
-      // })
+      const employeeInfo = await prisma.employee.findUnique({
+        where: {id_user:userInfo.id}
+      })
 
-      // const memberInfo = {
-      //   ...userInfo,
-      //   ...employeeInfo
-      // }
+      const memberInfo = {
+        ...userInfo,
+        ...employeeInfo
+      }
 
-      // // Get the user entity by id
-      // const entityId = req.params.id;
-      // const entity = await prisma.entity.findUnique({
-      //   where: { id: entityId },
-      //   include: {
-      //     department: {
-      //       include: {
-      //         User: {
-      //           select:{
-      //             id:true,
-      //             name: true,
-      //             email: true,
-      //             phone: true,
-      //             profile_picture: true,
-      //             gender: true,
-      //             niu: true,
-      //             is_admin: true,
-      //             is_staff: true
-      //           }
-      //         }, // Include the User model associated with the department
-      //       },
-      //     },
-      //     role: {
-      //       include:{
-      //         EmployeeRole: {
-      //           select:{
-      //             Employee:{
-      //               include: {
-      //                 User: {
-      //                   select:{
-      //                     id:true,
-      //                     name: true,
-      //                     email: true,
-      //                     phone: true,
-      //                     profile_picture: true,
-      //                     gender: true,
-      //                     niu: true,
-      //                     is_admin: true,
-      //                     is_staff: true
-      //                   }
-      //                 }
-      //               }
-      //             }
-      //           }
-      //         }
-      //       }
-      //     }
-      //   }
-      // });
+      // Get the user entity by id
+      const entityId = req.params.id;
+      const entity = await prisma.entity.findMany({
+        where: { id: entityId },
+        include: {
+          department: {
+            include: {
+              User: {
+                select:{
+                  id:true,
+                  name: true,
+                  email: true,
+                  phone: true,
+                  profile_picture: true,
+                  gender: true,
+                  niu: true,
+                  is_admin: true,
+                  is_staff: true
+                }
+              }, // Include the User model associated with the department
+            },
+          },
+          role: {
+            include:{
+              EmployeeRole: {
+                select:{
+                  Employee:{
+                    include: {
+                      User: {
+                        select:{
+                          id:true,
+                          name: true,
+                          email: true,
+                          phone: true,
+                          profile_picture: true,
+                          gender: true,
+                          niu: true,
+                          is_admin: true,
+                          is_staff: true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
 
+      const result = {
+        member: memberInfo,
+        entity: entity,
+      }
 
-
-
-
-      // const result = {
-      //   member: memberInfo,
-      //   entity: entity,
-      // }
-
-      // if (!entity) {
-      //   return res.status(404).json({ error: 'Entity not found' });
-      // }
-      // res.status(200).json(result);
+      if (!entity) {
+        return res.status(404).json({ error: 'Entity not found' });
+      }
+      res.status(200).json(result);
     } catch (error) {
       console.error('Error fetching entity:', error);
       res.status(500).json({ error: 'Internal server error' });
@@ -245,7 +241,7 @@ const EntityController = {
       where: {
         id_department: {
           in: {
-            id_entity
+            entity_id
           }
         },
         Function: {
@@ -256,8 +252,84 @@ const EntityController = {
         User: true
       }
     });
-  }
+  },
 
+
+
+
+  getEmployeeEntities : async (req, res)=>{
+    const decodedToken = jwt.decode(req.headers.authorization.split(' ')[1]);
+    const userId = decodedToken.id;
+  
+    const entity_id = req.params.entity_id;
+    
+    if(entity_id){
+      try {
+        const employeeInEntity = await prisma.employee.findUnique({
+          where:{
+            id_user: userId
+          },
+          include:{
+            
+            entity:true,
+            Function:true,
+            role:{
+              where:{
+                OR: [
+                  {name: 'president'}, 
+                  {name:"general_manager"}, 
+                  {name:"budgetary_department_manager"}, 
+                  {name:"paymaster_general"},
+                  {name:"cordinator"},
+                  {name:"cashier"},
+                ]
+              },
+              include:{
+                employee:{
+                  include:{
+                    User:{
+                      select:{
+                        id: true,
+                        name: true,
+                        email: true,
+                        phone: true,
+                        profile_picture: true,
+                        gender: true,
+                        niu: true,
+                        is_admin: true,
+                        is_staff: true
+                      }
+                    },
+                  }
+                },
+              }
+            },
+            Departement:{
+              include:{
+                User:{
+                  select:{
+                    id: true,
+                    name: true,
+                    email: true,
+                    phone: true,
+                    profile_picture: true,
+                    gender: true,
+                    niu: true,
+                    is_admin: true,
+                    is_staff: true
+                  }
+                },
+              }
+            }
+          }
+        });
+        res.status(200).send(employeeInEntity);
+      } catch (error) {
+        res.status(500).send(error);
+      }
+    }
+    
+  }
 };
 
 module.exports = EntityController;

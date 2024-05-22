@@ -1,14 +1,14 @@
 import React from 'react'
 
-function VerifyPermissions({children, expected, received, isExclude = false}) {
+function VerifyPermissions({children, expected, roles, functions, isExclude = false}) {
   if(expected instanceof Array){
     if(isExclude){
-        if(!expected.includes(received)){
+        if((!expected.includes(roles) || !expected.includes(functions)) && (roles === null || functions ===null)){
             return <>{children}</>
         }
         return null;
     }
-    if(expected.includes(received)){
+    if(expected.includes(roles) || expected.includes(functions)){
         return <>{children}</>
     }
     return null;
