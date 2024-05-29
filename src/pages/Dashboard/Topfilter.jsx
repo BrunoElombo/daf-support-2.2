@@ -64,15 +64,15 @@ const months = [
 
 function Topfilter() {
   return (
-    <div className='flex items-center space-x-2 justify-end w-full'>
+    <div className='flex flex-col md:flex-row items-center space-y-2 md:space-x-2 justify-end w-full'>
         <p className='text-sm'>Mois :</p>
-        <select name="" id="" className='text-xs'>
+        <select name="" id="" className='text-xs w-full md:w-auto'>
           {
             months.map(month => <option key={month.number} value={month.number}>{month.label}</option>)
           }
         </select>
         <p className='text-sm'>Année :</p>
-        <input type="text" value={new Date().getFullYear()} className='text-xs'/>
+        <input type="text" value={new Date().getFullYear()} className='text-xs w-full md:w-auto'/>
         {/* <RangePicker
             defaultValue={[dayjs(currentDate, dateFormat), dayjs(currentDate, dateFormat)]}
             format={dateFormat}

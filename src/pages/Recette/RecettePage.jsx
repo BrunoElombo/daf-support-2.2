@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react'
 import LoginLayout from '../../Layout/LoginLayout'
 import PageHeader from '../../components/PageHeader/PageHeader'
-import { Table, Modal, Drawer, Space } from 'antd'
+import { Table, Modal, Drawer, Space, notification, Form, Input } from 'antd'
 import { CheckIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, EllipsisHorizontalIcon, EyeIcon, PencilIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import Collapsible from '../../components/Collapsible/Collapsible';
 import DetailCard from '../../components/DetailCard/DetailCard';
@@ -27,35 +27,40 @@ function RecettePage() {
   const { userInfo } = useContext(AUTHCONTEXT);
 
   const handleGetSites=async()=>{
-    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
-    if(!requestError){
-      setSites(response );
-    }
-}
-
-const handleGetController = async()=>{
-    const controller = await fetchData(import.meta.env.VITE_USER_API+"/users");
     try {
-        let result = controller ;
-        setEmployeesControllers(result)
+      let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
+      setSites(response);
     } catch (error) {
-        console.error("Error creating recipe:", error);
+      console.error(error)
     }
-}
+  }
+
+  const handleGetController = async()=>{
+      const controller = await fetchData(import.meta.env.VITE_USER_API+"/employees/controllers");
+      try {
+          let result = controller ;
+          setEmployeesControllers(result);
+          console.log(result)
+      } catch (error) {
+          console.error("Error creating recipe:", error);
+      }
+  }
+
+  const openNotification = (title, message, icon) => {
+    notification.open({
+      message: title,
+      description: message,
+      icon: icon
+    });
+  };
+
   const {fetchData, postData, requestError} = useFetch();
   const entityValue = JSON.parse(localStorage.getItem('user'))?.entity.id;
   const [selectionType, setSelectionType] = useState('checkbox');
   // Recette can be of 2 types, Recette Portiere and Reglement de Factures. The inputs depends on what is selected
   const  [recipeDataSrc, setRecetteDataSrc] = useState([]);
-  const  [operationDataSrc, setOperationDataSrc] = useState(
-    [
-      {
-        operation: "Normale",
-        qty: "5",
-        unitaire: "10000",
-      }
-    ]
-  );
+  const  [recipeData, setRecipeData] = useState([]);
+  const  [operationDataSrc, setOperationDataSrc] = useState([]);
 
   const generateRefNumber = (table) => {
     const existingNumbers = table.map(expense => parseInt(expense.ref_number.split('/')[0]));
@@ -64,6 +69,24 @@ const handleGetController = async()=>{
     const formattedDate = `${today.getMonth() + 1}/${today.getFullYear()}`; // Use month + 1 for correct indexing (0-based)
     return `${nextNumber}/${formattedDate}`;
   };
+
+  const [searchValue, setSearchValue] = useState("");
+
+  useEffect(()=>{
+    if(searchValue.length > 0){
+      const search = filteredData?.filter(
+        recipe => recipe.reference_number.toLowerCase().includes(searchValue.toLowerCase())
+      )
+      setRecetteDataSrc(search)
+    }else{
+      setRecetteDataSrc(filteredData);
+    }
+  }, [searchValue]);
+
+  const [ rowToUpdate, setRowToUpdate] = useState(undefined);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredData, setFilteredData] = useState([]);
 
   const [employeesControllers, setEmployeesControllers] = useState([])
   const [sites, setSites] = useState([])
@@ -75,6 +98,7 @@ const handleGetController = async()=>{
   const [isAddingOperation, setIsAddingOperation] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState([]);
 
   // Recette Fileds
   const [typeRecette, setTypeRecette] = useState('PORT');
@@ -115,14 +139,9 @@ const handleGetController = async()=>{
     setOpenValidationModal(false);
   }
   const handleSubmitValidationModal = () =>{
+    handleGetAllRecette();
     setOpenValidationModal(false);
   }
-  const showDrawer = () => {
-    setOpen(true);
-  };
-  const onChange = (e) => {
-    setPlacement(e.target.value);
-  };
   const onClose = () => {
     setOpen(false);
   };
@@ -131,12 +150,13 @@ const handleGetController = async()=>{
     // Initialize a variable to store the sum
     let total = 0;
 
+    console.log(objects)
     // Loop through each object in the list
     for (const obj of objects) {
       // Check if the object has a `montant` attribute
-      if (obj.hasOwnProperty('amount')) {
+      if (obj.hasOwnProperty('total_amount')) {
         // Get the value of the `montant` attribute
-        const montant = obj.amount;
+        const montant = obj.total_amount;
 
         // Ensure montant is a number before adding
         if (typeof montant === 'number') {
@@ -155,64 +175,116 @@ const handleGetController = async()=>{
     return x?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
   }
 
-
-  const onSelectChange = (selectedRowKeys) => {
-    console.log('selectedRowKeys changed: ', selectedRowKeys);
-    setSelectedRowKeys(selectedRowKeys);
-  };
-
-  const handleRowSelect = (selectedRowKeys, selectedRows) => {
-    setSelectedRows(selectedRows.map(row => row.key)); // Get unique keys
-  };
-
-  const listSelected = () => {
-    const selectedNames = selectedRows.map(key => data.find(item => item.key === key)?.name);
-    alert(`Selected Names: ${selectedNames.join(', ')}`);
-  };
-
   const [selectedRecipe, setSelectedRecipe] = useState("")
+ const  [activeRecipe, setActiveRecipe] = useState({})
+
   const handleSelectedRecipe=async(_selectedRecipe)=>{
-    console.log(_selectedRecipe)
     const selected = recipeDataSrc.find(recipe=>recipe.id == _selectedRecipe?.id);
-    console.log(selected?.id)
     setSelectedRecipe(selected?.id);
     setOpenValidationModal(true);
   }
-
-  const handleValidateRecipe=async()=>{
-
-  }
   
+  const handleDeleteRecipe = async(id)=>{
+    const confirmDelete = await confirm("Voulez-vous supprimer la recette ?")
+    if(confirmDelete){
+      const url = import.meta.env.VITE_DAF_API+"/recipesheet/"+id+"/?entity_id="+entityValue;
+      let headersList = {
+        "Accept": "*/*",
+        "Authorization": "Bearer "+localStorage.getItem("token"),
+        "Content-Type": "application/json"
+      }
+      try {
+        const response = await fetch(url, {
+          method: "DELETE",
+          headers: headersList,
+        });
+  
+        if(response.ok){
+          openNotification("SUCCESS", "Recette supprimer avec success");
+          handleGetAllRecette();
+          setOpen(false);
+        }
+      } catch (error) {
+        openNotification("ECHEC", "Impossible de supprimer la recette");
+        throw new Error(`Error: Failed to update`);      
+      }
+    }
+  }
+
+  const handleSelectRecipeForDelete=async(_selectedRecipe)=>{
+    
+    setSelectedRecipe(_selectedRecipe.id);
+    handleShowDetails(_selectedRecipe.id);
+  }
+
+  const handleGetallProducts = async ()=>{
+    try {
+        const url = import.meta.env.VITE_USER_API+"/products";
+        let response = await fetchData(url);
+        setProducts(response);
+    } catch (error) {
+        alert("Echedc de chargement des produits")
+    }
+}
+
   const operationCol = [
     {
+      title: 'Numéro de ref',
+      dataIndex: 'reference_number',
+      key: 'reference_number',
+      width: 100,
+    },
+    {
       title: 'Type d\'opération',
-      dataIndex: 'operation',
-      key: 'operation',
+      dataIndex: 'label',
+      key: 'label',
+      ediable: true,
+      width: 100,
+      render:(text, record)=>(
+        rowToUpdate
+        ?
+         <Input />
+         :
+        <>{products.find(product => product.id === text)?.name}</>
+      )
     },
     {
       title: 'P.U',
-      dataIndex: 'unitaire',
-      key: 'unitaire',
+      dataIndex: 'unit_price',
+      key: 'unit_price',
+      width: 100,
     },
     {
       title: 'Qté',
-      dataIndex: 'qty',
-      key: 'qty',
+      dataIndex: 'quantity',
+      key: 'quantity',
+      ediable: true,
+      width: 100,
+      render:(text, record)=>(
+        rowToUpdate
+        ?
+         <Input />
+         :
+        <>{text}</>
+      )
     },
     {
-      title: 'Total',
-      render: (text, record)=>(
-        <>{+record.qty*+record.unitaire}</>
-      )
+      title: 'Total price',
+      dataIndex: 'total_price',
+      key: 'total_price',
+      width: 100,
     },
     {
       title: 'Action',
-      render: ()=>(
-        <div className='flex items-start space-x-2 text-xs'>
-          <span className='text-green-500 cursor-pointer'>Éditer</span>
-          <span className='text-red-500 cursor-pointer'>Supprimer</span>
-        </div>
-      )
+      width: 100,
+      render: (text, record)=>
+        {
+          // isUpdateMode &&
+          return (<div className='flex items-start space-x-2 text-xs'>
+            <span className='text-green-500 cursor-pointer' onClick={()=>setRowToUpdate(record.id)}>Éditer</span>
+            <span className='text-red-500 cursor-pointer'>Supprimer</span>
+          </div>)
+        }
     }
   ]
   
@@ -221,37 +293,49 @@ const handleGetController = async()=>{
       title: 'Numéro de références',
       dataIndex: 'reference_number',
       key: 'reference_number',
+      width: "200px",
     },
     {
       title: 'Controleur',
       dataIndex: 'employee_controller',
       key: 'employee_controller',
-      // render:(text, record)=>{
-      //   // const employee = employeesControllers?.find(controller=>controller?.id === text);
-      //   // console.log(employee)
-      //   return <>{employee? employee?.first_name : text}</>
-      // }
+      width:  "200px",
+      render:(text, record)=>(
+        <>{employeesControllers.find(employee=>employee?.User?.id === text)?.User?.name?.toUpperCase()}</>
+      )
     },
     {
       title: 'Provenance',
       dataIndex: 'provenance',
       key: 'provenance',
+      width:  "200px",
+    },
+    {
+      title: 'Pont',
+      dataIndex: 'site',
+      key: 'site',
+      width:  "200px",
+      render: (text, record)=>(
+        <>{sites.find(site=>site.id === text)?.name}</>
+      )
     },
     {
       title: 'Montant Total',
-      dataIndex: 'amount',
-      key: 'amount',
+      dataIndex: 'total_amount',
+      key: 'total_amount',
+      width:  "200px",
       render:(text, record)=>(
         <>{numberWithCommas(record.total_amount)+" XAF"}</>
       )
     },
     {
       title: 'Status',
+      width:  "200px",
       render:(text, record)=>(
         <div className='flex space-x-2'>
           <div 
-            className={`${(record.statut === "VALIDATION CHECKOUT" || record.statut === "RECEIVED") ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center py-2 px-5`}>Ctrleur</div>
-          <div className={`${record.statut === "RECEIVED" ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center py-2 px-5`}>caisse</div>
+            className={`${(record.statut === "VALIDATION CHECKOUT" || record.statut === "RECEIVED") ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center py-2 px-8`}>Ctrleur</div>
+          <div className={`${record.statut === "RECEIVED" ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center py-2 px-6`}>caisse</div>
         </div>
       )
     },
@@ -259,19 +343,28 @@ const handleGetController = async()=>{
       title: 'Shift',
       dataIndex: 'shift',
       key: 'shift',
+      width:  "200px",
     },
     
     {
       title: 'Actions',
       data:"id",
+      width:  "200px",
       render: (text, record)=>(
         <div className='flex items-center space-x-2'>
           {
-            
-            <CheckIcon onClick={()=>handleSelectedRecipe(text)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
+            <VerifyPermissions 
+              expected={["coordinator", "accountant", "cashier"]}
+              roles={userInfo?.role?.name}
+              functions={userInfo?.Function?.name}
+            >
+              {
+              <CheckIcon onClick={()=>handleSelectedRecipe(text)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
+              }
+            </VerifyPermissions>
           }
           {/* <XMarkIcon className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/> */}
-          <EyeIcon className='text-gray-500 h-6 cursor-pointer hover:bg-gray-300 hover:text-white p-1 rounded-lg' title='Voir le détail' onClick={handleShowDetails}/>
+          <EyeIcon className='text-gray-500 h-6 cursor-pointer hover:bg-gray-300 hover:text-white p-1 rounded-lg' title='Voir le détail' onClick={()=>handleSelectRecipeForDelete(record)}/>
         </div>
       )
     }
@@ -281,100 +374,38 @@ const handleGetController = async()=>{
     setIsOpen(!isOpen);
   }
   
-  const handleNextStep = () =>{
-    const step = currentStep;
-    setCurrentStep(step+1);
-  }
-  const handlePrevStep = () =>{
-    const step = currentStep;
-    setCurrentStep(step-1);
-  }
-
   const handleGetAllRecette=async ()=>{
     const url = import.meta.env.VITE_DAF_API+"/recipesheet/?entity_id="+entityValue;
     try {
       const response = await fetchData(url);
-      console.log(response);
+      setFilteredData(response?.results);
       setRecetteDataSrc(response?.results);
     } catch (error) {
       console.error("Error creating recipe:", error);
-      // alert(`Failed to create recipe: ${error.message || 'An unknown error occurred.'}`);
     }
   }
 
-
-  const handleCreateRecette=()=>{
-
-    // data={
-    //   origin, controller, amount: totalAmount, shift
-    // }
-
-    const data={
-      "departement":departement,
-      "employer_controller":controller,
-      "total_amount":totalAmount,
-      "provenance":origin,
-      "description":description,
-      "shift":shift,
-      "file_number":fileNumber,
-      "social_reason":socialReason,
-      "tax_payer_number_social_reason":NIU,
-      "site":site,
-      "entite": entity,
-      "operations": operations
-    }
-
-    const response = postData(import.meta.env.VITE_DAF_API, data, true);
-    
-    if(requestError){
-      alert("Echec de la requetes");
-    }else{
-      console.log(response);
-    }
-    setIsOpen(false);
-
-    handleClearForm();
-  }
-
-  const handleCreateOperation = () => {
-
-    const data={
-      label: "operationLabel",
-      recipe_sheetst: recipeSheet,
-      unit_price: unitPrice,
-      qantity: qty,
-      total_price: operationTotalPrice
-    }
-
-    const response = postData(import.meta.env.VITE_DAF_API, data, true);
-    
-    if(requestError){
-      alert("Echec de la requetes");
-    }else{
-      console.log(response);
-    }
-    setIsOpen(false);
-
-    handleClearForm();
-  }
 
 
   const handleUpdateRecette=()=>{
 
   }
 
-  const handleClearForm=()=>{
-    setTypeRecette("PORT");
-    setSite('');
-    setController('');
-    setOrigin('');
-    setShift('');
-    setName("");
-    setNIU("");
-  }
-
-  const handleShowDetails=()=>{
-    setOpen(true);
+  const handleShowDetails= async (id)=>{
+    try {
+      // setIsOpenDrawer(true);
+      let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
+      
+      let url = import.meta.env.VITE_DAF_API+"/recipesheet/"+id+"/?entity_id="+entityId
+      const detail = await fetchData(url);
+      setActiveRecipe(detail);
+      setOperationDataSrc(detail.operation_types);
+      setOpen(true);
+      
+    } catch (error) {
+      console.error(error)
+      openNotification("ERREUR", "Impossible de voir le détail de la recette.", (<XMarkIcon className='text-red-500 h-6 w-6'/>))
+    }
   }
 
 
@@ -382,6 +413,7 @@ const handleGetController = async()=>{
     handleGetAllRecette();
     handleGetSites();
     handleGetController();
+    handleGetallProducts();
   }, []);
 
   const hasSelected = selectedRowKeys.length > 0;
@@ -390,9 +422,9 @@ const handleGetController = async()=>{
     <LoginLayout classNam="space-y-3">
         <h3 className='py-2 bold'>FICHE DE RECETTE</h3>
 
-        <PageHeader>
-          <input type="search" className='text-sm' placeholder='Rechercher une operation'/>
-          <div>
+        <PageHeader >
+          <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une recette' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/>
+          <div className='w-full md:w-auto'>
             <VerifyPermissions 
               expected={["gueritte_chef", "accountant"]}
               // received={userInfo?.role.name || userInfo?.Function.name}
@@ -400,7 +432,7 @@ const handleGetController = async()=>{
               functions={userInfo?.Function?.name}
             >
               <button 
-                className='text-white bg-green-500 p-2 rounded-lg shadow text-sm'
+                className='text-white bg-green-500 p-2 rounded-lg shadow text-sm w-full md:w-auto'
                 onClick={handleToggleOpenForm}
               >Initier une opération</button>
             </VerifyPermissions>
@@ -408,40 +440,23 @@ const handleGetController = async()=>{
         </PageHeader>
 
 
-        <div className='border-[1px] border-gray-100 w-full p-3 rounded-md mt-3'>
-
-          {/* Action to perform on selected recettes */}
-          {/* <div className='flex items-center mb-3 space-x-3 justify-end'>
-            <select name="" id="" className='text-sm'>
-              <option value="">choisir une Actions</option>
-              <option value="valider">Valider</option>
-              <option value="supprimer">Rejetter</option>
-            </select>
-            <button className={`${hasSelected?"bg-green-500":"bg-green-200"} text-white btn btn-primary rounded-lg shadow text-sm cursor-pointer`} onClick={()=>{}} disabled={!hasSelected}>
-              Soumettre
-            </button>
-          </div> */}
-
+        <div className='border-[1px] border-gray-100 w-full p-3 rounded-md mt-3 h-[80vh] max-h-[80vh] overflow-y-scroll'>
 
           {/* Recette Table */}
           <Table 
-                //  rowSelection={rowSelection}
-                rowSelection={{
-                  type: selectionType,
-                  ...rowSelection,
-                }}
-                footer={() => <div className='flex'>
-                  <p className='text-sm'>
-                    Total : <b className='bg-yellow-300 p-2 rounded-lg'>{recipeDataSrc?.length > 0 ? numberWithCommas(sumMontants(recipeDataSrc)): "0"} XAF</b>
-                  </p>
-                </div>}
-                dataSource={recipeDataSrc}
-                columns={recetteCol}
-                scroll={{
-                  x: 500,
-                  y: "130px"
-                }}
-              />
+            footer={() => <div className='flex'>
+              <p className='text-sm'>
+                {/* Total : <b className='bg-yellow-300 p-2 rounded-lg'>{numberWithCommas(sumMontants(recipeDataSrc))} XAF</b> */}
+                Total : <b className='bg-yellow-300 p-2 rounded-lg'>{recipeDataSrc?.length > 0 ? numberWithCommas(sumMontants(recipeDataSrc)): "0"} XAF</b>
+              </p>
+            </div>}
+            dataSource={recipeDataSrc}
+            columns={recetteCol}
+            scroll={{
+              x: 500,
+              y: "50vh"
+            }}
+          />
         </div>
 
 
@@ -481,64 +496,64 @@ const handleGetController = async()=>{
           onClose={onClose}
           open={open}
           extra={
-            <Space>
-              {/* <button onClick={onClose} className='btn bg-red-500 text-white'>Annuler</button>
-              <button onClick={onClose} className='btn btn-primary bg-green-500 text-white'>Sauvegarder</button> */}
-              { isUpdateMode ?
-                <>
-                  <button className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-green-300'>
-                    <PlusIcon className="h-5"/>
-                    <span>Sauvegarder</span>
-                  </button>
-                  <button className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-gray-300' onClick={()=>setIsUpdateMode(false)}>
-                    <XMarkIcon className="h-5"/>
-                    <span>Annuler</span>
-                  </button>
-                </>:
-                <>
-                  {/* <button 
-                  onClick={()=>setOpenValidationModal(true)}
-                  className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-green-300'>
-                    <CheckIcon className="h-5"/>
-                    <span>Valider</span>
-                  </button> */}
-                  {/* <button className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-red-300'>
-                    <XMarkIcon className="h-5"/>
-                    <span>Rejeter</span>
-                  </button> */}
-                  <button 
-                    className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-gray-300'
-                    onClick={()=>setIsUpdateMode(true)}
-                  >
-                    <PencilIcon className="h-5"/>
-                    <span>Modifier</span>
-                  </button>
-                  <button className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-gray-300'>
-                    <TrashIcon className="h-5"/>
-                    <span>Supprimer</span>
-                  </button>
-                </>
-                
-              }
-            </Space>
+            <VerifyPermissions
+              expected={["gueritte_chef", "accountant"]}
+              roles={userInfo?.role?.name}
+              functions={userInfo?.Function?.name}
+            >
+              <Space>
+                  {/* <button onClick={onClose} className='btn bg-red-500 text-white'>Annuler</button>
+                  <button onClick={onClose} className='btn btn-primary bg-green-500 text-white'>Sauvegarder</button> */}
+                  { isUpdateMode ?
+                    <>
+                      <button className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-green-300'>
+                        <PlusIcon className="h-5"/>
+                        <span>Sauvegarder</span>
+                      </button>
+                      <button className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-gray-300' onClick={()=>setIsUpdateMode(false)}>
+                        <XMarkIcon className="h-5"/>
+                        <span>Annuler</span>
+                      </button>
+                    </>:
+                    <>
+                      {
+                        (activeRecipe.statut == "VALIDATION CONTROLLER") &&
+                        <>
+                          <button 
+                            className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-gray-300'
+                            onClick={()=>setIsUpdateMode(true)}
+                          >
+                            <PencilIcon className="h-5"/>
+                            <span>Modifier</span>
+                          </button>
+                          <button className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-gray-300' onClick={()=>handleDeleteRecipe(activeRecipe.id)}>
+                            <TrashIcon className="h-5"/>
+                            <span>Supprimer</span>
+                          </button>
+                        </>
+                      }
+                    </>
+                  }
+              </Space>
+            </VerifyPermissions>
           }
         >
-          <div className='w-full h-full overflow-hidden flex justify-evenly space-x-2'>
+          <div className='w-full h-full overflow-hidden flex flex-col md:flex-row justify-evenly md:space-x-2'>
 
             {/* Recette details */}
-            <div className='w-1/2 bg-white border-[1px] rounded-lg overflow-y-auto p-3'>
+            <div className='w-full md:w-1/2 bg-white border-[1px] rounded-lg overflow-y-auto p-3'>
               
               <div className='flex items-center space-x-5 space-y-3'>
                 <div>
                   <label htmlFor="">Date initiatier :</label>
                     <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
-                      <p>02/05/2024</p>
+                      <p>{activeRecipe.time_created}</p>
                     </div>
                 </div>
                 <div>
                   <label htmlFor="">Numéro de Références :</label>
                   <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
-                    <p>1001/05/24</p>
+                    <p>{activeRecipe.reference_number}</p>
                   </div>
                 </div>
               </div>
@@ -548,14 +563,16 @@ const handleGetController = async()=>{
                   <div>
                     <select className='w-full' name="" id="" value={controller} onChange={e=>setController(e.target.value)}>
                       <option value="">Choisir le controleur</option>
-                      <option value="">Controleur 1</option>
-                      <option value="">Controleur 2</option>
-                      <option value="">Controleur 3</option>
+                      {
+                        employeesControllers.map(employee =><option value={employee?.User.id} key={employee?.User.id}>{employee.User.name}</option>)
+                      }
                     </select>
                   </div>
                   :
                   <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
-                    <p>Controlleur 1</p> 
+                    <p>{
+                        employeesControllers.find(controller=>controller?.User?.id == activeRecipe.employee_controller)?.User.name.toUpperCase()
+                      }</p> 
                   </div>
                   }
               </div>
@@ -572,7 +589,7 @@ const handleGetController = async()=>{
                   </div>
                   :
                   <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
-                    <p>vente sur site</p> 
+                    <p>{activeRecipe.provenance}</p> 
                   </div>
                   }
               </div>
@@ -589,14 +606,45 @@ const handleGetController = async()=>{
                   </div>
                   :
                   <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
-                    <p>15h-22h</p> 
+                    <p>{activeRecipe.shift == null ? "N/A": activeRecipe.shift}</p> 
                   </div>
-                  }
+                }
               </div>
+              <div>
+                <label htmlFor="">Mode de paiment :</label>
+                {isUpdateMode ? 
+                  <div>
+                    <select className='w-full' name="" id="" value={shift} onChange={e=>setShift(e.target.value)}>
+                      <option value="">Choisir le shift</option>
+                      <option value="">6h-15h</option>
+                      <option value="">15h-22h</option>
+                      <option value="">22h-6h</option>
+                    </select>
+                  </div>
+                  :
+                  <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
+                    <p>{activeRecipe.payment_method == null ? "N/A": activeRecipe.payment_method}</p> 
+                  </div>
+                }
+              </div>
+              <div>
+                <label htmlFor="">Description :</label>
+                {isUpdateMode ? 
+                  <div>
+                    <textarea className='w-full' name="" id="" value={description} onChange={e=>setDescription(e.target.value)}>
+                    </textarea>
+                  </div>
+                  :
+                  <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
+                    <p>{activeRecipe.description == null ? "N/A": activeRecipe.description}</p> 
+                  </div>
+                }
+              </div>
+
             </div>
 
             {/* Operations details */}
-            <div className='w-1/2 bg-white border-[1px] rounded-lg overflow-y-auto flex flex-col space-y-2 p-3'>
+            <div className='w-full md:w-1/2 bg-white border-[1px] rounded-lg overflow-y-auto flex flex-col space-y-2 p-4'>
               <div className='flex justify-end'>
                   <button className='btn text-sm hover:bg-gray-200 hover:text-white' onClick={()=>setAddOperation(true)}>Ajouter une opération</button>
               </div>
@@ -630,6 +678,7 @@ const handleGetController = async()=>{
                 isOpenned={false}
               >
                 <div>
+                  <Form>
                     <Table 
                       columns={operationCol}
                       dataSource={operationDataSrc}
@@ -642,37 +691,9 @@ const handleGetController = async()=>{
                         </div>
                       )}
                     />
+                  </Form>
                   </div>
-                {/* {
-                  operationDataSrc.map(data=>(
-                    <DetailCard
-                      leftBorderColor={"green"}
-                      className={"rounded-lg"}
-                      content={
-                        <div className=''>
-                          <div className='p-2 flex flex-col'>
-                            <div className='flex space-x-2'>
-                              <p className='bold'>Type d'opération :</p>
-                              <p>{data.operation}</p>
-                            </div>
-                            <div className='flex space-x-2'>
-                              <p className='bold'>Qté :</p>
-                              <p>{data.qty}</p>
-                            </div>
-                            <div className='flex space-x-2'>
-                              <p className='bold'>P.U :</p>
-                              <p>{data.unitaire}</p>
-                            </div>
-                            <div className='flex space-x-2'>
-                              <p className='bold'>Total :</p>
-                              <p>{data.unitaire}</p>
-                            </div>
-                          </div>
-                        </div>
-                      }
-                    />
-                  ))
-                } */}
+                
               </Collapsible>
             </div>
 

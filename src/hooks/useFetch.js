@@ -8,24 +8,26 @@ function useFetch() {
     const fetchData = async (url) => {
       setRequestError("");
       setRequestLoading(true);
+
       let headersList = {
         "Accept": "*/*",
         "Authorization": "Bearer "+localStorage.getItem("token"),
       }
+
       try {
         const response = await fetch(url, { 
           method: "GET",
           headers: headersList
         });
         if (!response.ok) {
-          // Handle non-200 status codes gracefully
           setRequestError(`Request failed with status ${response.status}`);
-          const errorText = await response.text(); // Or response.json() if applicable
-          throw new Error(`Error: ${errorText}`); // Or return an error object
+          const errorText = await response.text(); 
+          throw new Error(`Error: ${errorText}`); 
         }
     
         const result = await response.json();
         return result;
+
       } catch (error) {
         setRequestError(error);
         return requestError
@@ -65,12 +67,10 @@ function useFetch() {
         });
     
         if (!response.ok) {
-          // Handle non-200 status codes gracefully
           setRequestError(`Request failed with status ${response.status}`);
-          const errorText = await response.text(); // Or response.json() if applicable
-          throw new Error(`Error: ${errorText}`); // Or return an error object
+          const errorText = await response.text();
+          throw new Error(`Error: ${errorText}`);
         }
-    
         const result = await response.json();
         return result;
       } catch (error) {
@@ -90,13 +90,6 @@ function useFetch() {
           "Content-Type": "application/json"
         }
         
-        console.log({
-          method: "POST",
-            headers: headersList,
-            body: JSON.stringify({
-              ...data
-            })
-        })
         try {
           const response = await fetch(url, {
             method: "PATCH",

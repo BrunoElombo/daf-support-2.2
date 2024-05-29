@@ -24,6 +24,92 @@ const EntityController = {
   },
   
   getAllEntities: async (req, res) => {
+    const Function = req.query.function;
+    const role = req.query.role;
+
+    if(Function){
+      const decodedToken = jwt.decode(req.headers.authorization.split(' ')[1]);
+      const userId = decodedToken.id;
+
+      try {      
+        const usersFunction = req.query.function;
+        
+        // Get the user by the employee id
+        const employee = await prisma.employee.findUnique({
+          where:{id_user: userId}
+        });
+    
+        const employeeWithFunction = await prisma.employee.findMany({
+          where:{
+            id_entity: employee.id_entity,
+            is_active: true,
+            Function: {name: usersFunction}
+          },
+          include:{
+            User: {
+              select:{
+                id: true,
+                name:true,
+                email: true,
+                phone:true,
+                is_admin: true,
+                is_staff: true,
+                niu: true
+              }
+            }
+          }
+        });
+        console.log(employeeWithFunction);
+        return res.send(employeeWithFunction);      
+      } catch (error) {
+        console.log(error);
+        return res.send(error.message)
+      }
+    }
+
+    if(role){
+      const decodedToken = jwt.decode(req.headers.authorization.split(' ')[1]);
+      const userId = decodedToken.id;
+
+      try {      
+        const userRole = req.query.role;
+    
+        const employee = await prisma.employee.findUnique({
+          where:{id_user: userId}
+        });
+    
+        const employeeWithRole = await prisma.employee.findMany({
+            where: {
+              id_entity: employee.id_entity,
+              is_active: true,
+              role: {name: userRole}
+            },
+            include:{
+              User: {
+                select:{
+                  id: true,
+                  name:true,
+                  email: true,
+                  phone:true,
+                  is_admin: true,
+                  is_staff: true,
+                  niu: true
+                }
+              }
+            }
+          
+        });
+    
+        console.log(employeeWithRole);
+        return res.send(employeeWithRole);
+        
+      } catch (error) {
+        console.log(error);
+        return res.send(error.message)
+      }
+    }
+
+
     try {
       // Extract employee ID from JWT token payload
       const decodedToken = jwt.decode(req.headers.authorization.split(' ')[1]);
@@ -254,9 +340,6 @@ const EntityController = {
     });
   },
 
-
-
-
   getEmployeeEntities : async (req, res)=>{
     const decodedToken = jwt.decode(req.headers.authorization.split(' ')[1]);
     const userId = decodedToken.id;
@@ -329,7 +412,17 @@ const EntityController = {
       }
     }
     
-  }
+  },
+
 };
+
+
+const getEmployeesByRole=async (res, req)=>{
+
+}
+
+const getEmployeeByFunction = async (res, req)=>{
+    
+}
 
 module.exports = EntityController;

@@ -1,8 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
   provider = "prisma-client-js"
@@ -23,9 +19,11 @@ model User {
   profile_picture String?
   gender String?
   niu String?
+
   is_active Boolean @default(true)
   is_admin Boolean @default(false)
   is_staff Boolean @default(false)
+
   employee Employee? 
   Department Department[]
 }
@@ -48,6 +46,7 @@ model Employee {
   EchelonCategory EchelonCategory @relation(fields: [id_level], references: [id], onDelete: Cascade)
   Grade          Grade      @relation(fields: [id_grade], references: [id], onDelete: Cascade)
   User           User      @relation(fields: [id_user], references: [id], onDelete: Cascade)
+
   employee_bank EmployeeBank[]
 }
 
@@ -56,6 +55,7 @@ model Role{
   id String @id @default(uuid())
   name String?
   power Int @default(0)
+  
   employee Employee[]
 }
 

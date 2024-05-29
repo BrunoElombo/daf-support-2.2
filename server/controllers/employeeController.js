@@ -90,7 +90,6 @@ exports.getEmployeeEntities = async (req, res)=>{
   const userId = decodedToken.id;
   
   const entity_id = req.params.entity_id;
-  // return res.status(200).send(entity_id)
   
   if(entity_id){
     try {
@@ -165,6 +164,48 @@ exports.getEmployeeEntities = async (req, res)=>{
     }
   }
   
+}
+
+exports.getEmployeeControllers = async (req, res)=>{
+  const decodedToken = jwt.decode(req.headers.authorization.split(' ')[1]);
+  const userId = decodedToken.id;
+
+  try {
+    const employee = await prisma.employee.findUnique({
+      where:{id_user: userId}
+    });
+
+    const employees = await prisma.employee.findMany({
+      where:{
+        id_entity: employee.id_entity,
+        Function:{
+          is:{
+            name: "coordinator"
+          },
+        }
+      },
+      select:{
+        User:{
+          select:{
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            profile_picture: true,
+            gender: true,
+            niu: true,
+            is_admin: true,
+            is_staff: true
+          }
+        },
+      }
+    });
+
+    return res.status(200).send(employees);
+  } catch (error) {
+    console.log(error)
+    return res.status(500).send(error.message);
+  }
 }
   
 

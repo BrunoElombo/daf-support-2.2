@@ -1,0 +1,10 @@
+{
+    "short_name": "daf_support",
+    "name": "DAF SUPPORT",
+    "theme_color": "#eb5252",
+    "background_color": "#000000",
+    "display": "standalone",
+    "Scope": "/",
+    "orientation": "portrait",
+    "start_url": "."
+}

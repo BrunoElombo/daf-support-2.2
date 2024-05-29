@@ -22,7 +22,7 @@ const SuggestInput = ({ dataList, inputValue, setInputValue, className }) => {
   };
 
   return (
-    <div className='relative w-1/2'>
+    <div className='relative w-full md:w-1/2'>
       <input
         type="text"
         value={inputValue}

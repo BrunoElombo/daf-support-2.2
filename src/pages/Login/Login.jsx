@@ -82,11 +82,11 @@ function Login() {
     }
   return (
     <div 
-      className='w-full h-screen bg-gray-100 flex items-center justify-center backdrop-blur-sm bg-white/30'
+      className='w-full h-screen bg-gray-100 flex items-center justify-center p-2'
     >
-      <div className=' bg-white rounded-lg shadow-lg shadow-gray-400 max-h-[500px] h-[500px] max-w-[800px] w-[800px] flex '>
+      <div className='bg-white rounded-lg shadow-lg shadow-gray-400 max-h-[500px] h-[500px] max-w-[800px] w-[800px] flex '>
         <div 
-          className='w-1/2 bg-green-500 flex items-center justify-center rounded-l-lg'
+          className='w-full md:w-1/2 bg-green-500 md:flex items-center justify-center rounded-l-lg hidden'
           style={{
             background: `url(${bgImg}) rgba(0,0,0,0.1)`,
             backgroundBlendMode: "overlay",
@@ -97,7 +97,7 @@ function Login() {
         >
           
         </div>
-        <div className='flex flex-col items-center justify-evenly w-1/2 py-8'>
+        <div className='flex flex-col items-center justify-evenly w-full md:w-1/2 py-8'>
           <div>
             <div className='space-y-2'>
               <h3 className='text-4xl bold'>DAF Support</h3>
@@ -106,19 +106,18 @@ function Login() {
           </div>
           <div>
           <form className='flex flex-col items-center justify-center space-y-6'>
-            <input type="text" placeholder='Nom utilisateur ou Email' className='text-sm' value={username} onChange={e=>setUsername(e.target.value)}/>
-            <input type="password" placeholder='Mot de passe' className='text-sm' value={password} onChange={e=>setPassword(e.target.value)}/>
+            <input type="text" placeholder='Nom utilisateur ou Email' className='text-sm w-full md:w-auto' value={username} onChange={e=>setUsername(e.target.value)}/>
+            <input type="password" placeholder='Mot de passe' className='text-sm w-full md:w-auto' value={password} onChange={e=>setPassword(e.target.value)}/>
             <p className="text-xs text-red-500">{errorMsg}</p>
             <div className='flex items-center space-x-2'>
               <input type="checkbox" name="" id="save_session" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}  />
               <label htmlFor="save_session" className='text-sm'>Me garder connecter</label>
             </div>
-            <div className='w-full flex justify-end px-20'>
+            <div className='w-full flex md:justify-end px-20'>
               <button 
                   onClick={handleLogin}
                   disabled={disbleLogin}
-                  // className={`bg-green-500 cursor-pointer p-2 text-white rounded-lg shadow-sm shadow-green-600 text-sm`} 
-                  className={`${disbleLogin || requestLoading?"bg-green-300 cursor-not-allowed":"bg-green-500 cursor-pointer"} p-2 text-white rounded-lg shadow-sm shadow-green-600 text-sm`} 
+                  className={`${disbleLogin || requestLoading?"bg-green-300 cursor-not-allowed":"bg-green-500 cursor-pointer"} p-2 text-white rounded-lg shadow-sm shadow-green-600 text-sm w-full`} 
               >{requestLoading?"Connexion encours...":"Se connecter"}</button>
             </div>
           </form>

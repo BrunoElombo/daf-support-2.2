@@ -44,12 +44,13 @@ const rowSelection = {
   }),
 };
 
-const MAX_ALLOWED_AMOUNT = 100000;
-const MAX_ALLOWED_AMOUNT_OTHERS = 250000;
-let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
 
 function ExpensePage() {
-
+  
+  const MAX_ALLOWED_AMOUNT = 100000;
+  const MAX_ALLOWED_AMOUNT_OTHERS = 250000;
+  let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
+  
   const {requestLoading, fetchData, postData, requestError, updateData} = useFetch();
   const [selectionType, setSelectionType] = useState('checkbox');
   const  [expenseDataSrc, setExpenseDataSrc] = useState([]);
@@ -157,28 +158,6 @@ function ExpensePage() {
         }
 
       }
-
-      const [newRefNumber, setNewRefNumber] = useState('');
-    
-      const filterOption = (input, option) =>
-        (option?.account_number ?? '').toLowerCase().includes(input.toLowerCase());
-      
-      const onChange = (value) => {
-        console.log(`selected ${value}`);
-      };
-
-      const onSearch = (value) => {
-        console.log('search:', value);
-      };
-
-      const start = () => {
-        setLoading(true);
-        // ajax request after empty completing
-        setTimeout(() => {
-          setSelectedRowKeys([]);
-          setLoading(false);
-        }, 1000);
-      };
     
       const setSelectionRow = (expense) => {
         // console.log('selectedRowKeys changed: ', id);
@@ -201,18 +180,18 @@ function ExpensePage() {
         return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
       }
 
-      const hasSelected = selectedRowKeys.length > 0;
-    
       const expensesCol = [
         {
           title: 'Numéro de références',
           dataIndex: 'reference_number',
           key: 'reference_number',
+          width:  "200px",
         },
         {
           title: 'Site',
           dataIndex: 'site',
           key: 'site',
+          width:  "200px",
           render: (text, record)=>{
             const site = sites?.find(site=>site.id === record.site)
             return <>{site?.name != undefined? site?.name :text }</>
@@ -222,20 +201,19 @@ function ExpensePage() {
           title: 'Beneficiaire',
           dataIndex: 'employee_beneficiary',
           key: 'employee_beneficiary',
-          render: (text, record)=>{
-            const beneficiaire = beneficiaires.find(benef=>benef.id === record.employee_beneficiary);
-            return <>{!beneficiaire?text:beneficiaire?.first_name}</>
-           
-          }
+          width:  "200px",
+          render: (text, record)=>beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase()
         },
         {
           title: 'Montant',
           dataIndex: 'amount',
           key: 'amount',
+          width:  "200px",
           render: (text)=><>{numberWithCommas(text)} XAF</>
         },
         {
           title: 'Status',
+          width:  "200px",
           render:(text, record)=>
           (
             <div className='flex space-x-2'>
@@ -255,6 +233,7 @@ function ExpensePage() {
         },
         {
           title: 'Actions',
+          width:  "200px",
           render: (text, record)=>(
             // <EllipsisHorizontalIcon className='text-gray-500 h-6 w-6 cursor-pointer'/>
             // <button className='btn btn-primary bg-green-500 text-white text-sm'>Valider</button>
@@ -280,35 +259,42 @@ function ExpensePage() {
 
       const handleShowDetails=async(id)=>{
         setIsOpenDrawer(true);
-        let entityId = JSON.parse(localStorage.getItem("entity"))?.entity.id;
+        let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
         let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+id+"?entity_id="+entityId
         const detail = await fetchData(url);
         console.log(detail);
         const selected = expenseDataSrc.find(expense=>expense.id === id);
         setSelectedExpense(detail.result);
       }
+
       const handleGellAllExpenses = async() =>{
         let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
         try {
           const response = await fetchData(import.meta.env.VITE_DAF_API+"/expensesheet/?entity_id="+entityId);
-          setExpenseDataSrc(response);
+          console.log(response);
+          setExpenseDataSrc(response.results);
         } catch (error) {
           console.log(error.message);
         }
       }
+
       const handleGetSite=async()=>{
         let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
         if(!requestError){
           setSites(response);
         }
       }
+
       const handleBenef = async()=>{
-        const benef = await fetchData(import.meta.env.VITE_USER_API+"/employees");
-        if(!requestError){
-          let result = benef;
-          setBeneficiaires(result);
+        try {
+          const benef = await fetchData(import.meta.env.VITE_USER_API+"/employees");
+          console.log(benef);
+          setBeneficiaires(benef);
+        } catch (error) {
+          console.log(error.message);
         }
       }
+
       const handleExternalEntity = async()=>{
         const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
         if(!requestError){
@@ -341,44 +327,8 @@ function ExpensePage() {
         setFiles([]);
       }
 
-
       const handleSubmitOperation= async (e)=>{
         e.preventDefault();
-        // generateRefNumber();
-        // const expenses = JSON.parse(localStorage.getItem('expenses'));
-
-        // let data = {
-        //   key:uuidV4(),
-        //   ref_number:generateRefNumber(),
-        //   site, 
-        //   beneficiaire, 
-        //   amount:montant, 
-        //   description,
-        //   dop_validated: true,
-        //   daf_validated: false,
-        //   dg_validated: false,
-        //   pre_validated: false,
-        // };
-
-        // console.log(data);
-        // if(expenses){
-        //   localStorage.setItem('expenses', JSON.stringify([...expenses, data]));
-        //   handleClearForm();
-        //   setIsOpen(true);
-        //   handleGellAllExpenses();
-        //   return
-        // }
-        // localStorage.setItem('expenses', JSON.stringify([data]));
-
-        let data = {
-          site, 
-          employee_beneficiary: beneficiaire, 
-          employee_initiator: localStorage.getItem("user")?.id,
-          payment_mode: paymentMode,
-          amount:montant, 
-          entity: entityId,
-          description,
-        }
 
         const headersList = new Headers();
         headersList.append(
@@ -458,37 +408,22 @@ function ExpensePage() {
         <LoginLayout classNam="space-y-3">
             <h3 className='py-2 bold'>FICHE DE DÉPENSE</h3>
             <PageHeader>
-              <input type="search" className='text-sm' placeholder='Rechercher une operation'/>
+              <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une operation'/>
               <VerifyPermissions
                 expected={["coordinator","chief_financial_officer","operations_manager"]}
                 roles={userInfo?.role?.name}
                 functions={userInfo?.Function?.name}
               >
                 <button 
-                  className={`text-white ${requestLoading? "bg-green-300" : "bg-green-500"}  p-2 rounded-lg shadow text-sm`}
+                  className={`text-white ${requestLoading? "bg-green-300" : "bg-green-500"}  p-2 rounded-lg shadow text-sm w-full md:w-auto`}
                   onClick={handleToggleOpenForm}
-                >{requestLoading ? "En cours de création":"Initier une dépense"}</button>
+                >Initier une dépense</button>
               </VerifyPermissions>
             </PageHeader>
             <div className='border-[1px] border-gray-100 w-full p-3 rounded-md mt-3 overflow-x-auto'>
-              {/* <div className='flex items-center mb-3 space-x-3 justify-end'>
-                <select name="" id="" className='text-sm'>
-                  <option value="">choisir une Actions</option>
-                  <option value="valider">Valider</option>
-                  <option value="valider">Valider et remonter</option>
-                  <option value="supprimer">Supprimer</option>
-                </select>
-                <button className={`${hasSelected?"bg-green-500":"bg-green-200"} text-white btn btn-primary rounded-lg shadow text-sm cursor-pointer`} onClick={start} disabled={!hasSelected} loading={loading}>
-                  Soumettre
-                </button>
-              </div> */}
               
-              <Table 
-                //  rowSelection={rowSelection}
-                // rowSelection={{
-                //   type: selectionType,
-                //   ...rowSelection,
-                // }}
+              
+              <Table
                 dataSource={expenseDataSrc}
                 columns={expensesCol}
                 footer={()=>(
@@ -498,10 +433,9 @@ function ExpensePage() {
                 )}
                 scroll={{
                   x: 500,
-                  y: "150px"
+                  y: "80vh"
                 }}
               />
-
             </div>
 
             {/* Payment modes */}
@@ -528,8 +462,8 @@ function ExpensePage() {
                     </select>
                     { paymentMode === "VIREMENT" &&
                       <>
-                        <div className='w-full flex items-center space-x-3'>
-                          <select className="w-1/2" name="" id="" value={originAccount} onChange={e=>{
+                        <div className='w-full flex flex-col md:flex-row items-center space-x-3'>
+                          <select className="w-full md:w-1/2" name="" id="" value={originAccount} onChange={e=>{
                               setOriginAccount(e.target.value);
                               const account = bankEntity.filter(account => account?.bank.id === e.target.value);
                               setAccountNumbers(account[0]?.bank.bank_account);
@@ -569,7 +503,7 @@ function ExpensePage() {
                           <select name="" id="" className='w-1/2' value={beneficiaire} onChange={e=>setBeneficiaire(e.target.value)}>
                             <option value="">Choisir le destinataire</option>
                             {
-                              beneficiaires.map(benef=><option value={benef?.id} key={benef?.id}>{benef?.User.name}</option>)
+                              beneficiaires.map(benef=><option value={benef?.User.id} key={benef?.User.id}>{benef?.User.name}</option>)
                             }
                           </select>
                         :
@@ -582,7 +516,6 @@ function ExpensePage() {
                         </select>
                       
                       }
-                      {/* <input className='w-1/3' type="text" placeholder='Raison social' value={companyName} onChange={e=>setCompanyName(e.target.value)}/> */}
                     </div>
                     {
                       ((montant > MAX_ALLOWED_AMOUNT && recipient === "" && recipientType === "PERSONNEPHYSIQUE" && paymentMode === "ESPECES") || montant > MAX_ALLOWED_AMOUNT_OTHERS) &&
@@ -599,7 +532,7 @@ function ExpensePage() {
                   </form>
                   <div className="flex justify-end">
                     <button className={`${requestLoading ? "bg-green-300" : "bg-green-500"} btn btn-ptimary  text-white text-sm shadow flex items-center`} onClick={handleSubmitOperation} disabled={requestLoading}> 
-                      Initier la dépense
+                      {requestLoading ? "En cours de création":"Initier la dépense"}
                     </button>
                   </div>
                 </div>

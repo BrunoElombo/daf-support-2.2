@@ -1,7 +1,7 @@
 import React, {useContext, useEffect, useState} from 'react'
 import { Drawer, Space } from 'antd';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLongLeftIcon, BanknotesIcon, BellIcon, ChartBarIcon, CogIcon, DocumentArrowDownIcon, DocumentArrowUpIcon, HomeIcon } from "@heroicons/react/24/outline";
+import { ArrowLongLeftIcon, BanknotesIcon, Bars3Icon, BellIcon, ChartBarIcon, CogIcon, DocumentArrowDownIcon, DocumentArrowUpIcon, HomeIcon } from "@heroicons/react/24/outline";
 import { AUTHCONTEXT } from '../../context/AuthProvider';
 import VerifyPermissions from '../Permissions/VerifyPermissions';
 
@@ -11,6 +11,7 @@ function DashboardHeader() {
   const { pathname } = location;
   const {userInfo, setIsLoggedIn, defaultEntity, setDefaultEntity, allEntities, setUserInfo, setAllEntities} = useContext(AUTHCONTEXT);
   const [isOpen, setIsOpen] = useState(false);
+  const [menuIsOpen, setMenuIsOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleGetUserInfo =async ()=>{
@@ -62,7 +63,7 @@ const handleChangedEntity=async (id)=>{
   };
 
   return (
-    <div className='bg-green-500 shadow-md fixed w-full'>
+    <div className='bg-green-500 shadow-md fixed w-full z-[999]'>
         <div className='flex justify-between py-3 items-center px-5 border-b-[1px] border-white'>
             <div className='flex items-center space-x-2'>
                 {/* <ArrowLongLeftIcon className="h-6 w-6 text-white" /> */}
@@ -76,10 +77,15 @@ const handleChangedEntity=async (id)=>{
                 <p onClick={()=>{setIsOpen(true)}} className='text-white text-sm bold cursor-pointer p-2 hover:bg-green-700'>Hi, {userInfo?.User.name}</p>
             </div>
         </div>
-        <div className='pt-5 px-5'>
-            <ul className='space-x-4 flex text-sm text-white'>
+        <div className='md:pt-5 md:px-5 flex items-center'>
+            <div className='flex md:hidden items-center justify-end w-full p-3'>
+                <button className='p-2 bg-green-600 rounded-lg' onClick={()=>{setMenuIsOpen(true)}}>
+                    <Bars3Icon className='text-white h-6 w-6'/>
+                </button>
+            </div>
+            <ul className='space-x-4 text-sm text-white overflow-x-auto hidden md:flex'>
                 <VerifyPermissions
-                    expected={["department_manager", "general_manager", "president", "operations_manager"]}
+                    expected={["accountant", "department_manager", "general_manager", "president", "operations_manager"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
@@ -103,7 +109,7 @@ const handleChangedEntity=async (id)=>{
                 >
                 </VerifyPermissions> */}
                 <VerifyPermissions
-                    expected={["department_manager", "general_manager", "president", "operations_manager", "paymaster_general", "coordinator", "chief_financial_officer"]}
+                    expected={["accountant", "department_manager", "general_manager", "president", "operations_manager", "paymaster_general", "coordinator", "chief_financial_officer"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
@@ -140,6 +146,8 @@ const handleChangedEntity=async (id)=>{
                 </VerifyPermissions>
             </ul>
         </div>
+
+        {/* User information drawer */}
         <Drawer
         title={
             <div className='flex items-center justify-between'>
@@ -185,6 +193,69 @@ const handleChangedEntity=async (id)=>{
                 </select> */}
             </div>
         </div>
+        </Drawer>
+
+        {/* Main menu drawer */}
+        <Drawer
+            title={
+                <div className='flex items-center justify-between'>
+                    <p>Ménu</p>
+                </div>
+            }
+            placement={"right"}
+            width={500}
+            onClose={()=>setMenuIsOpen(false)}
+            open={menuIsOpen}
+            extra={
+            <Space>
+            
+            </Space>
+            }
+        >
+            <ul className='space-y-4 text-sm text-green-500 flex flex-col md:flex overflow-y-auto'>
+                <VerifyPermissions
+                    expected={["accountant", "department_manager", "general_manager", "president", "operations_manager"]}
+                    roles={userInfo?.role?.name}
+                    functions={userInfo?.Function?.name}
+                >
+                    <li>
+                        <Link to={"/dashboard"} className={`${(pathname.includes("dashboard") || pathname === "/") && 'border-b-[3px] border-green-500'} cursor-pointer flex items-center space-x-2 py-2`}>
+                            <HomeIcon className="text-green-500 h-6 w-6" />
+                            <span>Dashboard</span>
+                        </Link>
+                    </li>
+                </VerifyPermissions>
+                    <li>
+                        <Link to={"/recette"} className={`${pathname.includes("recette") && 'border-b-[3px] border-green-500'} cursor-pointer flex items-center space-x-2 py-2`}>
+                            <DocumentArrowDownIcon className="text-green-500 h-6 w-6" />
+                            <span>Fiche de recette</span>
+                        </Link>
+                    </li>
+                <VerifyPermissions
+                    expected={["accountant", "department_manager", "general_manager", "president", "operations_manager", "paymaster_general", "coordinator", "chief_financial_officer"]}
+                    roles={userInfo?.role?.name}
+                    functions={userInfo?.Function?.name}
+                >
+                    <li>
+                        <Link className={`${pathname.includes("expense") && 'border-b-[3px] border-green-500'} cursor-pointer flex items-center space-x-2 py-2`} to={"/expense"}>
+                            <DocumentArrowUpIcon className="text-green-500 h-6 w-6" />
+                            <span>Fiche de dépense</span>
+                        </Link>
+                    </li>
+                </VerifyPermissions>
+                <VerifyPermissions
+                    expected={["chief_financial_officer", "general_manager", "president", "operations_manager"]}
+                    roles={userInfo?.role?.name}
+                    functions={userInfo?.Function?.name}
+                >
+                    <li>
+                        <Link className={`${pathname.includes("settings") && 'border-b-[3px] border-green-500'} cursor-pointer flex items-center space-x-2 py-2`} to={"/settings"}>
+                            <CogIcon className="text-green-500 h-6 w-6" />
+                            <span>Parametres</span>
+                        </Link>
+                    </li>
+                </VerifyPermissions>
+            </ul>
         </Drawer>
     </div>
   )

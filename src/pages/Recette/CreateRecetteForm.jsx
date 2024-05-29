@@ -1,9 +1,11 @@
 import React, {useState, useEffect, useContext} from 'react'
 import { AUTHCONTEXT } from '../../context/AuthProvider';
-import { Modal, Table } from 'antd'
-import { PlusIcon, ChevronDoubleRightIcon, ChevronDoubleLeftIcon } from '@heroicons/react/24/outline';
+import { Modal, Table, notification } from 'antd'
+import { PlusIcon, ChevronDoubleRightIcon, ChevronDoubleLeftIcon, XMarkIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import useFetch from '../../hooks/useFetch';
 import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
+import { controllers } from 'chart.js';
+import Popup from '../../components/Popup/Popup';
 
 function CreateRecetteForm(
     {title, centered, open, footer, onOk, onCancel, setIsOpen, onSubmit}
@@ -17,14 +19,13 @@ function CreateRecetteForm(
     }
     const handleGetSites=async()=>{
         let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
-        console.log(response)
         if(!requestError){
           setSites(response);
         }
     }
 
     const handleGetController = async()=>{
-        const controller = await fetchData(import.meta.env.VITE_USER_API+"/employees");
+        const controller = await fetchData(import.meta.env.VITE_USER_API+"/employees/controllers");
         try {
             let result = controller ;
             setEmployeesControllers(result)
@@ -33,10 +34,17 @@ function CreateRecetteForm(
             console.error("Error creating recipe:", error);
         }
     }
-    // Recipe and operation types
+    
+    const openNotification = (title, message) => {
+        notification.open({
+          message: title,
+          description: message,
+        });
+      };
+      
     const [employeesControllers, setEmployeesControllers] = useState([]);
     const [sites, setSites] = useState([]);
-    const [recipeType, setRecipeType] = useState("TO BE INVOICED");
+    const [recipeType, setRecipeType] = useState("");
     const [employeeController, setEmployeeController] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("");
     const [totalAmount, setTotalAmount] = useState("");
@@ -48,8 +56,8 @@ function CreateRecetteForm(
     const [uinClient, setUinClient] = useState("");
     const [siteValue, setSiteValue] = useState("");
     const [recipeErrMsg, setRecipeErrMsg] = useState("");
-
-
+    const [enableNext, setEnableNext] = useState(false);
+    
     // Operaitons types
     const [operationQuantity, setOperationQuantity] = useState(0);
     const [isAddingOperation , setIsAddingOperation] = useState(false)
@@ -69,6 +77,7 @@ function CreateRecetteForm(
           title: 'Type d\'opération',
           dataIndex: 'label',
           key: 'label',
+          render:(text, record)=>(<>{products.find(product => product.id === text)?.name}</>)
         },
         {
           title: 'P.U',
@@ -78,8 +87,8 @@ function CreateRecetteForm(
         },
         {
           title: 'Qté',
-          dataIndex: 'qantity',
-          key: 'qantity',
+          dataIndex: 'quantity',
+          key: 'quantity',
           render:(text, record)=><>{numberWithCommas(text)}</>
         },
         {
@@ -101,10 +110,28 @@ function CreateRecetteForm(
         }
     ]
 
+    const handleClearRecipeForm = () => {
+        setEmployeeController("");
+        setPaymentMethod("");
+        setTotalAmount("");
+        setDescriptionValue("");
+        setShiftValue("");
+        setFileNumber("");
+        setCorporateName("");
+        setUinClient("");
+        setSiteValue("");
+        setRecipeErrMsg("");
+        setOperationDataSrc([]);
+        setOperations([]);
+    }
 
     const [operationDataSrc, setOperationDataSrc] = useState([]);
     const [selectedOperationType, setSelectedOperationType] = useState("");
     const [currentStep, setCurrentStep] = useState(0);
+
+    const [confirmModalText, setConfirmModalText] = useState("");
+    const [confirmModalIcon, setConfirmModalIcon] = useState(undefined);
+    const [openConfirmModal, setOpenConfirmModal] = useState(false);
 
     const handleNextStep =() =>{
         const step = currentStep;
@@ -214,21 +241,27 @@ function CreateRecetteForm(
 
         try {
             const response = await postData(url, data, true);
+            console.log(response);
             onSubmit();
             setCurrentStep(0);
             setIsOpen(false);
+            handleClearRecipeForm();
+            openNotification("SUCCESS", "Recette créer avec success.");
+            // handleOpenModal("Recette créer avec success.", (<CheckCircleIcon className='text-green-500 h-8 w-8'/>))
         } catch (error) {
+            openNotification("ECHEC", "Echec de creation de la recette.");
+            // handleOpenModal("Echec de creation de la recette.",(<XMarkIcon className='text-red-500 h-8 w-8'/>))
             console.error("Error creating recipe:", error);
-            alert(`Failed to create recipe: ${error.message || 'An unknown error occurred.'}`);
         }
     }
 
     const handleGetallProducts = async ()=>{
-        const url = import.meta.env.VITE_USER_API+"/products";
-        let response = await fetchData(url);
-        console.log(response);
-        if(!requestError){
+        try {
+            const url = import.meta.env.VITE_USER_API+"/products";
+            let response = await fetchData(url);
             setProducts(response);
+        } catch (error) {
+            alert("Echedc de chargement des produits")
         }
     }
 
@@ -236,6 +269,14 @@ function CreateRecetteForm(
         handleGetController();
         handleGetSites();
         handleGetallProducts();
+        const functions = JSON.parse(localStorage.getItem("user"))?.Function?.name;
+
+        if(functions === "gueritte_chef"){
+            setRecipeType("PORT REVENUE");
+            setProvenanceValue("WEIGHBRIDGE PAYMENT")
+        }else{
+            setRecipeType("INVOICE PAYMENT");
+        }
     }, []);
 
 
@@ -314,17 +355,15 @@ function CreateRecetteForm(
                     recipeType === "INVOICE PAYMENT" &&
                     <input type="text" placeholder='Numéro de contribuable' value={uinClient} onChange={e=>setUinClient(e.target.value)}/>
                     }
-                    {
-                    recipeType === "TO BE INVOICED" &&
                     <select name="" id="" value={employeeController} onChange={e=>setEmployeeController(e.target.value)}>
                         <option value="">Choisir le controleur</option>
                         {
-                          employeesControllers.map(controller=><option value={controller?.User?.id} key={controller?.User?.id}>{controller?.User?.name?.toUpperCase()}</option>)
+                          employeesControllers
+                          .map(controller=><option value={controller?.User?.id} key={controller?.User?.id}>{controller?.User?.name?.toUpperCase()}</option>)
                         }
                     </select>
-                    }
                     <VerifyPermissions
-                        expected={[""]}
+                        expected={["gueritte_chef"]}
                         // received={userInfo?.role.name || userInfo?.Function.name}
                         roles={userInfo?.role?.name}
                         functions={userInfo?.Function?.name}
@@ -348,7 +387,7 @@ function CreateRecetteForm(
                         roles={userInfo?.role?.name}
                         functions={userInfo?.Function?.name} 
                     >
-                        <button className={`btn ${true ? "bg-green-500" :"bg-green-300 cursor-not-allowed"} text-white text-sm shadow flex items-center`} onClick={handleNextStep} disabled={nextIsEnabled}> 
+                        <button className={`btn ${!enableNext ? "bg-green-500" :"bg-green-300 cursor-not-allowed"} text-white text-sm shadow flex items-center`} onClick={handleNextStep}> 
                             Suivant
                             <ChevronDoubleRightIcon className='text-white h-4 w-6'/>
                         </button>
@@ -449,6 +488,7 @@ function CreateRecetteForm(
                 </div>
             }
         </Modal>
+        <Popup message={confirmModalText} icons={confirmModalIcon} isOpen={openConfirmModal}/>
     </>
   )
 }

@@ -12,109 +12,99 @@ import Topfilter from './Topfilter';
 
 
 function Dashboard() {
-  const [userData, setUserData] = useState({
-    labels: UserData.map((data) => data.year),
-    datasets: [
-      {
-        label: "Recettes",
-        data: UserData.map((data) => data.userGain),
-        backgroundColor: [
-          "rgba(75,192,192,1)",
-          "#ecf0f1",
-          "#50AF95",
-          "#f3ba2f",
-          "#2a71d0",
-        ],
-        borderColor: "black",
-        borderWidth: 2,
-      },
-    ],
-  });
+  const [chartData, setChartData] = useState({});
 
 
   const {requestLoading, fetchData, postData, requestError, updateData} = useFetch();
   const  [expenseDataSrc, setExpenseDataSrc] = useState([]);
+  const [recipePredictions, setRecipePredictions] = useState({});
 
   const handleGellAllExpenses = async() =>{
     const response = await fetchData(import.meta.env.VITE_DAF_API+"/expensesheet/");
+    setExpenseDataSrc(response?.result);
     console.log(response)
-    if(!requestError){
-      setExpenseDataSrc(response?.result);
+    
+  }
+
+
+  const handleGetRecipeSummary = async () => {
+    let url = import.meta.env.VITE_DAF_API;
+    const actualYear = new Date().getFullYear();
+    try {
+      const response = await fetchData(url+"/recipesheet/summary_by_year/?year="+actualYear);
+      if (response && response.daily_sums) {
+  
+        setChartData(response);
+      }
+      
+    } catch (error) {
+      console.log(error);
     }
   }
-  function sumMontants(objects) {
-    // Initialize a variable to store the sum
-    let total = 0;
 
-    // Loop through each object in the list
-    for (const obj of objects) {
-      // Check if the object has a `montant` attribute
-      if (obj.hasOwnProperty('amount')) {
-        // Get the value of the `montant` attribute
-        const montant = obj.amount;
-
-        // Ensure montant is a number before adding
-        if (typeof montant === 'number') {
-          total += montant;
-        } else {
-          console.warn("Skipping object with non-numeric 'montant' attribute");
-        }
-      }
+  const handleGetRecipeSummaryPrediction = async ()=>{
+    let url = import.meta.env.VITE_DAF_API;
+    const actualYear = new Date().getFullYear();
+    try {
+      const response = await fetchData(url+"/recipesheet/summary_prediction_by_year/?year="+actualYear)
+      const values = response?.daily_predictions;
+      setRecipePredictions(values)
+    } catch (error) {
+      console.log(error);
     }
+  }
 
-    // Return the calculated sum
-    return total;
+  function sumMontants(response) {
+    if (!response || !response.daily_sums || response.daily_sums.length === 0) {
+      return 0; // Return 0 if response or daily_sums array is empty
+    }
+  
+    // Calculate the sum of total_amount
+    const totalSum = response.daily_sums.reduce(
+      (accumulator, current) => accumulator + current.total_amount,
+      0
+    );
+  
+    return totalSum;
   }
   const numberWithCommas=(x)=>{
     return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
   }
 
-  const chartData = {
-    labels: ['Jan', 'Feb', 'Mars', 'April', 'May', 'Jun', 'Jul', 'Sept', 'Oct', 'Nov', 'Dec'],
-    datasets: [
-      {
-        id: 1,
-        label: 'Recettes actuel',
-        data: [2,5,3,8,9,9,7,6,3,5,8],
-      },
-      {
-        id: 1,
-        label: 'Previsions',
-        data: [2,5,3,8,9,9,7,6,3,5,8].reverse(),
-      },
-    ],
-  };
 
   useEffect(()=>{
     handleGellAllExpenses();
+    handleGetRecipeSummary();
+    handleGetRecipeSummaryPrediction();
   }, []);
+
   return (
     <LoginLayout>
       <div className='w-full h-full overflow-y-auto flex flex-col p-5'>
         <div className='border-[1px] border-gray-100 my-2 p-2 rounded-lg flex items-center'> 
           <Topfilter />
         </div>
-        <div className='h-1/4 flex items-center justify-evenly space-x-2'>
+        <div className='h-1/4 flex flex-col md:flex-row items-center justify-evenly space-y-2 md:space-x-2'>
 
-          <div className='bg-gradient-to-r from-green-500 to-green-400 rounded-lg shadow-lg p-4 w-1/4 text-white'>
+          <div className='bg-gradient-to-r from-green-500 to-green-400 rounded-lg shadow-lg p-4 w-full md:w-1/4 text-white'>
             <h3>Recettes du mois</h3>
             <p className='text-sm'>
-              <b>Total :</b> ---- XAF
+            Total : <b> {numberWithCommas(sumMontants(chartData))} XAF</b>
             </p>
           </div>
-          <div className='bg-gradient-to-r from-blue-500 to-blue-400 rounded-lg shadow-lg p-4 w-1/4 text-white'>
+          <div className='bg-gradient-to-r from-red-500 to-red-400 rounded-lg shadow-lg p-4 w-full md:w-1/4 text-white'>
             <h3>Dépenses du mois</h3>
             <p className='text-sm'>
-            Total : <b> {expenseDataSrc ? numberWithCommas(sumMontants(expenseDataSrc)):"---"} XAF</b>
+            Total : <b> {expenseDataSrc?.length>0 ? numberWithCommas(sumMontants(expenseDataSrc)):"---"} XAF</b>
             </p>
           </div>
-          <div className='bg-gradient-to-r from-red-500 to-red-400 rounded-lg shadow-lg p-4 w-1/4 text-white'>
+          <div className='bg-gradient-to-r from-green-600 to-green-400 rounded-lg shadow-lg p-4 w-full md:w-1/4 text-white'>
             <h3>Recette de l'année</h3>
             <p className='text-sm'>
               <b>Total :</b> ---- XAF
             </p>
           </div>
-          <div className='bg-gradient-to-r from-orange-500 to-orange-400 rounded-lg shadow-lg p-4 w-1/4 text-white'>
+          <div className='bg-gradient-to-r from-red-500 to-red-400 rounded-lg shadow-lg p-4 w-full md:w-1/4 text-white'>
             <h3>Dépenses de l'année</h3>
             <p className='text-sm'>
               <b>Total :</b> ---- XAF
@@ -128,16 +118,16 @@ function Dashboard() {
               title={<p className='text-md'>Recettes</p>}
               isActive={true}
             />
-            <Tab 
+            {/* <Tab 
               title={<p className='text-md'>Depenses</p>}
               isActive={false}
-            />
+            /> */}
           </TabsComponent>
           <div className=''>
             {/* Graph body */}
-            <div className='max-h-[250px] h-[250px] w-full overflow-y-auto p-2'>
+            <div className='max-h-[250px] h-[250px] w-full overflow-y-auto md:p-2'>
               {/* <LineChart chartData={userData} /> */}
-              <Chart data={chartData}/>
+              <Chart data={chartData} predictions={recipePredictions}/>
             </div>
 
           </div>
