@@ -8,6 +8,7 @@ import {BarsArrowDownIcon, EllipsisHorizontalIcon, FunnelIcon, CheckIcon, XMarkI
 import useFetch from '../../hooks/useFetch'
 
 function ReportingPage() {
+  let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
   const months = [
     'January',
     'February',
@@ -23,9 +24,11 @@ function ReportingPage() {
     'December'
   ];
   const {requestLoading, fetchData, postData, requestError, updateData} = useFetch();
+
   const [path, setPath] = useState("expenses");
   const [recetteData, setRecetteData] = useState([]);
   const [expensesDataSource, setExpensesDataSource] = useState([]);
+  const [recipesDataSource, setRecipesDataSource] = useState([]);
   const [expensesData, setExpensesData] = useState([]);
 
   const [beneficiaires, setBeneficiaires] = useState([]);
@@ -33,6 +36,10 @@ function ReportingPage() {
 
   const [selectedMonth, setSelectedMonth] =useState("");
   const [to, setTo] =useState("");
+
+  const [cashBalance, setCashBalance] = useState(0);
+  const [expenseTotal, setExpenseTotal] = useState(0);
+  const [recipeTotal, setRecipeTotal] = useState(0);
 
   function sumMontants(objects) {
     // Initialize a variable to store the sum
@@ -58,7 +65,6 @@ function ReportingPage() {
     return total;
   }
 
-  
   const handleChange = (event) => {
     setSelectedMonth(event.target.value);
     const filteredData = expensesData.filter(item => {
@@ -72,97 +78,182 @@ function ReportingPage() {
     return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
   }
 
-
   const handleGetSite=async()=>{
     let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
-    if(!requestError){
-      setSites(response?.result.results);
+    console.log(response)
+    try {
+      setSites(response);
+    } catch (error) {
+      console.log(error);
     }
   }
 
   const handleBenef = async()=>{
-    const benef = await fetchData(import.meta.env.VITE_USER_API+"/users");
-    if(!requestError){
-      let result = benef?.result.results;
-      setBeneficiaires(result);
+    try {
+      const benef = await fetchData(import.meta.env.VITE_USER_API+"/employees");
+      setBeneficiaires(benef);
+    } catch (error) {
+      console.log(error);
     }
+  }
 
+  const handleGetExpenseSummary = async () => {
+    let url = import.meta.env.VITE_DAF_API;
+    const actualYear = new Date().getFullYear();
+    try {
+      const response = await fetchData(url+"/expensesheet/summary_by_year/?year="+actualYear+"&entity_id="+entityId);
+      if (response && response.annual_sums) {
+        console.log(response.annual_sums)
+        setExpenseTotal(response.annual_sums[0].total_amount)
+      }
+      
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  
+  const handleGetRecipeSummary = async () => {
+    let url = import.meta.env.VITE_DAF_API;
+    const actualYear = new Date().getFullYear();
+    try {
+      const response = await fetchData(url+"/recipesheet/summary_by_year/?year="+actualYear+"&entity_id="+entityId);
+      if (response && response.annual_sums) {
+        console.log(response.annual_sums)
+        setRecipeTotal(response.annual_sums[0].total_amount)
+      }
+      
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   const handleFetchAllRecettes =async ()=>{
-    const url = import.meta.env.VITE_DAF_API+"/expensesheet/";
-    const response = await fetchData(url);
-    if(!requestError){
-      setExpensesData(response?.result);
-      setExpensesDataSource(response?.result);
+    try {
+      const url = import.meta.env.VITE_DAF_API+"/recipesheet/?entity_id="+entityId;
+      const response = await fetchData(url);
+      setRecetteData(response?.results);
+      setRecipesDataSource(response?.results);
+    } catch (error) {
+      console.log(error);
     }
-    console.log("Failed to fetch")
+  }
+
+  const handleFetchAllExpenses = async ()=>{
+    try {
+      const url = import.meta.env.VITE_DAF_API+"/expensesheet/?entity_id="+entityId;
+      const response = await fetchData(url);
+      console.log(response)
+      setExpensesData(response?.results);
+      setExpensesDataSource(response?.results);
+    } catch (error) {
+      console.error(error)
+    }
   }
 
 
+  // Get the solde the trésorerie
+  const handleSoldeTresorerie = async ()=>{
+
+  }
+
   useEffect(()=>{
     handleFetchAllRecettes();
+    handleFetchAllExpenses();
     handleGetSite();
+    handleSoldeTresorerie();
     handleBenef();
+    handleGetExpenseSummary();
+    handleGetRecipeSummary();
   }, []);
+
+
+  useEffect(()=>{
+    setCashBalance(+recipeTotal - +expenseTotal)
+  }, [expenseTotal, recipeTotal]);
 
   const handleTabClick = (selectedPath) =>{
     setPath(selectedPath);
   }
 
-  const content = (
-    <div>
-      <select name="" id=""className='w-full'>
-        <option value="">Date </option>
-        <option value="">Shift </option>
-        <option value="">Provenance </option>
-      </select>
-    </div>
-  );
+  // const content = (
+  //   <div>
+  //     <select name="" id=""className='w-full'>
+  //       <option value="">Date </option>
+  //       <option value="">Shift </option>
+  //       <option value="">Provenance </option>
+  //     </select>
+  //   </div>
+  // );
 
   const recetteCol = [
     {
-      title: 'No de références',
-      dataIndex: 'ref_number',
-      key: 'ref_number',
+      title: 'Numéro de références',
+      dataIndex: 'reference_number',
+      key: 'reference_number',
+      width: "200px",
     },
     {
-      title: 'Jour',
-      dataIndex: 'controler',
-      key: 'controler',
+      title: 'Controleur',
+      dataIndex: 'employee_controller',
+      key: 'employee_controller',
+      width:  "200px",
+      render:(text, record)=>(
+        <>{beneficiaires.find(employee=>employee?.User?.id === text)?.User?.name?.toUpperCase()}</>
+      )
     },
     {
-      title: 'Shift',
-      dataIndex: 'origin',
-      key: 'origin',
+      title: 'Provenance',
+      dataIndex: 'provenance',
+      key: 'provenance',
+      width:  "200px",
     },
     {
       title: 'Pont',
-      dataIndex: 'date_init',
-      key: 'date_init',
+      dataIndex: 'site',
+      key: 'site',
+      width:  "200px",
+      render: (text, record)=>(
+        <>{sites.find(site=>site.id === text)?.name}</>
+      )
     },
     {
-      title: 'Nombre de pesées',
-      dataIndex: 'shift',
-      key: 'shift',
+      title: 'Montant Total',
+      dataIndex: 'total_amount',
+      key: 'total_amount',
+      width:  "200px",
+      render:(text, record)=>(
+        <>{numberWithCommas(record.total_amount)+" XAF"}</>
+      )
     },
     {
       title: 'Type de pesées',
       dataIndex: 'shift',
       key: 'shift',
+      width:"200px",
     },
     {
       title: 'Montant',
       dataIndex: 'shift',
       key: 'shift',
+      width:"200px",
     },
     {
-      title: 'Actions',
-      render: ()=>(
-        <EllipsisHorizontalIcon className='text-gray-500 h-6 w-6 cursor-pointer' onClick={()=>setOpen(true)}/>
-        // <button className='btn btn-primary bg-green-500 text-white text-sm'>Valider</button>
+      title: 'Status',
+      width:  "200px",
+      render:(text, record)=>(
+        <div className='flex space-x-2'>
+          <div 
+            className={`${(record.statut === "VALIDATION CHECKOUT" || record.statut === "RECEIVED") ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center py-2 px-8`}>Ctrleur</div>
+          <div className={`${record.statut === "RECEIVED" ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center py-2 px-6`}>caisse</div>
+        </div>
       )
-    }
+    },
+    {
+      title: 'Shift',
+      dataIndex: 'shift',
+      key: 'shift',
+      width:  "200px",
+    },
   ]
 
   const expensesCol = [
@@ -170,11 +261,13 @@ function ReportingPage() {
       title: 'Numéro de références',
       dataIndex: 'reference_number',
       key: 'reference_number',
+      width:  "200px",
     },
     {
       title: 'Site',
       dataIndex: 'site',
       key: 'site',
+      width:  "200px",
       render: (text, record)=>{
         const site = sites?.find(site=>site.id === record.site)
         return <>{site?.name != undefined? site?.name :text }</>
@@ -184,30 +277,35 @@ function ReportingPage() {
       title: 'Beneficiaire',
       dataIndex: 'employee_beneficiary',
       key: 'employee_beneficiary',
-      render: (text, record)=>{
-        const beneficiaire = beneficiaires?.find(benef=>benef.id === record.employee_beneficiary);
-        console.log(beneficiaire)
-        return <>{!beneficiaire?text:beneficiaire?.first_name}</>
-       
-      }
+      width:  "200px",
+      render: (text, record)=>beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase()
     },
     {
-      title: 'Montant (XAF)',
+      title: 'Montant',
       dataIndex: 'amount',
       key: 'amount',
-      render:(text, record)=><>{numberWithCommas(text)}</>
+      width:  "200px",
+      render: (text)=><>{numberWithCommas(text)} XAF</>
     },
     {
       title: 'Status',
-      render:(text, record)=>(
+      width:  "200px",
+      render:(text, record)=>
+      (
         <div className='flex space-x-2'>
           <div 
-            className={`${record.dop_validated ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DEX</div>
-          <div className={`${record.daf_validated ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF</div>
-          <div className={`${record.dg_validated ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DG</div>
-          <div className={`${record.pre_validated ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>PRE</div>
+          className={`${((record.statut === "VALIDATION FINANCIAL MANAGEMENT"|| record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_manager_department != null && record.statut != "REJECT DEPARTMENT MANAGER")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DEX</div>
+          {
+            !record.is_urgent &&
+            <>
+              <div className={`${((record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_budgetary_department != null && record.statut != "REJECT FINANCIAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF</div>
+              <div className={`${((record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_general_director != null && record.statut != "REJECT GENERAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DG</div>
+              <div className={`${((record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_president != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>PRE</div>
+            </>
+          }
         </div>
       )
+      
     },
     // {
     //   title: 'Actions',
@@ -232,24 +330,11 @@ function ReportingPage() {
 
   return (
     <LoginLayout>
-        <h3>REPORTING</h3>
+        {/* <h3>REPORTING</h3> */}
         <PageHeader>
-          <div className='flex items-center space-x-2'>
-              <Popover
-                 content={content} trigger="click" placement="bottomLeft"
-              >
-                <div className='shadow p-2 bg-gray-100 hover:bg-gray-200 cursor-pointer flex items-center justify-center'>
-                  <FunnelIcon className='w-4 h-4'/>
-                </div>
-              </Popover>
-            <div className='shadow p-2 bg-gray-100 hover:bg-gray-200 cursor-pointer flex items-center justify-center'>
-              <BarsArrowDownIcon className='w-4 h-4'/>
-            </div>
-          </div>
-          <div className='flex space-x-3 items-center'>
-            <h3 className='text-sm'>Filtre par mois:</h3>
-
-            <select value={selectedMonth} onChange={handleChange} className='text-sm'>
+          {/* <div className='flex flex-col md:flex-row space-y-2 md:space-x-3 items-center w-full md:w-auto'>
+            <input type="text" className='text-xs w-full md:w-auto' placeholder="Choisir l'année"/>
+            <select value={selectedMonth} onChange={handleChange} className='text-xs w-full md:w-auto'>
               <option value="">All Months</option>
               {months.map(month => (
                 <option key={month} value={month}>
@@ -257,23 +342,14 @@ function ReportingPage() {
                 </option>
               ))}
             </select>
-            {/* <select name="" id="" className='text-sm' value={to} onChange={e=>setTo(e.target.value)}>
-              <option value="">Au</option>
-              <option value="01">Janvier</option>
-              <option value="02">Février</option>
-              <option value="03">Mars</option>
-              <option value="04">Avril</option>
-              <option value="05">Mai</option>
-              <option value="06">Juin</option>
-              <option value="07">Juillet</option>
-              <option value="08">Aout</option>
-              <option value="09">Septembre</option>
-              <option value="10">Octobre</option>
-              <option value="11">Novembre</option>
-              <option value="12">Decembre</option>
-            </select> */}
-
-            <input type="search" placeholder='Recherche' className='text-sm'/>
+            <input type="date" className='text-xs w-full md:w-auto'/>
+            <input type="date" className='text-xs w-full md:w-auto'/>
+            <input type="search" placeholder='Recherche' className='text-xs w-full md:w-auto'/>
+          </div> */}
+          <div className='mt-2 md:mt-0'>
+            <h3 className='text-sm'>
+              Solde trésorerie : <b className={`btn bg-yellow-300`}>{numberWithCommas(cashBalance)} XAF</b>
+            </h3>
           </div>
         </PageHeader>
         <div className='border-[1px] border-gray-100 w-full p-3 rounded-md mt-3'>
@@ -303,11 +379,11 @@ function ReportingPage() {
             }}
             footer={()=>(
               <div>
-                <p>Total : <b className='bg-yellow-300 p-2 rounded-lg'>{expensesData?.length > 0 ? numberWithCommas(sumMontants(expensesData)):"0"} XAF</b></p>
+                <p>Total : <b className='bg-yellow-300 p-2 rounded-lg'>{numberWithCommas(path === "recettes" ? recipeTotal : expenseTotal)} XAF</b></p>
               </div>
             )}
             scroll={{
-              y: "150px",
+              y: "50vh",
               x:500
             }}
           />

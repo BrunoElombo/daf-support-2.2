@@ -12,7 +12,10 @@ function DashboardHeader() {
   const {userInfo, setIsLoggedIn, defaultEntity, setDefaultEntity, allEntities, setUserInfo, setAllEntities} = useContext(AUTHCONTEXT);
   const [isOpen, setIsOpen] = useState(false);
   const [menuIsOpen, setMenuIsOpen] = useState(false);
+
+//   const [] = useState();
   const navigate = useNavigate();
+
 
   const handleGetUserInfo =async ()=>{
     let userData = await fetchData(import.meta.env.VITE_DAF_API+"/users/account");
@@ -96,18 +99,20 @@ const handleChangedEntity=async (id)=>{
                         </Link>
                     </li>
                 </VerifyPermissions>
-                    <li>
-                        <Link to={"/recette"} className={`${pathname.includes("recette") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`}>
-                            <DocumentArrowDownIcon className="text-white h-6 w-6" />
-                            <span>Fiche de recette</span>
-                        </Link>
-                    </li>
+                <li>
+                    <Link to={"/recette"} className={`${pathname.includes("recette") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`}>
+                        <DocumentArrowDownIcon className="text-white h-6 w-6" />
+                        <span>Fiche de recette</span>
+                    </Link>
+                </li>
+
                 {/* <VerifyPermissions
                     expected={["department_manager", "general_manager", "president", "paymaster_general", "gueritte_chef"]}
                     roles={userInfo?.role.name}
                     functions={userInfo?.Function.name}
                 >
                 </VerifyPermissions> */}
+
                 <VerifyPermissions
                     expected={["accountant", "department_manager", "general_manager", "president", "operations_manager", "paymaster_general", "coordinator", "chief_financial_officer"]}
                     roles={userInfo?.role?.name}
@@ -120,18 +125,34 @@ const handleChangedEntity=async (id)=>{
                         </Link>
                     </li>
                 </VerifyPermissions>
-                {/* <li>
-                    <Link className={`${pathname.includes("caisse") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/caisse"}>
-                        <BanknotesIcon className="text-white h-6 w-6" />
-                        <span>Caisse</span>
-                    </Link>
-                </li>
-                <li>
-                    <Link className={`${pathname.includes("reporting") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/reporting"}>
-                        <ChartBarIcon className="text-white h-6 w-6" />
-                        <span>Reporting</span>
-                    </Link>
-                </li> */}
+
+                <VerifyPermissions
+                    expected={["chief_financial_officer", "general_manager", "president"]}
+                    roles={userInfo?.role?.name}
+                    functions={userInfo?.Function?.name}
+                >
+                    <li>
+                        <Link className={`${pathname.includes("reporting") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/reporting"}>
+                            <ChartBarIcon className="text-white h-6 w-6" />
+                            <span>Reporting</span>
+                        </Link>
+                    </li>
+                </VerifyPermissions>
+                
+                <VerifyPermissions
+                    expected={["chief_financial_officer", "general_manager", "president", "cashier"]}
+                    roles={userInfo?.role?.name}
+                    functions={userInfo?.Function?.name}
+                >
+                    <li>
+                        <Link className={`${pathname.includes("caisse") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/caisse"}>
+                            <BanknotesIcon className="text-white h-6 w-6" />
+                            <span>Caisse</span>
+                        </Link>
+                    </li>
+                </VerifyPermissions>
+
+
                 <VerifyPermissions
                     expected={["chief_financial_officer", "general_manager", "president", "operations_manager"]}
                     roles={userInfo?.role?.name}
@@ -240,6 +261,30 @@ const handleChangedEntity=async (id)=>{
                         <Link className={`${pathname.includes("expense") && 'border-b-[3px] border-green-500'} cursor-pointer flex items-center space-x-2 py-2`} to={"/expense"}>
                             <DocumentArrowUpIcon className="text-green-500 h-6 w-6" />
                             <span>Fiche de dépense</span>
+                        </Link>
+                    </li>
+                </VerifyPermissions>
+                <VerifyPermissions
+                    expected={["chief_financial_officer", "general_manager", "president"]}
+                    roles={userInfo?.role?.name}
+                    functions={userInfo?.Function?.name}
+                >
+                    <li>
+                        <Link className={`${pathname.includes("reporting") && 'border-b-[3px] border-green-500'} cursor-pointer flex items-center space-x-2 py-2`} to={"/reporting"}>
+                            <ChartBarIcon className="text-green-500 h-6 w-6" />
+                            <span>Reporting</span>
+                        </Link>
+                    </li>
+                </VerifyPermissions>
+                <VerifyPermissions
+                    expected={["chief_financial_officer", "general_manager", "president", "cashier"]}
+                    roles={userInfo?.role?.name}
+                    functions={userInfo?.Function?.name}
+                >
+                    <li>
+                        <Link className={`${pathname.includes("caisse") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/caisse"}>
+                            <BanknotesIcon className="text-white h-6 w-6" />
+                            <span>Caisse</span>
                         </Link>
                     </li>
                 </VerifyPermissions>

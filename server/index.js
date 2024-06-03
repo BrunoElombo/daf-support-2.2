@@ -14,6 +14,8 @@ const bankRoutes = require("./routes/bank");
 
 const app = express();
 
+// const ipAddress = '192.168.137.1';
+// const ipAddress = '192.168.60.191';
 const ipAddress = '172.19.120.187';
 
 const corsOptions = {
@@ -42,6 +44,9 @@ app.use("/sites",sitesRoutes);
 app.use("/products", productRoutes);
 app.use("/banks", bankRoutes);
 
+// app.listen(process.env.PORT, ()=>{
+//     console.log(`Server listening on http://localhost:${process.env.PORT}`)
+// })
 app.listen(process.env.PORT, ipAddress, ()=>{
     console.log(`Server listening on http://${ipAddress}:${process.env.PORT}`)
 })

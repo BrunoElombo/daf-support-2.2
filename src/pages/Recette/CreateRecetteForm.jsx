@@ -1,10 +1,9 @@
 import React, {useState, useEffect, useContext} from 'react'
 import { AUTHCONTEXT } from '../../context/AuthProvider';
 import { Modal, Table, notification } from 'antd'
-import { PlusIcon, ChevronDoubleRightIcon, ChevronDoubleLeftIcon, XMarkIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, ChevronDoubleRightIcon, ChevronDoubleLeftIcon } from '@heroicons/react/24/outline';
 import useFetch from '../../hooks/useFetch';
 import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
-import { controllers } from 'chart.js';
 import Popup from '../../components/Popup/Popup';
 
 function CreateRecetteForm(
@@ -20,6 +19,7 @@ function CreateRecetteForm(
     const handleGetSites=async()=>{
         let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
         if(!requestError){
+          setSiteValue(response[0]?.id);
           setSites(response);
         }
     }
@@ -28,6 +28,7 @@ function CreateRecetteForm(
         const controller = await fetchData(import.meta.env.VITE_USER_API+"/employees/controllers");
         try {
             let result = controller ;
+            setEmployeeController(result[0]?.User?.id);
             setEmployeesControllers(result)
             console.log(result);
         } catch (error) {
@@ -36,10 +37,12 @@ function CreateRecetteForm(
     }
     
     const openNotification = (title, message) => {
-        notification.open({
+        notification
+        .open({
           message: title,
           description: message,
-        });
+          duration: 1,
+        })
       };
       
     const [employeesControllers, setEmployeesControllers] = useState([]);
@@ -48,7 +51,14 @@ function CreateRecetteForm(
     const [employeeController, setEmployeeController] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("");
     const [totalAmount, setTotalAmount] = useState("");
-    const [provenanceValue, setProvenanceValue] = useState("");
+    const [provenanceValue, setProvenanceValue] = useState("INVOICE PAYMENT");
+
+    const [entityBankAccountNumber, setEntityBankAccountNumber] = useState("");
+    const [entityBankAccountNumbers, setEntityBankAccountNumbers] = useState([]);
+    const [externalEntityBankAccountNumber, setExternalEntityBankAccountNumber] = useState("");
+    const [transactionNumber, setTransactionNumber] = useState("");
+    const [cashDeskNumber, setCashDeskNumber] = useState("");
+
     const [descriptionValue, setDescriptionValue] = useState("");
     const [shiftValue, setShiftValue] = useState("");
     const [fileNumber, setFileNumber] = useState("");
@@ -62,7 +72,6 @@ function CreateRecetteForm(
     const [operationQuantity, setOperationQuantity] = useState(0);
     const [isAddingOperation , setIsAddingOperation] = useState(false)
     const [unitPrice, setUnitPrice] = useState(0);
-    const [operationTypesData, setOperationTypesData] = useState([]);
     const [operationErrMsg, setOperationErrMsg] = useState("");
     const [allOperationsTotal, setAllOperationsTotal] = useState("0.0");
 
@@ -70,9 +79,46 @@ function CreateRecetteForm(
     const [operations, setOperations] = useState([]);
 
     const [products, setProducts] = useState([]);
+    const [entities, setEntities] = useState([]);
     // const [product, setPoduct] = useState("");
 
+    const handleDelete = (record) => {
+        const rowId = operations.indexOf(record);
+        const updatedOperations = operations.slice(rowId, 1);
+        // const updatedOperations = operations.filter((op) => rowId !== record.id);
+        
+        setOperationDataSrc(updatedOperations);
+    };
+
+    const [beneficiaryBankAccount, setBeneficiaryBankAccount] = useState("");
+    const [beneficiairyBanks, setBeneficiairyBanks] = useState([]);
+    const [beneficiaryBankAccountNumbers, setBeneficiaryBankAccountNumbers] = useState([]);
+      
+    const handleBeneficiaryBankAccount= async (id)=>{
+        let url = import.meta.env.VITE_USER_API+`/external_entities/${id}/banks`;
+        try {
+        const response = await fetchData(url);
+        console.log(response);
+        if(response.length > 0) {
+            setBeneficiairyBanks(response);
+            setBeneficiaryBankAccountNumbers(response[0]?.bankAccounts);
+        }
+        } catch (error) {
+            openNotification("ECHEC", "Impossible dóbtenir les informations des bank\n du bénéficiaire");
+        }
+    }
+
+    // useEffect(()=>{
+    //   handleBeneficiaryBankAccount(recipientType === "PERSONNEPHYSIQUE" ? beneficiaire : recipient );
+    // }, [recipientType,beneficiaire, recipient]);
+
     const operationCol = [
+        {
+          title: '#',
+          dataIndex: 'label',
+          key: 'label',
+          render:(text, record)=>(<>{operations.indexOf(record)+1}</>)
+        },
         {
           title: 'Type d\'opération',
           dataIndex: 'label',
@@ -101,26 +147,27 @@ function CreateRecetteForm(
         },
         {
           title: 'Action',
-          render: ()=>(
+          render: (text, record)=>(
             <div className='flex items-start space-x-2 text-xs'>
               <span className='text-green-500 cursor-pointer'>Éditer</span>
-              <span className='text-red-500 cursor-pointer'>Supprimer</span>
+              <span className='text-red-500 cursor-pointer' onClick={()=>handleDelete(record)}>Supprimer</span>
             </div>
           )
         }
     ]
 
     const handleClearRecipeForm = () => {
-        setEmployeeController("");
+        setEmployeeController(employeesControllers[0]?.User.id);
         setPaymentMethod("");
         setTotalAmount("");
         setDescriptionValue("");
-        setShiftValue("");
+        setShiftValue("6h-15h");
         setFileNumber("");
         setCorporateName("");
         setUinClient("");
-        setSiteValue("");
+        setSiteValue(sites[0]?.id);
         setRecipeErrMsg("");
+        setTransactionNumber("");
         setOperationDataSrc([]);
         setOperations([]);
     }
@@ -128,10 +175,44 @@ function CreateRecetteForm(
     const [operationDataSrc, setOperationDataSrc] = useState([]);
     const [selectedOperationType, setSelectedOperationType] = useState("");
     const [currentStep, setCurrentStep] = useState(0);
+    const [entityBank, setEntityBank ] = useState("");
 
     const [confirmModalText, setConfirmModalText] = useState("");
     const [confirmModalIcon, setConfirmModalIcon] = useState(undefined);
     const [openConfirmModal, setOpenConfirmModal] = useState(false);
+    const [externalEntities, setExternalEntities] = useState([]);
+    const [bankEntity, setBankEntity] = useState([]);
+    const [externalEntity, setExternalEntity] = useState("");
+    const [accountNumbers, setAccountNumbers] = useState([]);
+    const [destinationAccount, setDestinationAccount ] = useState("");
+
+    const handleExternalEntity = async()=>{
+        try {
+            const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
+            let result = external;
+            console.log(result)
+            setExternalEntities(result);
+            setExternalEntity(result[0]?.external_entity.id);
+            handleBeneficiaryBankAccount(result[0]?.external_entity.id)
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    const handleGetBank= async()=>{
+        const banks = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity_banks");
+        if(!requestError){
+            setBankEntity(banks);
+            setEntityBankAccountNumbers(banks[0]?.bank.bank_account)
+        }
+    }
+
+    const handleGetExternalBank= async()=>{
+    const banks = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
+    if(!requestError){
+        setBankExternalEntity(banks);
+    }
+    }
 
     const handleNextStep =() =>{
         const step = currentStep;
@@ -166,6 +247,7 @@ function CreateRecetteForm(
             setAllOperationsTotal(operationsTotal([...operations, data]));
             clearOperationsForm();
             setIsAddingOperation(false);
+            return
         }else{
             if(selectedOperationType === ""){
                 setOperationErrMsg("Type d'operations requis");
@@ -186,10 +268,16 @@ function CreateRecetteForm(
         setOperationErrMsg("");
     }, [selectedOperationType, operationQuantity, unitPrice])
 
-    
+    useEffect(()=>{
+        handleBeneficiaryBankAccount(externalEntity)
+    }, [externalEntity])
+
+
     const handleCancelOperationCreation= (e) =>{
         e.preventDefault();
         setIsAddingOperation(false);
+        setOperationDataSrc([]);
+        setOperations([]);
         clearOperationsForm();
     }
 
@@ -216,7 +304,8 @@ function CreateRecetteForm(
         }, 0);
     }
 
-    const handleCreateRecettes = async () =>{
+    const handleCreateRecettes = async (e) =>{
+        e.preventDefault();
         const url = import.meta.env.VITE_DAF_API+"/recipesheet/?entity_id="+entityValue;
         const data = {
             "recipe_type": recipeType,
@@ -229,11 +318,11 @@ function CreateRecetteForm(
             "file_number": fileNumber,
             "corporate_name": corporateName,
             "uin_client": uinClient,
-            "bank_account_number": "",
-            "client_bank_account_number": "",
+            "bank_account_number": entityBankAccountNumber,
+            "client_bank_account_number": externalEntityBankAccountNumber,
             "it_is_a_cash_desk_movement": false,
-            "transaction_number": "",
-            "cash_desk_number": "",
+            "transaction_number": transactionNumber,
+            "cash_desk_number": cashDeskNumber,
             "site": siteValue,
             "entity": entityValue,
             "operation_types" : operations
@@ -241,12 +330,16 @@ function CreateRecetteForm(
 
         try {
             const response = await postData(url, data, true);
-            console.log(response);
             onSubmit();
-            setCurrentStep(0);
-            setIsOpen(false);
-            handleClearRecipeForm();
-            openNotification("SUCCESS", "Recette créer avec success.");
+
+            if(!requestError){
+                setCurrentStep(0);
+                setIsOpen(false);
+                handleClearRecipeForm();
+                openNotification("SUCCESS", "Recette créer avec success.");
+                return
+            }
+            openNotification("ECHEC", "Echec de creation de la recette.");
             // handleOpenModal("Recette créer avec success.", (<CheckCircleIcon className='text-green-500 h-8 w-8'/>))
         } catch (error) {
             openNotification("ECHEC", "Echec de creation de la recette.");
@@ -265,10 +358,24 @@ function CreateRecetteForm(
         }
     }
 
+    const handleGetAllEntities = async ()=>{
+        try {
+          const benef = await fetchData(import.meta.env.VITE_USER_API+"/entities/all");
+          setEntities(benef);
+        } catch (error) {
+          console.log(error.message);
+        }
+    }
+
     useEffect(()=>{
         handleGetController();
         handleGetSites();
         handleGetallProducts();
+        handleExternalEntity();
+        handleGetBank();
+        handleGetExternalBank();
+        handleGetAllEntities();
+        setShiftValue("6h-15h")
         const functions = JSON.parse(localStorage.getItem("user"))?.Function?.name;
 
         if(functions === "gueritte_chef"){
@@ -301,7 +408,7 @@ function CreateRecetteForm(
                         roles={userInfo?.role?.name}
                         functions={userInfo?.Function?.name}
                         // received={userInfo?.role.name}
-                        // isExcluded={true}
+                        isExcluded={true}
                     >
                         <select name="" id="" value={recipeType} onChange={e=>setRecipeType(e.target.value)}>
                             {/* <option value="To be invoiced">Recette portuaire</option> */}
@@ -309,22 +416,98 @@ function CreateRecetteForm(
                             <option value="TO BE INVOICED">A facturer</option>
                         </select>
                     </VerifyPermissions>
-                    <select name="" id="" value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value)}>
-                        <option value="">Mode de paiement</option>
-                        <option value="ESPECES">Espèces</option>
-                        <VerifyPermissions 
-                            expected={["gueritte_chef"]}
-                            // received={userInfo?.role.name || userInfo?.Function.name}
-                            roles={userInfo?.role?.name}
-                            functions={userInfo?.Function?.name}
-                            isExclude={true}
-                        >
-                            <option value="CARTE">Carte</option>
-                            <option value="VIREMENT">Virement</option>
-                            <option value="CHEQUE">Cheque</option>
-                        </VerifyPermissions>
-                        <option value="PAIMENT MOBILE">Paiment mobile</option>
-                    </select>
+                    <div className='flex flex-col'>
+                        <label htmlFor="" className='text-xs'>Mode de paiement :</label>
+                        <select name="" id="" value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value)}>
+                            <option value="ESPECES">Espèces</option>
+                            <VerifyPermissions 
+                                expected={["accountant"]}
+                                // received={userInfo?.role.name || userInfo?.Function.name}
+                                roles={userInfo?.role?.name}
+                                functions={userInfo?.Function?.name}
+                                // isExclude={true}
+                            >
+                                <option value="CARTE">Carte</option>
+                                <option value="VIREMENT">Virement</option>
+                                <option value="CHEQUE">Cheque</option>
+                            </VerifyPermissions>
+                            <option value="PAIMENT MOBILE">Paiment mobile</option>
+                        </select>
+                    </div>
+
+                    {
+                        (paymentMethod === "CHEQUE" || paymentMethod === "CARTE" || paymentMethod === "PAIMENT MOBILE") &&
+                        <input type="text" value={transactionNumber} onChange={e=>setTransactionNumber(e.target.value)} placeholder='Numéro de transaction'/>
+                    }
+
+                    { paymentMethod === "VIREMENT" &&
+                      <>
+                        <div className='w-full flex flex-col md:flex-row items-center space-x-3 justify-center'>
+                            <div className='flex flex-col w-full md:w-1/2'>
+                                <label htmlFor="" className='text-xs'>Bank de l'entité</label>
+                                <select className="w-full" name="" id="" value={entityBank} onChange={e=>{
+                                    setEntityBank(e.target.value);
+                                    const account = bankEntity.filter(account => account?.bank.id === e.target.value);
+                                    setEntityBankAccountNumbers(account[0]?.bank.bank_account);
+                                    setDestinationAccount("");
+                                }}>
+                                {
+                                    bankEntity.map(bank=><option key={bank?.bank.id} value={bank?.bank.id}>{bank?.bank.sigle}</option>)
+                                }
+                                </select>
+                            </div>
+                            <div className='flex flex-col w-full md:w-1/2'>
+                                <label htmlFor="" className='text-xs'>Numéro du compte de la bank</label>
+                                {/* Add a select bank and account for the external entity */}
+                                <select name="" id="">
+                                    {
+                                        entityBankAccountNumbers.map(accountNumber =><option value={accountNumber?.id} key={accountNumber?.id}>{accountNumber?.account_number}</option>)
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+
+                        {/* Entite extern */}
+                        <label htmlFor="" className='text-xs'>Entitées externe</label>
+                        <select name="" id="" value={externalEntity} onChange={e=>setExternalEntity(e.target.value)}>
+                            {
+                                externalEntities.map(entity =>
+                                    <option value={entity?.external_entity.id}>{entity?.external_entity.name}</option>
+                                )
+                            }
+                        </select>
+
+                        {/*  */}
+                        <div className='w-full flex flex-col md:flex-row items-center space-x-3 justify-center'>
+                            <div className='flex flex-col w-1/2'>
+                                <label htmlFor="" className='text-xs'>Choisir la banque du bénéficiaire</label>
+                                <select className='w-full' value={beneficiaryBankAccount} onChange={e=>setBeneficiaryBankAccount(e.target.value)}>
+                                {
+                                    beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank.id} value={beneficiairy?.bank.id}>
+                                    {
+                                        beneficiairy.bank.sigle
+                                    }
+                                    </option>)
+                                }
+                                </select>
+                            </div>
+                            <div className='flex flex-col w-full md:w-1/2'>
+                                <label htmlFor="" className='text-xs'>Bank de l'entité externe</label>
+                                <select className="w-full" name="" id="" value={entityBankAccountNumber} onChange={e=>{
+                                    setEntityBankAccountNumber(e.target.value);
+                                    const account = bankEntity.filter(account => account?.bank.id === e.target.value);
+                                        setAccountNumbers(account[0]?.bank.bank_account);
+                                        setDestinationAccount("");
+                                    }}>
+                                    {
+                                        beneficiaryBankAccountNumbers.map(bank=><option key={bank?.id} value={bank?.id}>{bank?.account_number}</option>)
+                                    }
+                              </select>
+                            </div>
+                        </div>
+                      </>
+                    }
                     <VerifyPermissions
                         expected={["guerrite_chef"]}
                         // received={userInfo?.role.name || userInfo?.Function.name}
@@ -341,49 +524,67 @@ function CreateRecetteForm(
                     recipeType === "INVOICE PAYMENT" &&
                         <input value={totalAmount} onChange={e=>setTotalAmount(e.target.value)} type="number" placeholder='Montant total'/>
                     }
-                    <select name="" id="" value={siteValue} onChange={e=>setSiteValue(e.target.value)}>
-                        <option value="">Choisir le site</option>
-                        {
-                            sites?.map(site => <option value={site?.id} key={site?.id}>{site?.name}</option>)
-                        }
-                    </select>
-                    {
+                    <div className='flex flex-col'>
+                        <label htmlFor="" className='text-xs'>Choisir le site</label>
+                        <select name="" id="" value={siteValue} onChange={e=>setSiteValue(e.target.value)}>
+                            {
+                                sites?.map(site => <option value={site?.id} key={site?.id}>{site?.name}</option>)
+                            }
+                        </select>
+                    </div>
+                    {/* {
                     recipeType === "INVOICE PAYMENT" &&
                     <input type="text" placeholder="Nom de l'entreprise " value={corporateName} onChange={e=>setCorporateName(e.target.value)}/>
-                    }
-                    { 
+                    } */}
+                    {/* { 
                     recipeType === "INVOICE PAYMENT" &&
                     <input type="text" placeholder='Numéro de contribuable' value={uinClient} onChange={e=>setUinClient(e.target.value)}/>
-                    }
-                    <select name="" id="" value={employeeController} onChange={e=>setEmployeeController(e.target.value)}>
-                        <option value="">Choisir le controleur</option>
-                        {
-                          employeesControllers
-                          .map(controller=><option value={controller?.User?.id} key={controller?.User?.id}>{controller?.User?.name?.toUpperCase()}</option>)
-                        }
-                    </select>
+                    } */}
                     <VerifyPermissions
                         expected={["gueritte_chef"]}
                         // received={userInfo?.role.name || userInfo?.Function.name}
                         roles={userInfo?.role?.name}
                         functions={userInfo?.Function?.name}
                     >
-                        <select name="" id="" value={shiftValue} onChange={e=>setShiftValue(e.target.value)}>
-                            <option value="">Choisir le shift</option>
-                            <option value="6h-15h">6h-15h</option>
-                            <option value="15h-22h">15h-22h</option>
-                            <option value="22h-6h">22h-6h</option>
-                        </select>
+                        <div className='flex flex-col'>
+                            <label htmlFor="" className='text-xs'>Choisir le controleur</label>
+                            <select name="" id="" value={employeeController} onChange={e=>setEmployeeController(e.target.value)}>
+                                {
+                                employeesControllers
+                                .map(controller=><option value={controller?.User?.id} key={controller?.User?.id}>{controller?.User?.name?.toUpperCase()}</option>)
+                                }
+                            </select>
+                        </div>
+                    </VerifyPermissions>
+                    <VerifyPermissions
+                        expected={["gueritte_chef"]}
+                        roles={userInfo?.role?.name}
+                        functions={userInfo?.Function?.name}
+                    >
+                        <div className='flex flex-col'>
+                            <label htmlFor="" className='text-xs'>Choisir le shift</label>
+                            <select name="" id="" value={shiftValue} onChange={e=>setShiftValue(e.target.value)}>
+                                <option value="6h-15h">6h-15h</option>
+                                <option value="15h-22h">15h-22h</option>
+                                <option value="22h-6h">22h-6h</option>
+                            </select>
+                        </div>
                     </VerifyPermissions>
                     
                     <textarea name="" id="" className='' placeholder='Description' value={descriptionValue} onChange={e=>setDescriptionValue(e.target.value)}></textarea>
                 </form>
                 <div className="flex justify-end">
+                <VerifyPermissions
+                        expected={["accountant"]}
+                        roles={userInfo?.role?.name}
+                        functions={userInfo?.Function?.name}
+                    >
+                        <button className={`${requestLoading ? "bg-green-300" : "bg-green-500" } btn text-white text-sm shadow flex items-center`} onClick={handleCreateRecettes}> 
+                            <span>{requestLoading ? "En cours..." : "Initier la recette"}</span>
+                        </button>
+                    </VerifyPermissions>
                     <VerifyPermissions
-                        // expected={["gueritte_chef"]}
-                        // received={userInfo?.role.name}
                         expected={["gueritte_chef"]}
-                        // received={""}
                         roles={userInfo?.role?.name}
                         functions={userInfo?.Function?.name} 
                     >
@@ -393,12 +594,12 @@ function CreateRecetteForm(
                         </button>
                     </VerifyPermissions>
                     <VerifyPermissions
-                        expected={[""]}
+                        expected={["gueritte_chef"]}
                         roles={userInfo?.role?.name}
                         functions={userInfo?.Function?.name}
                         isExclude={true} 
                     >
-                        <button className={`btn ${nextIsEnabled || !requestLoading ? "bg-green-500" :"bg-green-300 cursor-not-allowed"} text-white text-sm shadow flex items-center`}  onClick={handleCreateRecettes}> 
+                        <button className={`btn ${(nextIsEnabled || !requestLoading) ? "bg-green-500" :"bg-green-300 cursor-not-allowed"} text-white text-sm shadow flex items-center`}  onClick={handleCreateRecettes}> 
                             {requestLoading ? "En cours...":"Initier"}
                             <PlusIcon className='text-white h-4 w-6'/>
                         </button>

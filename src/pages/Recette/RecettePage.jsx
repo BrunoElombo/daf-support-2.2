@@ -100,6 +100,7 @@ function RecettePage() {
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState([]);
 
+  const [recipeTotal, setRecipeTotal] = useState(0);
   // Recette Fileds
   const [typeRecette, setTypeRecette] = useState('PORT');
 
@@ -130,8 +131,15 @@ function RecettePage() {
   const [addOperation, setAddOperation] = useState(false);
 
 
+  const [entitiesBank, setEntitiesBank] = useState("");
   const [isUpdateMode, setIsUpdateMode] = useState(false);
 
+  const handleGetBank= async()=>{
+    const banks = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity_banks");
+    if(!requestError){
+      setEntitiesBank(banks);
+    }
+  }
 
   // Validation recette
   const [openValidationModal, setOpenValidationModal] = useState(false);
@@ -212,7 +220,6 @@ function RecettePage() {
   }
 
   const handleSelectRecipeForDelete=async(_selectedRecipe)=>{
-    
     setSelectedRecipe(_selectedRecipe.id);
     handleShowDetails(_selectedRecipe.id);
   }
@@ -301,7 +308,11 @@ function RecettePage() {
       key: 'employee_controller',
       width:  "200px",
       render:(text, record)=>(
-        <>{employeesControllers.find(employee=>employee?.User?.id === text)?.User?.name?.toUpperCase()}</>
+        <>{
+          record.provenance !== "INVOICE PAYMENT"?
+          employeesControllers.find(employee=>employee?.User?.id === text)?.User?.name?.toUpperCase():
+          "N/A"
+          }</>
       )
     },
     {
@@ -311,7 +322,7 @@ function RecettePage() {
       width:  "200px",
     },
     {
-      title: 'Pont',
+      title: 'Site',
       dataIndex: 'site',
       key: 'site',
       width:  "200px",
@@ -332,11 +343,13 @@ function RecettePage() {
       title: 'Status',
       width:  "200px",
       render:(text, record)=>(
-        <div className='flex space-x-2'>
-          <div 
-            className={`${(record.statut === "VALIDATION CHECKOUT" || record.statut === "RECEIVED") ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center py-2 px-8`}>Ctrleur</div>
-          <div className={`${record.statut === "RECEIVED" ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center py-2 px-6`}>caisse</div>
-        </div>
+        record.statut !== "RECEIVED" ?
+          <div className='flex space-x-2'>
+            <div 
+              className={`${(record.statut === "VALIDATION CHECKOUT" || record.statut === "RECEIVED") ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center py-2 px-8`}>Ctrleur</div>
+            <div className={`${record.statut === "RECEIVED" ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center py-2 px-6`}>caisse</div>
+          </div>:
+          <p className=''>{("Perçu").toString().toUpperCase()}</p>
       )
     },
     {
@@ -344,6 +357,13 @@ function RecettePage() {
       dataIndex: 'shift',
       key: 'shift',
       width:  "200px",
+      render:(text, record)=>(
+        <>
+        {
+          record.provenance !== "INVOICE PAYMENT"? text : "N/A"
+        }
+        </>
+      )
     },
     
     {
@@ -354,11 +374,12 @@ function RecettePage() {
         <div className='flex items-center space-x-2'>
           {
             <VerifyPermissions 
-              expected={["coordinator", "accountant", "cashier"]}
+              expected={["coordinator", "cashier"]}
               roles={userInfo?.role?.name}
               functions={userInfo?.Function?.name}
             >
               {
+              record.statut !== "RECEIVED" &&
               <CheckIcon onClick={()=>handleSelectedRecipe(text)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
               }
             </VerifyPermissions>
@@ -380,15 +401,10 @@ function RecettePage() {
       const response = await fetchData(url);
       setFilteredData(response?.results);
       setRecetteDataSrc(response?.results);
+      handleGetRecipeSummary();
     } catch (error) {
       console.error("Error creating recipe:", error);
     }
-  }
-
-
-
-  const handleUpdateRecette=()=>{
-
   }
 
   const handleShowDetails= async (id)=>{
@@ -408,12 +424,27 @@ function RecettePage() {
     }
   }
 
+  const handleGetRecipeSummary = async () => {
+    let url = import.meta.env.VITE_DAF_API;
+    const actualYear = new Date().getFullYear();
+    try {
+      const response = await fetchData(url+"/recipesheet/summary_by_year/?year="+actualYear+"&entity_id="+entityValue);
+      if (response && response.annual_sums) {
+        setRecipeTotal(response.annual_sums[0].total_amount)
+      }
+      
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
 
   useEffect(()=>{
     handleGetAllRecette();
     handleGetSites();
     handleGetController();
     handleGetallProducts();
+    handleGetRecipeSummary();
   }, []);
 
   const hasSelected = selectedRowKeys.length > 0;
@@ -447,7 +478,7 @@ function RecettePage() {
             footer={() => <div className='flex'>
               <p className='text-sm'>
                 {/* Total : <b className='bg-yellow-300 p-2 rounded-lg'>{numberWithCommas(sumMontants(recipeDataSrc))} XAF</b> */}
-                Total : <b className='bg-yellow-300 p-2 rounded-lg'>{recipeDataSrc?.length > 0 ? numberWithCommas(sumMontants(recipeDataSrc)): "0"} XAF</b>
+                Total : <b className='bg-yellow-300 p-2 rounded-lg'>{numberWithCommas(recipeTotal)} XAF</b>
               </p>
             </div>}
             dataSource={recipeDataSrc}

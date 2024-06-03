@@ -27,6 +27,7 @@ function ValidationRecette({
         notification.open({
           message: title,
           description: message,
+          duration: 1
         });
       };
 
@@ -44,7 +45,6 @@ function ValidationRecette({
             };
 
             const response = await updateData(url, data, true)
-            setObservation("");
             // handleOpenModal("Validé avec success",(<CheckCircleIcon className='text-green-500 h-8 w-8'/>))
             openNotification("SUCCESS", "Validé avec success");
             onSubmit();
@@ -53,6 +53,8 @@ function ValidationRecette({
             // handleOpenModal("Echec de validation",(<XMarkIcon className='text-red-500 h-8 w-8'/>))
             openNotification("ECHEC", "Echec de validation");
             console.error(error);
+        }finally{
+          setObservation("");
         }
     }
   return (

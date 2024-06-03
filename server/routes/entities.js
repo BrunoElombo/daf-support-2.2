@@ -5,6 +5,7 @@ const verifyToken = require("../middlewear/verifyJWT");
 
 // CRUD operations for Entity
 router.get('/', verifyToken, EntityController.getAllEntities);
+router.get('/all', verifyToken, EntityController.ListAllEntities);
 router.post('/', verifyToken, EntityController.createEntity);
 router.get('/:id',  verifyToken, EntityController.getEntityById);
 router.put('/:id',  verifyToken, EntityController.updateEntity);

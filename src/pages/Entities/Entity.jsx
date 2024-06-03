@@ -52,9 +52,6 @@ function Entity() {
     }
 
     useEffect(()=>{
-        // setTimeout(()=>{
-        //     setIsLoading(false);
-        // }, 3000);
         handleFetchEntites();
     }, []);
 

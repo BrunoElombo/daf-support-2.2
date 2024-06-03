@@ -1,18 +1,14 @@
 import React, { useState } from 'react';
 
-const SuggestInput = ({ dataList, inputValue, setInputValue, className }) => {
+const SuggestInput = ({ dataList, inputValue, setInputValue, className, placeholder }) => {
+  console.log(dataList)
 //   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState([]);
-
   const handleChange = (e) => {
     const value = e.target.value;
-    console.log(value);
     setInputValue(value);
-    console.log(dataList)
     const filteredSuggestions = dataList.filter(item => item?.account_number.toLowerCase().includes(value.toLowerCase())
-    //   item.toLowerCase().includes(value.toLowerCase())
 );
-    console.log(filteredSuggestions);
     setSuggestions(filteredSuggestions);
   };
 
@@ -22,12 +18,12 @@ const SuggestInput = ({ dataList, inputValue, setInputValue, className }) => {
   };
 
   return (
-    <div className='relative w-full md:w-1/2'>
+    <div className='relative w-full'>
       <input
         type="text"
         value={inputValue}
         onChange={handleChange}
-        placeholder="Type to search..."
+        placeholder={placeholder}
         className={`${className}`}
         list="account-numbers"
       />

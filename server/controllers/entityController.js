@@ -59,6 +59,7 @@ const EntityController = {
             }
           }
         });
+
         console.log(employeeWithFunction);
         return res.send(employeeWithFunction);      
       } catch (error) {
@@ -110,6 +111,7 @@ const EntityController = {
     }
 
 
+
     try {
       // Extract employee ID from JWT token payload
       const decodedToken = jwt.decode(req.headers.authorization.split(' ')[1]);
@@ -142,6 +144,21 @@ const EntityController = {
       });
   
       return res.status(200).json(employee);
+    } catch (error) {
+      console.error('Error fetching employee entities:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  ListAllEntities: async(req, res)=>{
+    try {
+      // Extract employee ID from JWT token payload
+      const decodedToken = jwt.decode(req.headers.authorization.split(' ')[1]);
+      const userId = decodedToken.id;
+
+      const entities = await prisma.entity.findMany({})
+  
+      return res.status(200).json(entities);
     } catch (error) {
       console.error('Error fetching employee entities:', error);
       res.status(500).json({ error: 'Internal server error' });

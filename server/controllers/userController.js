@@ -30,7 +30,11 @@ const jwt = require('jsonwebtoken');
               is_staff: true
             }
           },
-          entity:true,
+          entity:{
+            include:{
+              site:true
+            }
+          },
           role:true,
           Function: true,
           Departement:true

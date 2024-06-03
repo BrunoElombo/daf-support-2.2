@@ -1,8 +1,8 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import LoginLayout from '../../Layout/LoginLayout'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import { InboxOutlined } from '@ant-design/icons';
-import { Table, Modal, Upload, Drawer, Space, Select } from 'antd';
+import { Table, Modal, Upload, Drawer, Space, Select, notification } from 'antd';
 import { v4 as uuidV4 } from 'uuid';
 import useFetch from '../../hooks/useFetch';
 const { Dragger } = Upload;
@@ -11,38 +11,6 @@ import { AUTHCONTEXT } from '../../context/AuthProvider';
 import Collapsible from '../../components/Collapsible/Collapsible';
 import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
 import SuggestInput from '../../components/SuggestInput/SuggestInput';
-
-
-const props = {
-  name: 'file',
-  multiple: true,
-  action: 'https://660d2bd96ddfa2943b33731c.mockapi.io/api/upload',
-  onChange(info) {
-    const { status } = info.file;
-    if (status !== 'uploading') {
-      console.log(info.file, info.fileList);
-    }
-    if (status === 'done') {
-      message.success(`${info.file.name} file uploaded successfully.`);
-    } else if (status === 'error') {
-      message.error(`${info.file.name} file upload failed.`);
-    }
-  },
-  onDrop(e) {
-    console.log('Dropped files', e.dataTransfer.files);
-  },
-};
-
-const rowSelection = {
-  onChange: (selectedRowKeys, selectedRows) => {
-    console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
-  },
-  getCheckboxProps: (record) => ({
-    disabled: record.name === 'Disabled User',
-    // Column configuration not to be checked
-    name: record.name,
-  }),
-};
 
 
 function ExpensePage() {
@@ -75,15 +43,16 @@ function ExpensePage() {
       const [isAddingOperation, setIsAddingOperation] = useState(false);
       const [selectedRowKeys, setSelectedRowKeys] = useState([]);
       const [loading, setLoading] = useState(false);
+      const [expenseTotal, setExpenseTotal] = useState(0);
 
 
       const [site, setSite] = useState('');
-      const [beneficiaire, setBeneficiaire] = useState('');
+      const [beneficiaire, setBeneficiaire] = useState(JSON.parse(localStorage.getItem("user"))?.User.id);
       const [montant, setMontant] = useState("");
       const [paymentMode, setPaymentMode] = useState("");
       const [description, setDescription] = useState('');
       const [files, setFiles] = useState([]);
-      const[recipientType, setRecipientType] = useState("");
+      const[recipientType, setRecipientType] = useState("PERSONNEPHYSIQUE");
       const[recipient, setRecipient] = useState("");
 
       const [selectedRecipe, setSelectedRecipe] = useState("");
@@ -94,6 +63,19 @@ function ExpensePage() {
       const [bankEntity, setBankEntity] = useState([]);
       const [accountNumbers, setAccountNumbers] = useState([]);
       const [bankExternalEntity, setBankExternalEntity] = useState([]);
+      const [transactionNumber, setTransactionNumber] = useState("");
+      const [bankAccountNumber, setBankAccountNumber] = useState("");
+      const [beneficiaryBankAccountNumber, setBeneficiaryBankAccountNumber] = useState("");
+      const [beneficiaryBankAccountNumbers, setBeneficiaryBankAccountNumbers] = useState([]);
+      const [beneficiaryBankAccount, setBeneficiaryBankAccount] = useState("");
+      useEffect(()=>{
+        // setBeneficiaryBankAccount(beneficiairyBanks[0]?.bank.id)
+      }, [beneficiaryBankAccount]);
+
+      const [beneficiairyBanks, setBeneficiairyBanks] = useState([]);
+
+      const recipientRef= useRef();
+
       const [selectedExpense, setSelectedExpense] = useState({})
 
       // Validation fields
@@ -108,19 +90,44 @@ function ExpensePage() {
       // Validation TPG
       const [openTPGValidation, setOpenTPGVAlidation] = useState(false);
       const [observationTPG, setObservationTPG] = useState("");
+
+      const [initExpenseFormIsValid, setInitExpenseFormIsValid] = useState(false);
+      
       
 
       // Validation Caissier
       const [openCashierValidation, setOpenCashierValidation] = useState(false);
       const [cashierObservation, setCashierObservation] = useState("");
+      
+      const handleGetExpenseSummary = async () => {
+        let url = import.meta.env.VITE_DAF_API;
+        const actualYear = new Date().getFullYear();
+        try {
+          const response = await fetchData(url+"/expensesheet/summary_by_year/?year="+actualYear+"&entity_id="+entityId);
+          if (response && response.annual_sums) {
+            setExpenseTotal(response.annual_sums[0].total_amount)
+          }
+          
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      const openNotification = (title, message) => {
+        notification.open({
+          message: title,
+          description: message,
+        });
+      }
 
       const handleSubmitValidation = async (e)=>{
         e.preventDefault();
-        let entityId = JSON.parse(localStorage.getItem("entity"))?.entity.id
+        let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
         let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/?entity_id="+entityId
         const data={
           is_urgent:typeValidation,
           description:validationDescription,
+          transaction_number: transactionNumber,
           employee_initiator: JSON.parse(localStorage.getItem("user"))?.id
         }
         const response = await updateData(url, data, true);
@@ -129,14 +136,14 @@ function ExpensePage() {
           setTypeValidation(true);
           setOpenValidateModal(false);
           handleGellAllExpenses();
-          alert("Fiche de dépense validé");
+          openNotification("SUCCESS", "Fiche de dépense validé")
         }
 
       }
 
       const handleRejectExpenses = async (e)=>{
         e.preventDefault();
-        let entityId = JSON.parse(localStorage.getItem("entity"))?.entity.id
+        let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
         let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/rejection/?entity_id="+entityId
         const data={
           is_urgent:true,
@@ -154,7 +161,7 @@ function ExpensePage() {
           setRejectionDescription("");
           setOpenRejectModal(false);
           handleGellAllExpenses();
-          alert("Fiche de dépense rejeté");
+          openNotification("ECHEC", "Fiche de dépense rejeté");
         }
 
       }
@@ -165,6 +172,7 @@ function ExpensePage() {
         setOpenValidateModal(true);
         // setSelectedRowKeys(newSelectedRowKeys);
       };
+
       const setSelectionRow2 = (expense) => {
         // console.log('selectedRowKeys changed: ', id);
         setSelectedExpense(expense);
@@ -225,6 +233,7 @@ function ExpensePage() {
                   <div className={`${((record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_budgetary_department != null && record.statut != "REJECT FINANCIAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF</div>
                   <div className={`${((record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_general_director != null && record.statut != "REJECT GENERAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DG</div>
                   <div className={`${((record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_president != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>PRE</div>
+                  <div className={`${((record.statut == "EXECUTED") || (record.date_valid_president != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>PRE</div>
                 </>
               }
             </div>
@@ -240,12 +249,45 @@ function ExpensePage() {
             <>
                 <div className='flex items-center space-x-2'>
               {
-                (!record.statut.includes("REJECT") || record.statut.includes("EXECUTED") || record.statut.includes("IN_DISBURSEMENT")) &&
+                (record.statut.includes("REJECT") || record.statut.includes("EXECUTED") || record.statut.includes("IN_DISBURSEMENT"))?
                 <>
-                  <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
-                  <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/>
+                </>
+                :
+                <>
+                {/* <VerifyPermissions
+                  expected={["chief_financial_officer","operations_manager", "president", "general_manager", "paymaster_general"]}
+                  roles={userInfo?.role?.name}
+                  functions={userInfo?.Function?.name}
+                >
+                <>
+                  <VerifyPermissions
+                    expected={["chief_financial_officer","operations_manager", "president", "general_manager"]}
+                    roles={userInfo?.role?.name}
+                    functions={userInfo?.Function?.name}
+                    isExclude = {true}
+                  >
+                  </VerifyPermissions>
+                  <VerifyPermissions
+                    expected={["chief_financial_officer","operations_manager", "president", "general_manager"]}
+                    roles={userInfo?.role?.name}
+                    functions={userInfo?.Function?.name}
+                  >
+                    <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
+                  </VerifyPermissions>
+                  <VerifyPermissions
+                    expected={["paymaster_general"]}
+                    roles={userInfo?.role?.name}
+                    functions={userInfo?.Function?.name}
+                  >
+                    
+                        <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
+                  </VerifyPermissions>
+                </>
+                </VerifyPermissions> */}
                 </>
               }
+                <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
+                <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/>
                 <EyeIcon className='text-gray-500 h-6 cursor-pointer hover:bg-gray-300 hover:text-white p-1 rounded-lg' title='Voir le détail' onClick={()=>handleShowDetails(record.id)}/>
               </div>
             </>
@@ -271,10 +313,9 @@ function ExpensePage() {
         let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
         try {
           const response = await fetchData(import.meta.env.VITE_DAF_API+"/expensesheet/?entity_id="+entityId);
-          console.log(response);
           setExpenseDataSrc(response.results);
         } catch (error) {
-          console.log(error.message);
+          console.error(error.message);
         }
       }
 
@@ -288,8 +329,8 @@ function ExpensePage() {
       const handleBenef = async()=>{
         try {
           const benef = await fetchData(import.meta.env.VITE_USER_API+"/employees");
-          console.log(benef);
           setBeneficiaires(benef);
+          setBeneficiaire(JSON.parse(localStorage.getItem("user"))?.user.id)
         } catch (error) {
           console.log(error.message);
         }
@@ -299,6 +340,7 @@ function ExpensePage() {
         const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
         if(!requestError){
           let result = external;
+          
           setExternalEntities(result);
         }
       }
@@ -306,7 +348,6 @@ function ExpensePage() {
       const handleGetBank= async()=>{
         const banks = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity_banks");
         if(!requestError){
-          console.log(banks)
           setBankEntity(banks);
         }
       }
@@ -329,6 +370,7 @@ function ExpensePage() {
 
       const handleSubmitOperation= async (e)=>{
         e.preventDefault();
+        setLoading(true);
 
         const headersList = new Headers();
         headersList.append(
@@ -337,9 +379,11 @@ function ExpensePage() {
         const formData = new FormData();
         formData.append("site", site);
         formData.append("employee_beneficiary", beneficiaire);
-        formData.append("employee_initiator", JSON.parse(localStorage.getItem("user"))?.id);
+        formData.append("employee_initiator", JSON.parse(localStorage.getItem("user"))?.User.id);
         formData.append("payment_method", paymentMode);
         formData.append("amount", montant);
+        formData.append("beneficiary_bank_account_number", beneficiaryBankAccountNumber)
+        formData.append("bank_account_number", bankAccountNumber)
         formData.append("description", description);
         formData.append("entity", entityId);
         formData.append("file_number", "file_number");
@@ -356,18 +400,20 @@ function ExpensePage() {
         const url = import.meta.env.VITE_DAF_API+"/expensesheet/?entity_id="+entityId;
         try {
           const response = await fetch(url, requestOptions)
-          console.log(requestOptions)
-          if(response.status === 201) {
-            handleClearForm();
-            alert("Dépense créee avec success");
-            setIsOpen(false);
-            handleGellAllExpenses();
-            return;
-          }
-          alert("Echec de creation de la dépense");          
+          handleClearForm();
+          openNotification("SUCCESS", "Dépense initier avec success.");
+          setIsOpen(false);
+          handleGellAllExpenses();
+          // if(response.status === 201) {
+          //   return;
+          // }
+          // alert("Echec de creation de la dépense");          
         } catch (error) {
-          console.log(error)
-          alert("Echec de creation de la dépense");
+          console.log(error);
+          openNotification("ECHEC", "Echec de creation de la dépense.");
+          // alert("Echec de creation de la dépense");
+        }finally{
+          setLoading(false);
         }
       }
       
@@ -402,6 +448,7 @@ function ExpensePage() {
         handleExternalEntity();
         handleGetBank();
         handleGetExternalBank();
+        handleGetExpenseSummary();
       } , []);
 
       return (
@@ -410,7 +457,7 @@ function ExpensePage() {
             <PageHeader>
               <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une operation'/>
               <VerifyPermissions
-                expected={["coordinator","chief_financial_officer","operations_manager"]}
+                expected={["coordinator","chief_financial_officer","operations_manager", "paymaster_general"]}
                 roles={userInfo?.role?.name}
                 functions={userInfo?.Function?.name}
               >
@@ -428,7 +475,7 @@ function ExpensePage() {
                 columns={expensesCol}
                 footer={()=>(
                   <div className='flex items-center'>
-                    <p> Total : <b className='bg-yellow-300 p-2 rounded-lg'>{expenseDataSrc?.length > 0 ? numberWithCommas(sumMontants(expenseDataSrc)):"0"} XAF</b></p>
+                    <p> Total : <b className='bg-yellow-300 p-2 rounded-lg'>{expenseDataSrc?.length > 0 ? numberWithCommas(expenseTotal):"0"} XAF</b></p>
                   </div>
                 )}
                 scroll={{
@@ -452,71 +499,139 @@ function ExpensePage() {
             >
                 <div className='flex flex-col space-y-3'>
                   <form onSubmit={()=>{}} className='flex flex-col space-y-3'>
-                    <select name="" id="" value={paymentMode} onChange={e=>setPaymentMode(e.target.value)}>
-                      <option value="">Mode de paiement</option>
-                      <option value="ESPECES">Espèces</option>
-                      <option value="CARTE">Carte</option>
-                      <option value="VIREMENT">Virement</option>
-                      <option value="CHEQUE">Cheque</option>
-                      <option value="PAIMENT MOBILE">Paiment mobile</option>
-                    </select>
+                    <div className='flex flex-col'>
+                      <label htmlFor="" className='text-xs'>Mode de paiement</label>
+                      <select name="" id="" value={paymentMode} onChange={e=>setPaymentMode(e.target.value)}>
+                        <option value="ESPECES">Espèces</option>
+                        <option value="CARTE">Carte</option>
+                        <option value="VIREMENT">Virement</option>
+                        <option value="CHEQUE">Cheque</option>
+                        <option value="PAIMENT MOBILE">Paiment mobile</option>
+                      </select>
+                    </div>
+                    {/* {
+                      (paymentMode === "CARTE" || paymentMode === "CHEQUE" || paymentMode === "PAIMENT MOBILE") &&
+                      <input type="text" name="" id="" className='' value={transactionNumber} onChange={e=>setTransactionNumber(e.target.value)} placeholder='Numéro de transaction'/>
+                    } */}
                     { paymentMode === "VIREMENT" &&
                       <>
                         <div className='w-full flex flex-col md:flex-row items-center space-x-3'>
-                          <select className="w-full md:w-1/2" name="" id="" value={originAccount} onChange={e=>{
-                              setOriginAccount(e.target.value);
-                              const account = bankEntity.filter(account => account?.bank.id === e.target.value);
-                              setAccountNumbers(account[0]?.bank.bank_account);
-                              setDestinationAccount("");
-                            }}>
-                            <option value="">Choisir la banque opérateur</option>
-                            {
-                              bankEntity.map(bank=><option key={bank?.bank.id} value={bank?.bank.id}>{bank?.bank.sigle}</option>)
-                            }
-                          </select>
-                          <SuggestInput 
-                            inputValue={destinationAccount} 
-                            setInputValue={setDestinationAccount} 
-                            dataList={accountNumbers}
-                          />
+                          <div className='flex flex-col w-1/2'>
+                            <label htmlFor="" className='text-xs'>Choisir la banque opérateur</label>
+                            <select className="w-full" name="" id="" value={originAccount} onChange={e=>{
+                                setOriginAccount(e.target.value);
+                                const account = bankEntity.filter(account => account?.bank.id === e.target.value);
+                                setAccountNumbers(account[0]?.bank.bank_account);
+                                setDestinationAccount("");
+                              }}>
+                              {
+                                bankEntity.map(bank=><option key={bank?.bank.id} value={bank?.bank.id}>{bank?.bank.sigle}</option>)
+                              }
+                            </select>
+                          </div>
+                          <div className='w-full md:w-1/2'>
+                            <label htmlFor="" className='text-xs'>Numéro de compte :</label>
+                            <select name="" id="" value={bankAccountNumber} onChange={e=>setBankAccountNumber(e.target.value)} className='w-full'>
+                              {
+                                accountNumbers.map(accountNumber => <option key={accountNumber?.id} value={accountNumber?.id}>{accountNumber?.account_number}</option>)
+                              }
+                            </select>
+                            {/* <SuggestInput 
+                              inputValue={bankAccountNumber} 
+                              setInputValue={setBankAccountNumber} 
+                              dataList={accountNumbers}
+                              placeholder="Numéro de l'entité"
+                            /> */}
+                          </div>
                         </div>
-                        <div className='w-full flex items-center space-x-3'>
-                          <input className="w-full" type="text" placeholder='Numéro du compte bénéficiaire'/>
-                        </div>
+                        {/* <div className='w-full flex items-center space-x-3'>
+                          <input className="w-full" type="text" placeholder='Numéro du compte bénéficiaire' value={beneficiaryBankAccountNumber} onChange={e=>setBeneficiaryBankAccountNumber(e.target.value)}/>
+                        </div> */}
                       </>
                     }
-                    <select name="" id="" value={site} onChange={e=>setSite(e.target.value)}>
-                      <option value="">Choisir le site</option>
-                      {
-                        sites?.map(site=><option value={site?.id} key={site?.id}>{site?.name}</option>)
-                      }
-                    </select>
-                    <div className='w-full flex items-center space-x-2'>
-                      <select name="" id="" className='w-1/2' value={recipientType} onChange={e=>setRecipientType(e.target.value)}>
-                        <option value="">Type de destinaire</option>
-                        <option value="PERSONNEPHYSIQUE">Personne physique</option>
-                        <option value="PERSONNEMORALE">Personne morale</option>
-                        {/* <option value="EMPLOYEES">Employées</option> */}
+                    <div className='w-full flex flex-col'>
+                      <label htmlFor="" className='text-xs'>Choisir le site</label>
+                      <select name="" id="" value={site} onChange={e=>setSite(e.target.value)}>
+                        {
+                          sites?.map(site=><option value={site?.id} key={site?.id}>{site?.name}</option>)
+                        }
                       </select>
+                    </div>
+                    <div className='w-full flex items-center space-x-2'>
+                      <div className='flex flex-col w-1/2'>
+                        <label htmlFor="" className='text-xs'>Type de bénéficiaire</label>
+                        <select name="" id="" className='w-full' value={recipientType} onChange={e=>setRecipientType(e.target.value)}>
+                          <option value="PERSONNEPHYSIQUE">Personne physique</option>
+                          <option value="PERSONNEMORALE">Personne morale</option>
+                          {/* <option value="EMPLOYEES">Employées</option> */}
+                        </select>
+                      </div>
                       { 
-                        recipientType === "PERSONNEPHYSIQUE" || recipientType === "" ?
-                          <select name="" id="" className='w-1/2' value={beneficiaire} onChange={e=>setBeneficiaire(e.target.value)}>
-                            <option value="">Choisir le destinataire</option>
+                        (recipientType === "PERSONNEPHYSIQUE") ?
+                        <div className='flex flex-col w-1/2'>
+                          <label htmlFor="" className='text-xs'>Choisir le beneficiaire</label>
+                          <select name="" id="" className='w-full' value={beneficiaire} onChange={e=>{
+                                setBeneficiaire(e.target.value);
+                              }
+                            }>
                             {
                               beneficiaires.map(benef=><option value={benef?.User.id} key={benef?.User.id}>{benef?.User.name}</option>)
                             }
                           </select>
+                        </div>
                         :
                         recipientType === "PERSONNEMORALE" &&
-                        <select name="" id="" className='w-1/2' value={recipient} onChange={e=>setRecipient(e.target.value)}>
-                          <option value="">Choisir l'entité</option>
-                          {
-                            externalEntities.map(ext=><option value={ext?.external_entity.id} key={ext?.external_entity.id}>{ext?.external_entity.name}</option>)
-                          }
-                        </select>
-                      
+                        <div className='flex flex-col  w-1/2'>
+                          <label htmlFor="" className='text-xs'>Choisir l'entité</label>
+                          <select name="" id="" className='w-full' value={recipient} onChange={e=>{
+                              // setBeneficiaryBankAccount(beneficiairyBanks[0]?.bank.id)
+                              setRecipient(e.target.value);
+                            }
+                            }>
+                            {
+                              externalEntities.map(ext=><option value={ext?.external_entity.id} key={ext?.external_entity.id}>{ext?.external_entity.name}</option>)
+                            }
+                          </select>
+                        </div>
                       }
                     </div>
+                    {
+                      paymentMode === "VIREMENT" &&
+                      <div className='w-full flex flex-col md:flex-row items-center space-x-3'>
+                          <div className='flex flex-col w-1/2'>
+                            {/* <label htmlFor="" className='text-xs'>Choisir la banque du bénéficiaire</label>
+                            <select className="w-full" value={beneficiaryBankAccount} onChange = {e=>setBeneficiaryBankAccount(e.target.value)}>
+                              {
+                                beneficiairyBanks.map(benefBank=><option key={benefBank?.bank.id} value={benefBank?.bank.id}>{benefBank?.bank.sigle}</option>)
+                              }
+                            </select> */}
+                            <label htmlFor="" className='text-xs'>Choisir la banque du bénéficiaire</label>
+                            <select value={beneficiaryBankAccount} onChange={e=>setBeneficiaryBankAccount(e.target.value)}>
+                              {
+                                beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank.id} value={beneficiairy?.bank.id}>
+                                  {
+                                    beneficiairy.bank.sigle
+                                  }
+                                </option>)
+                              }
+                            </select>
+                          </div>
+                          <div>
+                            <label htmlFor="" className='text-xs'>Numéro du compte bénéficiaire</label>
+                            <select name="" id="" value={beneficiaryBankAccountNumber} onChange={e=>setBeneficiaryBankAccountNumber(e.target.value)}>
+                              {
+                                beneficiaryBankAccountNumbers.map(accountNumber => <option value={accountNumber?.id} key={accountNumber?.id}>{accountNumber?.account_number}</option>)
+                              }
+                            </select>
+                            {/* <SuggestInput 
+                              inputValue={beneficiaryBankAccountNumber} 
+                              setInputValue={setBeneficiaryBankAccountNumber} 
+                              dataList={beneficiaryBankAccount}
+                              placeholder="Numéro du compte bénéficiaire"
+                            /> */}
+                          </div>
+                        </div>
+                    }
                     {
                       ((montant > MAX_ALLOWED_AMOUNT && recipient === "" && recipientType === "PERSONNEPHYSIQUE" && paymentMode === "ESPECES") || montant > MAX_ALLOWED_AMOUNT_OTHERS) &&
                       <input type="text" placeholder='NIU'/>
@@ -530,9 +645,12 @@ function ExpensePage() {
                     </Dragger> */}
                     <textarea name="" id="" cols="30" rows="5" placeholder='Description' value={description} onChange={e=>setDescription(e.target.value)}></textarea>
                   </form>
+                
                   <div className="flex justify-end">
-                    <button className={`${requestLoading ? "bg-green-300" : "bg-green-500"} btn btn-ptimary  text-white text-sm shadow flex items-center`} onClick={handleSubmitOperation} disabled={requestLoading}> 
-                      {requestLoading ? "En cours de création":"Initier la dépense"}
+                    <button className={`${loading ? "bg-green-300 cursor-not-allowed" : "bg-green-500" } btn text-white text-sm shadow flex items-center`} onClick={handleSubmitOperation} disabled={loading}> 
+                      <span>
+                        {loading ? "En cours de création":"Initier la dépense"}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -547,15 +665,30 @@ function ExpensePage() {
               footer={()=>{}}
             >
               <form className='flex flex-col w-full space-y-3' onSubmit={handleSubmitValidation}>
-                { selectedExpense?.statut === "VALIDATION DEPARTMENT MANAGER" &&
-                  <select name="" id="" value={typeValidation} onChange={e=>setTypeValidation(e.target.value)}>
-                    <option value="">Type de validation</option>
-                    <option value={true}>Urgent</option>
-                    <option value={false}>Pas urgent</option>
-                  </select>
-                }
+                <VerifyPermissions
+                  expected={["operation_manager"]}
+                  roles={userInfo?.role?.name}
+                  functions={userInfo?.Function?.name}
+                >
+                  { selectedExpense?.statut === "VALIDATION DEPARTMENT MANAGER" &&
+                    <div className=''>
+                      <label htmlFor="" className='text-xs'>Type de validation</label>
+                      <select name="" id="" value={typeValidation} onChange={e=>setTypeValidation(e.target.value)}>
+                        <option value={true}>Urgent</option>
+                        <option value={false}>Pas urgent</option>
+                      </select>
+                    </div>
+                  }
+                </VerifyPermissions>
+                <VerifyPermissions
+                  expected={["paymaster_general"]}
+                  roles={userInfo?.role?.name}
+                  functions={userInfo?.Function?.name}
+                >
+                  <input type="text" placeholder='Numéro de la transaction' value={transactionNumber} onChange={e=>setTransactionNumber(e.target.value)}/>
+                </VerifyPermissions>
                 <textarea name="" id="" placeholder='Observation' value={validationDescription} onChange={e=>setValidationDescription(e.target.value)}></textarea>
-                <button className='btn bg-green-500 text-white'>Valider</button>
+                <button className={`${requestLoading? "bg-green-300 cursor-not-allowed" :"bg-green-500"} btn  text-white`} disabled={requestLoading}>{requestLoading?"Validation encours...":"Valider"}</button>
               </form>
             </Modal>
               
@@ -574,7 +707,7 @@ function ExpensePage() {
             </Modal>
 
             {/* Formulaire du TPG */}
-            <Modal
+            {/* <Modal
               title={<p className='flex items-center'><CalculatorIcon className='text-gray-500 h-6 w-6'/> Validation TPG</p>}
               // open={true}
               open={openTPGValidation}
@@ -585,10 +718,13 @@ function ExpensePage() {
               <form className='flex flex-col w-full space-y-3' onSubmit={handleRejectExpenses}>
                 <input type="text" placeholder='Numéro de la transaction' value={observationTPG} onChange={e=>setObservationTPG(e.target.value)}/>
                 <div className='flex items-center justify-end'>
-                  <button className='btn bg-green-500 text-white'>Validation</button>
+                  <button className={`${requestLoading ? "bg-green-300" : "bg-green-500" } btn text-white text-sm shadow flex items-center`}>
+                    
+                    <span>{requestLoading ? "Validation en cours..." :"Validation"}</span>
+                  </button>
                 </div>
               </form>
-            </Modal>
+            </Modal> */}
 
             {/* Observation du caissier */}
             <Modal

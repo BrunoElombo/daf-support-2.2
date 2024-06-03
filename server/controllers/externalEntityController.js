@@ -23,7 +23,6 @@ const EntityController = {
     }
   },
   
-
   // Get all external entities
   getAllEntities: async (req, res) => {
     try {
@@ -40,8 +39,6 @@ const EntityController = {
             entity:true
         }
       });
-
-      console.log(employee);
       
       const externalEntities = await prisma.associer.findMany({
         where:{
@@ -65,6 +62,7 @@ const EntityController = {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.id;
+      res.send({})
 
     } catch (error) {
       console.error('Error fetching entity:', error);
@@ -163,6 +161,46 @@ const EntityController = {
         User: true
       }
     });
+  },
+
+  // Get the list of banks of an external entity
+  getExternalEntityBanks: async (req, res)=>{
+    const decodedToken = jwt.decode(req.headers.authorization.split(' ')[1]);
+    const userId = decodedToken.id;
+    const id = req.params.id;
+    try {
+      const bankAccounts = await prisma.bankAccount.findMany({
+        where: { id_external_entity: id },
+      });
+  
+      const bankMap = new Map();
+  
+      for (const bankAccount of bankAccounts) {
+        const bankId = bankAccount.id_bank;
+  
+        // Check if bankId already exists in the map
+        if (!bankMap.has(bankId)) {
+          const bank = await prisma.bank.findUnique({
+            where: { id: bankId },
+          });
+  
+          bankMap.set(bankId, {
+            bank: bank,
+            bankAccounts: [],
+          });
+        }
+  
+        // Add bank account to corresponding bank
+        bankMap.get(bankId).bankAccounts.push(bankAccount);
+      }
+  
+      // Convert map values to an array and send the response
+      const result = Array.from(bankMap.values());
+      return res.send(result);
+
+    } catch (error) {
+      console.log(error);
+    }
   }
 
 };

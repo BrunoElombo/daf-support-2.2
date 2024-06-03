@@ -1,84 +1,32 @@
-import React from 'react';
-import { DatePicker, Space } from 'antd';
-import dayjs from 'dayjs';
-
-import customParseFormat from 'dayjs/plugin/customParseFormat';
-dayjs.extend(customParseFormat);
-
-const { RangePicker } = DatePicker;
-const dateFormat = 'YYYY/MM/DD';
-const today = new Date();
-const currentDate = today.toLocaleDateString("en-CA", { year: 'numeric', month: '2-digit', day: '2-digit' });
-console.log(currentDate)
-
-const months = [
-  {
-    number: 1,
-    label: 'Jan',
-  },
-  {
-    number: 2,
-    label: 'Feb',
-  },
-  {
-    number: 3,
-    label: 'Mars',
-  },
-  {
-    number: 4,
-    label: 'Apr',
-  },
-  {
-    number: 5,
-    label: 'May',
-  },
-  {
-    number: 6,
-    label: 'June',
-  },
-  {
-    number: 7,
-    label: 'Jul',
-  },
-  {
-    number: 8,
-    label: 'Aug',
-  },
-  {
-    number: 9,
-    label: 'Sept',
-  },
-  {
-    number: 10,
-    label: 'Oct',
-  },
-  {
-    number: 11,
-    label: 'Nov',
-  },
-  {
-    number: 12,
-    label: 'Dec',
-  },
-];
+import React from 'react'
+import { DatePicker, Space, theme } from 'antd';
 
 function Topfilter() {
+  const { token } = theme.useToken();
+  const style = {
+    border: `1px solid ${token.colorPrimary}`,
+    borderRadius: '50%',
+  };
+  const cellRender = (current, info) => {
+    console.log(current, info);
+    if (info.type !== 'date') {
+      return info.originNode;
+    }
+    if (typeof current === 'number' || typeof current === 'string') {
+      return <div className="ant-picker-cell-inner">{current}</div>;
+    }
+    return (
+      <div className="ant-picker-cell-inner" style={current.date() === 1 ? style : {}}>
+        {current.date()}
+      </div>
+    );
+  }
+
   return (
-    <div className='flex flex-col md:flex-row items-center space-y-2 md:space-x-2 justify-end w-full'>
-        <p className='text-sm'>Mois :</p>
-        <select name="" id="" className='text-xs w-full md:w-auto'>
-          {
-            months.map(month => <option key={month.number} value={month.number}>{month.label}</option>)
-          }
-        </select>
-        <p className='text-sm'>Année :</p>
-        <input type="text" value={new Date().getFullYear()} className='text-xs w-full md:w-auto'/>
-        {/* <RangePicker
-            defaultValue={[dayjs(currentDate, dateFormat), dayjs(currentDate, dateFormat)]}
-            format={dateFormat}
-        /> */}
-    </div>
-  )
+    <Space size={12} direction="vertical">
+      <DatePicker.RangePicker cellRender={cellRender} />
+    </Space>
+  );
 }
 
 export default Topfilter
