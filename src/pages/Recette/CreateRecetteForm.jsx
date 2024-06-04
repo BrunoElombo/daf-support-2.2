@@ -98,7 +98,6 @@ function CreateRecetteForm(
         let url = import.meta.env.VITE_USER_API+`/external_entities/${id}/banks`;
         try {
         const response = await fetchData(url);
-        console.log(response);
         if(response.length > 0) {
             setBeneficiairyBanks(response);
             setBeneficiaryBankAccountNumbers(response[0]?.bankAccounts);
@@ -107,10 +106,6 @@ function CreateRecetteForm(
             openNotification("ECHEC", "Impossible dóbtenir les informations des bank\n du bénéficiaire");
         }
     }
-
-    // useEffect(()=>{
-    //   handleBeneficiaryBankAccount(recipientType === "PERSONNEPHYSIQUE" ? beneficiaire : recipient );
-    // }, [recipientType,beneficiaire, recipient]);
 
     const operationCol = [
         {
