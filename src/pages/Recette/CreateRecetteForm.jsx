@@ -54,6 +54,8 @@ function CreateRecetteForm(
     const [provenanceValue, setProvenanceValue] = useState("INVOICE PAYMENT");
 
     const [entityBankAccountNumber, setEntityBankAccountNumber] = useState("");
+    
+
     const [entityBankAccountNumbers, setEntityBankAccountNumbers] = useState([]);
     const [externalEntityBankAccountNumber, setExternalEntityBankAccountNumber] = useState("");
     const [transactionNumber, setTransactionNumber] = useState("");
@@ -198,7 +200,7 @@ function CreateRecetteForm(
         const banks = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity_banks");
         if(!requestError){
             setBankEntity(banks);
-            setEntityBankAccountNumbers(banks[0]?.bank.bank_account)
+            setEntityBankAccountNumbers(banks[0]?.bankAccounts)
         }
     }
 
@@ -267,6 +269,14 @@ function CreateRecetteForm(
         handleBeneficiaryBankAccount(externalEntity)
     }, [externalEntity])
 
+    useEffect(()=>{
+        console.log(bankEntity)
+        const selectedBank = bankEntity.find(bank=> bank.bank.id === entityBank);
+        console.log(selectedBank?.bankAccounts[0].id);
+        console.log(selectedBank?.bankAccounts);
+        setEntityBankAccountNumbers(selectedBank?.bankAccounts);
+        setEntityBankAccountNumber(selectedBank?.bankAccounts[0].id);
+    }, [entityBank]);
 
     const handleCancelOperationCreation= (e) =>{
         e.preventDefault();
@@ -454,9 +464,9 @@ function CreateRecetteForm(
                             <div className='flex flex-col w-full md:w-1/2'>
                                 <label htmlFor="" className='text-xs'>Numéro du compte de la bank</label>
                                 {/* Add a select bank and account for the external entity */}
-                                <select name="" id="">
+                                <select name="" id="" value={entityBankAccountNumber} onChange={e=>setEntityBankAccountNumber(e.target.value)}>
                                     {
-                                        entityBankAccountNumbers.map(accountNumber =><option value={accountNumber?.id} key={accountNumber?.id}>{accountNumber?.account_number}</option>)
+                                        entityBankAccountNumbers?.map(accountNumber =><option value={accountNumber?.id} key={accountNumber?.id}>{accountNumber?.account_number}</option>)
                                     }
                                 </select>
                             </div>
@@ -491,9 +501,9 @@ function CreateRecetteForm(
                                 <label htmlFor="" className='text-xs'>Bank de l'entité externe</label>
                                 <select className="w-full" name="" id="" value={entityBankAccountNumber} onChange={e=>{
                                     setEntityBankAccountNumber(e.target.value);
-                                    const account = bankEntity.filter(account => account?.bank.id === e.target.value);
-                                        setAccountNumbers(account[0]?.bank.bank_account);
-                                        setDestinationAccount("");
+                                    // const account = bankEntity.filter(account => account?.bank.id === e.target.value);
+                                    //     setAccountNumbers(account[0]?.bank.bank_account);
+                                    //     setDestinationAccount("");
                                     }}>
                                     {
                                         beneficiaryBankAccountNumbers.map(bank=><option key={bank?.id} value={bank?.id}>{bank?.account_number}</option>)

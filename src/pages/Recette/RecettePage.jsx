@@ -336,7 +336,7 @@ function RecettePage() {
       key: 'total_amount',
       width:  "200px",
       render:(text, record)=>(
-        <>{numberWithCommas(record.total_amount)+" XAF"}</>
+        <b>{numberWithCommas(record.total_amount)+" XAF"}</b>
       )
     },
     {

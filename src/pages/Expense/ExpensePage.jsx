@@ -22,434 +22,436 @@ function ExpensePage() {
   const {requestLoading, fetchData, postData, requestError, updateData} = useFetch();
   const [selectionType, setSelectionType] = useState('checkbox');
   const  [expenseDataSrc, setExpenseDataSrc] = useState([]);
+  
+
+  const [isUpdateMode, setIsUpdateMode] = useState(false);
+
+  const { userInfo } = useContext(AUTHCONTEXT);
+
+  const [isOpenDrawer, setIsOpenDrawer] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isAddingOperation, setIsAddingOperation] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [expenseTotal, setExpenseTotal] = useState(0);
+
+
+  const [site, setSite] = useState('');
+  const [beneficiaire, setBeneficiaire] = useState("");
+  const [montant, setMontant] = useState("");
+  const [paymentMode, setPaymentMode] = useState("");
+  const [description, setDescription] = useState('');
+  const [files, setFiles] = useState([]);
+  const[recipientType, setRecipientType] = useState("PERSONNEPHYSIQUE");
+  const[recipient, setRecipient] = useState("");
+
+  const handleBeneficiaryBankAccount= async (id)=>{
+    let url = import.meta.env.VITE_USER_API+`${recipientType === "PERSONNEPHYSIQUE" ?"/employees/" :"/external_entities/"}${id}/banks`;
+    try {
+        const response = await fetchData(url);
+        setBeneficiaryBankAccount(response[0]?.bank.id);
+        setBeneficiairyBanks(response);
+        console.log(url);
+        console.log(response[0]?.bankAccounts[0].account_number);
+        setBeneficiaryBankAccountNumber(response[0]?.bankAccounts[0].account_number);
+        setBeneficiaryBankAccountNumbers(response[0]?.bankAccounts);    
+    } catch (error) {
+        openNotification("ECHEC", "Impossible dóbtenir les informations des bank\n du bénéficiaire");
+        console.log(error)
+        return;
+      }
+}
+
+  useEffect(()=>{
+    if(recipientType === "PERSONNEPHYSIQUE"){
+      setBeneficiaire(JSON.parse(localStorage.getItem("user"))?.User.id);
+      handleBeneficiaryBankAccount(JSON.parse(localStorage.getItem("user"))?.User.id);
+    }else if(recipientType === "PERSONNEMORALE"){
+      setRecipient(externalEntities[0]?.external_entity.id);
+      handleBeneficiaryBankAccount(externalEntities[0]?.external_entity.id);
+    }
+  }, [recipientType]);
+
+
+
+  const [selectedRecipe, setSelectedRecipe] = useState("");
+
+  const [sites, setSites] = useState([]);
+  const [beneficiaires, setBeneficiaires] = useState([]);
+  const [externalEntities, setExternalEntities] = useState([]);
+  const [bankEntity, setBankEntity] = useState([]);
+  const [bankExternalEntity, setBankExternalEntity] = useState([]);
+  const [transactionNumber, setTransactionNumber] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [bankAccountNumbers, setBankAccountNumbers] = useState([]);
+  const [beneficiaryBankAccountNumber, setBeneficiaryBankAccountNumber] = useState("");
+  const [beneficiaryBankAccountNumbers, setBeneficiaryBankAccountNumbers] = useState([]);
+  const [beneficiaryBankAccount, setBeneficiaryBankAccount] = useState("");
+
+  const [beneficiairyBanks, setBeneficiairyBanks] = useState([]);
+
+  const recipientRef= useRef();
+
+  const [selectedExpense, setSelectedExpense] = useState({})
+
+  // Validation fields
+  const [openValidateModal, setOpenValidateModal] = useState(false);
+  const [openRejectModal, setOpenRejectModal] = useState(false);
+  const [typeValidation, setTypeValidation] = useState(false);
+  const [validationDescription, setValidationDescription] = useState("");
+  const [rejectionDescription, setRejectionDescription] = useState("");
+  const [originAccount, setOriginAccount ] = useState("");
+  const [destinationAccount, setDestinationAccount ] = useState("");
+
+  // Validation TPG
+  const [openTPGValidation, setOpenTPGVAlidation] = useState(false);
+  const [observationTPG, setObservationTPG] = useState("");
+  const [initExpenseFormIsValid, setInitExpenseFormIsValid] = useState(false);
+  
+  // Validation Caissier
+  const [openCashierValidation, setOpenCashierValidation] = useState(false);
+  const [cashierObservation, setCashierObservation] = useState("");
+  
+  const handleGetExpenseSummary = async () => {
+    let url = import.meta.env.VITE_DAF_API;
+    const actualYear = new Date().getFullYear();
+    try {
+      const response = await fetchData(url+"/expensesheet/summary_by_year/?year="+actualYear+"&entity_id="+entityId);
+      if (response && response.annual_sums) {
+        setExpenseTotal(response.annual_sums[0].total_amount)
+      }
       
-    const  [operationDataSrc, setOperationDataSrc] = useState(
-        [
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  const openNotification = (title, message) => {
+    notification.open({
+      message: title,
+      description: message,
+    });
+  }
+
+  const handleSubmitValidation = async (e)=>{
+    e.preventDefault();
+    let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
+    let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/?entity_id="+entityId
+    const data = 
+    {
+      is_urgent:typeValidation,
+      description:validationDescription,
+      transaction_number: transactionNumber,
+      employee_initiator: beneficiaire
+    }
+    const response = await updateData(url, data, true);
+    if(!requestError){
+      setValidationDescription("");
+      setTypeValidation(true);
+      setOpenValidateModal(false);
+      handleGellAllExpenses();
+      openNotification("SUCCESS", "Fiche de dépense validé")
+      return;
+    }
+    openNotification("ECHEC", "Echec de validation")
+
+  }
+
+  const handleRejectExpenses = async (e)=>{
+    e.preventDefault();
+    let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
+    let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/rejection/?entity_id="+entityId
+    const data={
+      is_urgent:true,
+      description:rejectionDescription,
+      // payment_method: "ESPECE",
+      employee_initiator: JSON.parse(localStorage.getItem("user"))?.id
+    }
+    try {
+      const response = await updateData(url, data, true);
+      
+    } catch (error) {
+      
+    }
+    if(!requestError){
+      setRejectionDescription("");
+      setOpenRejectModal(false);
+      handleGellAllExpenses();
+      openNotification("ECHEC", "Fiche de dépense rejeté");
+    }
+
+  }
+
+  const setSelectionRow = (expense) => {
+    // console.log('selectedRowKeys changed: ', id);
+    setSelectedExpense(expense);
+    setOpenValidateModal(true);
+    // setSelectedRowKeys(newSelectedRowKeys);
+  };
+
+  const setSelectionRow2 = (expense) => {
+    // console.log('selectedRowKeys changed: ', id);
+    setSelectedExpense(expense);
+    setOpenRejectModal(true);
+    // setSelectedRowKeys(newSelectedRowKeys);
+  };
+
+  const onClose = () => {
+    setIsOpenDrawer(false);
+  };
+
+  const numberWithCommas=(x)=>{
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
+  }
+
+  const expensesCol = [
+    {
+      title: 'Numéro de références',
+      dataIndex: 'reference_number',
+      key: 'reference_number',
+      width:  "200px",
+    },
+    {
+      title: 'Site',
+      dataIndex: 'site',
+      key: 'site',
+      width:  "200px",
+      render: (text, record)=>{
+        const site = sites?.find(site=>site.id === record.site)
+        return <>{site?.name != undefined? site?.name :text }</>
+      }
+    },
+    {
+      title: 'Beneficiaire',
+      dataIndex: 'employee_beneficiary',
+      key: 'employee_beneficiary',
+      width:  "200px",
+      render: (text, record)=> beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase() ?  beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase() : externalEntities.find(externalEntity=> externalEntity?.external_entity.id === text)?.external_entity.name.toUpperCase()
+    },
+    {
+      title: 'Montant',
+      dataIndex: 'amount',
+      key: 'amount',
+      width:  "200px",
+      render: (text)=><>{numberWithCommas(text)} XAF</>
+    },
+    {
+      title: 'Status',
+      width:  "200px",
+      render:(text, record)=>
+      (
+        <div className='flex space-x-2'>
+          <div 
+          className={`${((record.statut === "VALIDATION FINANCIAL MANAGEMENT"|| record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_manager_department != null && record.statut != "REJECT DEPARTMENT MANAGER")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DEX</div>
           {
-            operation: "Normale",
-            qty: "5",
-            unitaire: "10000",
-          }
-        ]
-    );
-
-    const [isUpdateMode, setIsUpdateMode] = useState(false);
-
-      const { userInfo } = useContext(AUTHCONTEXT);
-
-      const [isOpenDrawer, setIsOpenDrawer] = useState(false);
-      const [isOpen, setIsOpen] = useState(false);
-      const [currentStep, setCurrentStep] = useState(0);
-      const [isAddingOperation, setIsAddingOperation] = useState(false);
-      const [selectedRowKeys, setSelectedRowKeys] = useState([]);
-      const [loading, setLoading] = useState(false);
-      const [expenseTotal, setExpenseTotal] = useState(0);
-
-
-      const [site, setSite] = useState('');
-      const [beneficiaire, setBeneficiaire] = useState(JSON.parse(localStorage.getItem("user"))?.User.id);
-      const [montant, setMontant] = useState("");
-      const [paymentMode, setPaymentMode] = useState("");
-      const [description, setDescription] = useState('');
-      const [files, setFiles] = useState([]);
-      const[recipientType, setRecipientType] = useState("PERSONNEPHYSIQUE");
-      const[recipient, setRecipient] = useState("");
-
-      const [selectedRecipe, setSelectedRecipe] = useState("");
-
-      const [sites, setSites] = useState([]);
-      const [beneficiaires, setBeneficiaires] = useState([]);
-      const [externalEntities, setExternalEntities] = useState([]);
-      const [bankEntity, setBankEntity] = useState([]);
-      const [accountNumbers, setAccountNumbers] = useState([]);
-      const [bankExternalEntity, setBankExternalEntity] = useState([]);
-      const [transactionNumber, setTransactionNumber] = useState("");
-      const [bankAccountNumber, setBankAccountNumber] = useState("");
-      const [beneficiaryBankAccountNumber, setBeneficiaryBankAccountNumber] = useState("");
-      const [beneficiaryBankAccountNumbers, setBeneficiaryBankAccountNumbers] = useState([]);
-      const [beneficiaryBankAccount, setBeneficiaryBankAccount] = useState("");
-      useEffect(()=>{
-        // setBeneficiaryBankAccount(beneficiairyBanks[0]?.bank.id)
-      }, [beneficiaryBankAccount]);
-
-      const [beneficiairyBanks, setBeneficiairyBanks] = useState([]);
-
-      const recipientRef= useRef();
-
-      const [selectedExpense, setSelectedExpense] = useState({})
-
-      // Validation fields
-      const [openValidateModal, setOpenValidateModal] = useState(false);
-      const [openRejectModal, setOpenRejectModal] = useState(false);
-      const [typeValidation, setTypeValidation] = useState(false);
-      const [validationDescription, setValidationDescription] = useState("");
-      const [rejectionDescription, setRejectionDescription] = useState("");
-      const [originAccount, setOriginAccount ] = useState("");
-      const [destinationAccount, setDestinationAccount ] = useState("");
-
-      // Validation TPG
-      const [openTPGValidation, setOpenTPGVAlidation] = useState(false);
-      const [observationTPG, setObservationTPG] = useState("");
-
-      const [initExpenseFormIsValid, setInitExpenseFormIsValid] = useState(false);
-      
-      
-
-      // Validation Caissier
-      const [openCashierValidation, setOpenCashierValidation] = useState(false);
-      const [cashierObservation, setCashierObservation] = useState("");
-      
-      const handleGetExpenseSummary = async () => {
-        let url = import.meta.env.VITE_DAF_API;
-        const actualYear = new Date().getFullYear();
-        try {
-          const response = await fetchData(url+"/expensesheet/summary_by_year/?year="+actualYear+"&entity_id="+entityId);
-          if (response && response.annual_sums) {
-            setExpenseTotal(response.annual_sums[0].total_amount)
-          }
-          
-        } catch (error) {
-          console.log(error);
-        }
-      }
-
-      const openNotification = (title, message) => {
-        notification.open({
-          message: title,
-          description: message,
-        });
-      }
-
-      const handleSubmitValidation = async (e)=>{
-        e.preventDefault();
-        let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
-        let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/?entity_id="+entityId
-        const data={
-          is_urgent:typeValidation,
-          description:validationDescription,
-          transaction_number: transactionNumber,
-          employee_initiator: JSON.parse(localStorage.getItem("user"))?.id
-        }
-        const response = await updateData(url, data, true);
-        if(!requestError){
-          setValidationDescription("");
-          setTypeValidation(true);
-          setOpenValidateModal(false);
-          handleGellAllExpenses();
-          openNotification("SUCCESS", "Fiche de dépense validé")
-        }
-
-      }
-
-      const handleRejectExpenses = async (e)=>{
-        e.preventDefault();
-        let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
-        let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/rejection/?entity_id="+entityId
-        const data={
-          is_urgent:true,
-          description:rejectionDescription,
-          // payment_method: "ESPECE",
-          employee_initiator: JSON.parse(localStorage.getItem("user"))?.id
-        }
-        try {
-          const response = await updateData(url, data, true);
-          
-        } catch (error) {
-          
-        }
-        if(!requestError){
-          setRejectionDescription("");
-          setOpenRejectModal(false);
-          handleGellAllExpenses();
-          openNotification("ECHEC", "Fiche de dépense rejeté");
-        }
-
-      }
-    
-      const setSelectionRow = (expense) => {
-        // console.log('selectedRowKeys changed: ', id);
-        setSelectedExpense(expense);
-        setOpenValidateModal(true);
-        // setSelectedRowKeys(newSelectedRowKeys);
-      };
-
-      const setSelectionRow2 = (expense) => {
-        // console.log('selectedRowKeys changed: ', id);
-        setSelectedExpense(expense);
-        setOpenRejectModal(true);
-        // setSelectedRowKeys(newSelectedRowKeys);
-      };
-    
-      const onClose = () => {
-        setIsOpenDrawer(false);
-      };
-
-      const numberWithCommas=(x)=>{
-        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
-      }
-
-      const expensesCol = [
-        {
-          title: 'Numéro de références',
-          dataIndex: 'reference_number',
-          key: 'reference_number',
-          width:  "200px",
-        },
-        {
-          title: 'Site',
-          dataIndex: 'site',
-          key: 'site',
-          width:  "200px",
-          render: (text, record)=>{
-            const site = sites?.find(site=>site.id === record.site)
-            return <>{site?.name != undefined? site?.name :text }</>
-          }
-        },
-        {
-          title: 'Beneficiaire',
-          dataIndex: 'employee_beneficiary',
-          key: 'employee_beneficiary',
-          width:  "200px",
-          render: (text, record)=>beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase()
-        },
-        {
-          title: 'Montant',
-          dataIndex: 'amount',
-          key: 'amount',
-          width:  "200px",
-          render: (text)=><>{numberWithCommas(text)} XAF</>
-        },
-        {
-          title: 'Status',
-          width:  "200px",
-          render:(text, record)=>
-          (
-            <div className='flex space-x-2'>
-              <div 
-              className={`${((record.statut === "VALIDATION FINANCIAL MANAGEMENT"|| record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_manager_department != null && record.statut != "REJECT DEPARTMENT MANAGER")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DEX</div>
-              {
-                !record.is_urgent &&
-                <>
-                  <div className={`${((record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_budgetary_department != null && record.statut != "REJECT FINANCIAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF</div>
-                  <div className={`${((record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_general_director != null && record.statut != "REJECT GENERAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DG</div>
-                  <div className={`${((record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_president != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>PRE</div>
-                  <div className={`${((record.statut == "EXECUTED") || (record.date_valid_president != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>PRE</div>
-                </>
-              }
-            </div>
-          )
-          
-        },
-        {
-          title: 'Actions',
-          width:  "200px",
-          render: (text, record)=>(
-            // <EllipsisHorizontalIcon className='text-gray-500 h-6 w-6 cursor-pointer'/>
-            // <button className='btn btn-primary bg-green-500 text-white text-sm'>Valider</button>
+            !record.is_urgent &&
             <>
-                <div className='flex items-center space-x-2'>
-              {
-                (record.statut.includes("REJECT") || record.statut.includes("EXECUTED") || record.statut.includes("IN_DISBURSEMENT"))?
-                <>
-                </>
-                :
-                <>
-                {/* <VerifyPermissions
-                  expected={["chief_financial_officer","operations_manager", "president", "general_manager", "paymaster_general"]}
-                  roles={userInfo?.role?.name}
-                  functions={userInfo?.Function?.name}
-                >
-                <>
-                  <VerifyPermissions
-                    expected={["chief_financial_officer","operations_manager", "president", "general_manager"]}
-                    roles={userInfo?.role?.name}
-                    functions={userInfo?.Function?.name}
-                    isExclude = {true}
-                  >
-                  </VerifyPermissions>
-                  <VerifyPermissions
-                    expected={["chief_financial_officer","operations_manager", "president", "general_manager"]}
-                    roles={userInfo?.role?.name}
-                    functions={userInfo?.Function?.name}
-                  >
-                    <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
-                  </VerifyPermissions>
-                  <VerifyPermissions
-                    expected={["paymaster_general"]}
-                    roles={userInfo?.role?.name}
-                    functions={userInfo?.Function?.name}
-                  >
-                    
-                        <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
-                  </VerifyPermissions>
-                </>
-                </VerifyPermissions> */}
-                </>
-              }
-                <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
-                <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/>
-                <EyeIcon className='text-gray-500 h-6 cursor-pointer hover:bg-gray-300 hover:text-white p-1 rounded-lg' title='Voir le détail' onClick={()=>handleShowDetails(record.id)}/>
-              </div>
+              <div className={`${((record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_budgetary_department != null && record.statut != "REJECT FINANCIAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF</div>
+              <div className={`${((record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_general_director != null && record.statut != "REJECT GENERAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DG</div>
+              <div className={`${((record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_president != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>PRE</div>
+              <div className={`${((record.statut == "EXECUTED") || (record.date_valid_paymaster_general != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>TPG</div>
             </>
-          )
-        }
-      ]
-    
-      const handleToggleOpenForm = () =>{
-        setIsOpen(!isOpen);
-      }
-
-      const handleShowDetails=async(id)=>{
-        setIsOpenDrawer(true);
-        let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
-        let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+id+"?entity_id="+entityId
-        const detail = await fetchData(url);
-        console.log(detail);
-        const selected = expenseDataSrc.find(expense=>expense.id === id);
-        setSelectedExpense(detail.result);
-      }
-
-      const handleGellAllExpenses = async() =>{
-        let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
-        try {
-          const response = await fetchData(import.meta.env.VITE_DAF_API+"/expensesheet/?entity_id="+entityId);
-          setExpenseDataSrc(response.results);
-        } catch (error) {
-          console.error(error.message);
-        }
-      }
-
-      const handleGetSite=async()=>{
-        let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
-        if(!requestError){
-          setSites(response);
-        }
-      }
-
-      const handleBenef = async()=>{
-        try {
-          const benef = await fetchData(import.meta.env.VITE_USER_API+"/employees");
-          setBeneficiaires(benef);
-          setBeneficiaire(JSON.parse(localStorage.getItem("user"))?.user.id)
-        } catch (error) {
-          console.log(error.message);
-        }
-      }
-
-      const handleExternalEntity = async()=>{
-        const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
-        if(!requestError){
-          let result = external;
-          
-          setExternalEntities(result);
-        }
-      }
-
-      const handleGetBank= async()=>{
-        const banks = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity_banks");
-        if(!requestError){
-          setBankEntity(banks);
-        }
-      }
-
-      const handleGetExternalBank= async()=>{
-        const banks = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
-        if(!requestError){
-          setBankExternalEntity(banks);
-        }
-      }
-
-      const handleClearForm = () =>{
-        setPaymentMode("");
-        setSite("");
-        setBeneficiaire("");
-        setMontant("");
-        setDescription("");
-        setFiles([]);
-      }
-
-      const handleSubmitOperation= async (e)=>{
-        e.preventDefault();
-        setLoading(true);
-
-        const headersList = new Headers();
-        headersList.append(
-          "Authorization", "Bearer "+localStorage.getItem("token")
-        );
-        const formData = new FormData();
-        formData.append("site", site);
-        formData.append("employee_beneficiary", beneficiaire);
-        formData.append("employee_initiator", JSON.parse(localStorage.getItem("user"))?.User.id);
-        formData.append("payment_method", paymentMode);
-        formData.append("amount", montant);
-        formData.append("beneficiary_bank_account_number", beneficiaryBankAccountNumber)
-        formData.append("bank_account_number", bankAccountNumber)
-        formData.append("description", description);
-        formData.append("entity", entityId);
-        formData.append("file_number", "file_number");
-        // formData.append("image_list", "file_number");
-
-        const requestOptions = {
-          method: "POST",
-          headers: headersList,
-          body: formData,
-        }
-
-        
-        
-        const url = import.meta.env.VITE_DAF_API+"/expensesheet/?entity_id="+entityId;
-        try {
-          const response = await fetch(url, requestOptions)
-          handleClearForm();
-          openNotification("SUCCESS", "Dépense initier avec success.");
-          setIsOpen(false);
-          handleGellAllExpenses();
-          // if(response.status === 201) {
-          //   return;
-          // }
-          // alert("Echec de creation de la dépense");          
-        } catch (error) {
-          console.log(error);
-          openNotification("ECHEC", "Echec de creation de la dépense.");
-          // alert("Echec de creation de la dépense");
-        }finally{
-          setLoading(false);
-        }
-      }
-      
-      function sumMontants(objects) {
-        // Initialize a variable to store the sum
-        let total = 0;
-
-        // Loop through each object in the list
-        for (const obj of objects) {
-          // Check if the object has a `montant` attribute
-          if (obj.hasOwnProperty('amount')) {
-            // Get the value of the `montant` attribute
-            const montant = obj.amount;
-
-            // Ensure montant is a number before adding
-            if (typeof montant === 'number') {
-              total += montant;
-            } else {
-              console.warn("Skipping object with non-numeric 'montant' attribute");
-            }
           }
-        }
+        </div>
+      )
+      
+    },
+    {
+      title: 'Actions',
+      width:  "200px",
+      render: (text, record)=>(
+        // <EllipsisHorizontalIcon className='text-gray-500 h-6 w-6 cursor-pointer'/>
+        // <button className='btn btn-primary bg-green-500 text-white text-sm'>Valider</button>
+        <>
+            <div className='flex items-center space-x-2'>
+          {
+            (record.statut.includes("REJECT") || record.statut.includes("EXECUTED") || record.statut.includes("IN_DISBURSEMENT"))?
+            <>
+            </>
+            :
+            <>
+            {/* <VerifyPermissions
+              expected={["chief_financial_officer","operations_manager", "president", "general_manager", "paymaster_general"]}
+              roles={userInfo?.role?.name}
+              functions={userInfo?.Function?.name}
+            >
+            <>
+              <VerifyPermissions
+                expected={["chief_financial_officer","operations_manager", "president", "general_manager"]}
+                roles={userInfo?.role?.name}
+                functions={userInfo?.Function?.name}
+                isExclude = {true}
+              >
+              </VerifyPermissions>
+              <VerifyPermissions
+                expected={["chief_financial_officer","operations_manager", "president", "general_manager"]}
+                roles={userInfo?.role?.name}
+                functions={userInfo?.Function?.name}
+              >
+                <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
+              </VerifyPermissions>
+              <VerifyPermissions
+                expected={["paymaster_general"]}
+                roles={userInfo?.role?.name}
+                functions={userInfo?.Function?.name}
+              >
+                
+                    <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
+              </VerifyPermissions>
+            </>
+            </VerifyPermissions> */}
+            </>
+          }
+            <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
+            <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/>
+            <EyeIcon className='text-gray-500 h-6 cursor-pointer hover:bg-gray-300 hover:text-white p-1 rounded-lg' title='Voir le détail' onClick={()=>handleShowDetails(record.id)}/>
+          </div>
+        </>
+      )
+    }
+  ]
 
-        // Return the calculated sum
-        return total;
+  const handleToggleOpenForm = () =>{
+    setIsOpen(!isOpen);
+  }
+
+  const handleShowDetails=async(id)=>{
+    setIsOpenDrawer(true);
+    let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
+    let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+id+"?entity_id="+entityId
+    const detail = await fetchData(url);
+    console.log(detail);
+    const selected = expenseDataSrc.find(expense=>expense.id === id);
+    setSelectedExpense(detail.result);
+  }
+
+  const handleGellAllExpenses = async() =>{
+    let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
+    try {
+      const response = await fetchData(import.meta.env.VITE_DAF_API+"/expensesheet/?entity_id="+entityId);
+      setExpenseDataSrc(response.results);
+    } catch (error) {
+      console.error(error.message);
+    }
+  }
+
+  const handleGetSite=async()=>{
+    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
+    if(!requestError){
+      setSite(response[0]?.id);
+      setSites(response);
+    }
+  }
+
+  const handleBenef = async()=>{
+    try {
+      const benef = await fetchData(import.meta.env.VITE_USER_API+"/employees");
+      setBeneficiaires(benef);
+      setBeneficiaire(JSON.parse(localStorage.getItem("user"))?.User.id)
+    } catch (error) {
+      console.log(error.message);
+    }
+  }
+
+  const handleExternalEntity = async()=>{
+    const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
+    if(!requestError){
+      let result = external;
+      
+      setExternalEntities(result);
+    }
+  }
+
+  const handleGetBank= async()=>{
+    const banks = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity_banks");
+    if(!requestError){
+      setBankEntity(banks);
+      setBankAccountNumber(banks[0]?.bankAccounts[0]?.id);
+      setBankAccountNumbers(banks[0]?.bankAccounts);
+    }
+  }
+
+  useEffect(()=>{
+    const selectedBank = bankEntity.find(bank => bank.bank.id === originAccount);
+    setBankAccountNumber(selectedBank?.bankAccounts[0]?.id);
+    setBankAccountNumbers(selectedBank?.bankAccounts);
+  }, [originAccount])
+
+  const handleGetExternalBank= async()=>{
+    const banks = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
+    if(!requestError){
+      setBankExternalEntity(banks);
+    }
+  }
+
+  const handleClearForm = () =>{
+    setPaymentMode("");
+    setSite("");
+    setBeneficiaire("");
+    setMontant("");
+    setDescription("");
+    setFiles([]);
+  }
+
+  const handleSubmitOperation= async (e)=>{
+    e.preventDefault();
+    setLoading(true);
+
+    const headersList = new Headers();
+    headersList.append(
+      "Authorization", "Bearer "+localStorage.getItem("token")
+    );
+    const formData = new FormData();
+    formData.append("site", site);
+    formData.append("employee_beneficiary", beneficiaire);
+    formData.append("employee_initiator", JSON.parse(localStorage.getItem("user"))?.User.id);
+    formData.append("payment_method", paymentMode);
+    formData.append("amount", montant);
+    formData.append("beneficiary_bank_account_number", beneficiaryBankAccountNumber)
+    formData.append("bank_account_number", bankAccountNumber)
+    formData.append("description", description);
+    formData.append("entity", entityId);
+    formData.append("file_number", "file_number");
+    // formData.append("image_list", "file_number");
+
+    const requestOptions = {
+      method: "POST",
+      headers: headersList,
+      body: formData,
+    }
+
+    
+    
+    const url = import.meta.env.VITE_DAF_API+"/expensesheet/?entity_id="+entityId;
+    try {
+      const response = await fetch(url, requestOptions)
+      handleGellAllExpenses();
+      if(response.status === 201) {
+        handleClearForm();
+        setIsOpen(false);
+        openNotification("SUCCESS", "Dépense initier avec success.");
+        return;
       }
+      openNotification("ECHEC", "Echec de creation de la dépense.");
+      // alert("Echec de creation de la dépense");          
+    } catch (error) {
+      console.log(error);
+      openNotification("ECHEC", "Une erreur s'est produite.");
+    }finally{
+      setLoading(false);
+    }
+  }
 
-      useEffect(()=>{
-        handleGellAllExpenses();
-        handleGetSite();
-        handleBenef();
-        handleExternalEntity();
-        handleGetBank();
-        handleGetExternalBank();
-        handleGetExpenseSummary();
-      } , []);
+  useEffect(()=>{
+    handleGellAllExpenses();
+    handleGetSite();
+    handleBenef();
+    handleExternalEntity();
+    handleGetBank();
+    handleGetExternalBank();
+    handleGetExpenseSummary();
+  } , []);
 
       return (
         <LoginLayout classNam="space-y-3">
@@ -520,9 +522,9 @@ function ExpensePage() {
                             <label htmlFor="" className='text-xs'>Choisir la banque opérateur</label>
                             <select className="w-full" name="" id="" value={originAccount} onChange={e=>{
                                 setOriginAccount(e.target.value);
-                                const account = bankEntity.filter(account => account?.bank.id === e.target.value);
-                                setAccountNumbers(account[0]?.bank.bank_account);
-                                setDestinationAccount("");
+                                // const account = bankEntity.filter(account => account?.bank.id === e.target.value);
+                                // // setAccountNumbers(account[0]?.bank.bank_account);
+                                // setDestinationAccount("");
                               }}>
                               {
                                 bankEntity.map(bank=><option key={bank?.bank.id} value={bank?.bank.id}>{bank?.bank.sigle}</option>)
@@ -533,20 +535,11 @@ function ExpensePage() {
                             <label htmlFor="" className='text-xs'>Numéro de compte :</label>
                             <select name="" id="" value={bankAccountNumber} onChange={e=>setBankAccountNumber(e.target.value)} className='w-full'>
                               {
-                                accountNumbers.map(accountNumber => <option key={accountNumber?.id} value={accountNumber?.id}>{accountNumber?.account_number}</option>)
+                                bankAccountNumbers?.map(accountNumber => <option key={accountNumber?.id} value={accountNumber?.id}>{accountNumber?.account_number}</option>)
                               }
                             </select>
-                            {/* <SuggestInput 
-                              inputValue={bankAccountNumber} 
-                              setInputValue={setBankAccountNumber} 
-                              dataList={accountNumbers}
-                              placeholder="Numéro de l'entité"
-                            /> */}
                           </div>
                         </div>
-                        {/* <div className='w-full flex items-center space-x-3'>
-                          <input className="w-full" type="text" placeholder='Numéro du compte bénéficiaire' value={beneficiaryBankAccountNumber} onChange={e=>setBeneficiaryBankAccountNumber(e.target.value)}/>
-                        </div> */}
                       </>
                     }
                     <div className='w-full flex flex-col'>
@@ -559,8 +552,17 @@ function ExpensePage() {
                     </div>
                     <div className='w-full flex items-center space-x-2'>
                       <div className='flex flex-col w-1/2'>
-                        <label htmlFor="" className='text-xs'>Type de bénéficiaire</label>
-                        <select name="" id="" className='w-full' value={recipientType} onChange={e=>setRecipientType(e.target.value)}>
+                        <label htmlFor="" className='text-xs'>Type de bénéficrecipientTypeiaire</label>
+                        <select name="" id="" className='w-full' value={recipientType} onChange={e=>{
+                            setRecipientType(e.target.value);
+                            if(recipientType === "PERSONNEPHYSIQUE"){
+                              setBeneficiaire(JSON.parse(localStorage.getItem("user"))?.User.id);
+                              handleBeneficiaryBankAccount(JSON.parse(localStorage.getItem("user"))?.User.id);
+                            }else{
+                              setRecipient(externalEntities[0]?.external_entity.id);
+                              handleBeneficiaryBankAccount(externalEntities[0]?.external_entity.id);
+                            }
+                          }}>
                           <option value="PERSONNEPHYSIQUE">Personne physique</option>
                           <option value="PERSONNEMORALE">Personne morale</option>
                           {/* <option value="EMPLOYEES">Employées</option> */}
@@ -572,6 +574,7 @@ function ExpensePage() {
                           <label htmlFor="" className='text-xs'>Choisir le beneficiaire</label>
                           <select name="" id="" className='w-full' value={beneficiaire} onChange={e=>{
                                 setBeneficiaire(e.target.value);
+                                handleBeneficiaryBankAccount(e.target.value);
                               }
                             }>
                             {
@@ -583,9 +586,10 @@ function ExpensePage() {
                         recipientType === "PERSONNEMORALE" &&
                         <div className='flex flex-col  w-1/2'>
                           <label htmlFor="" className='text-xs'>Choisir l'entité</label>
-                          <select name="" id="" className='w-full' value={recipient} onChange={e=>{
+                          <select name="" id="" className='w-full' value={beneficiaire} onChange={e=>{
                               // setBeneficiaryBankAccount(beneficiairyBanks[0]?.bank.id)
-                              setRecipient(e.target.value);
+                              setBeneficiaire(e.target.value);
+                              handleBeneficiaryBankAccount(e.target.value);
                             }
                             }>
                             {
@@ -610,17 +614,17 @@ function ExpensePage() {
                               {
                                 beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank.id} value={beneficiairy?.bank.id}>
                                   {
-                                    beneficiairy.bank.sigle
+                                    beneficiairy?.bank.sigle
                                   }
                                 </option>)
                               }
                             </select>
                           </div>
-                          <div>
+                          <div className='flex flex-col w-1/2'>
                             <label htmlFor="" className='text-xs'>Numéro du compte bénéficiaire</label>
                             <select name="" id="" value={beneficiaryBankAccountNumber} onChange={e=>setBeneficiaryBankAccountNumber(e.target.value)}>
                               {
-                                beneficiaryBankAccountNumbers.map(accountNumber => <option value={accountNumber?.id} key={accountNumber?.id}>{accountNumber?.account_number}</option>)
+                                beneficiaryBankAccountNumbers?.map(accountNumber => <option value={accountNumber?.id} key={accountNumber?.id}>{accountNumber?.account_number}</option>)
                               }
                             </select>
                             {/* <SuggestInput 
@@ -632,10 +636,10 @@ function ExpensePage() {
                           </div>
                         </div>
                     }
-                    {
+                    {/* {
                       ((montant > MAX_ALLOWED_AMOUNT && recipient === "" && recipientType === "PERSONNEPHYSIQUE" && paymentMode === "ESPECES") || montant > MAX_ALLOWED_AMOUNT_OTHERS) &&
                       <input type="text" placeholder='NIU'/>
-                    }
+                    } */}
                     <input type="number" className='' placeholder='Montant' value={montant} onChange={e=>setMontant(e.target.value)}/>
                     {/* <Dragger >
                       <p className="ant-upload-text text-xs flex items-center justify-center"> 
@@ -666,12 +670,12 @@ function ExpensePage() {
             >
               <form className='flex flex-col w-full space-y-3' onSubmit={handleSubmitValidation}>
                 <VerifyPermissions
-                  expected={["operation_manager"]}
+                  expected={["operations_manager"]}
                   roles={userInfo?.role?.name}
                   functions={userInfo?.Function?.name}
                 >
                   { selectedExpense?.statut === "VALIDATION DEPARTMENT MANAGER" &&
-                    <div className=''>
+                    <div className='flex flex-col w-full'>
                       <label htmlFor="" className='text-xs'>Type de validation</label>
                       <select name="" id="" value={typeValidation} onChange={e=>setTypeValidation(e.target.value)}>
                         <option value={true}>Urgent</option>
