@@ -51,12 +51,12 @@ function Dashboard() {
     const actualYear = new Date().getFullYear();
     try {
       const response = await fetchData(url+"/recipesheet/summary_by_year/?year="+actualYear+"&entity_id="+entityId);
-      if (response && response.daily_sums) {
-        setRecipeData(response.daily_sums)
-        setRecipeDataSrc(response.daily_sums)
+      if (response && response?.daily_sums) {
+        setRecipeData(response?.daily_sums)
+        setRecipeDataSrc(response?.daily_sums)
         setChartData(response);
 
-        setYearlyRecipeTotal(response?.annual_sums[0].total_amount)
+        setYearlyRecipeTotal(response?.annual_sums[0]?.total_amount)
         // setChartDataSrc(response);
       }
     } catch (error) {
@@ -81,11 +81,11 @@ function Dashboard() {
     const actualYear = new Date().getFullYear();
     try {
       const response = await fetchData(url+"/expensesheet/summary_by_year/?year="+actualYear+"&entity_id="+entityId);
-      if (response && response.daily_sums) {
-        setExpenseData(response.daily_sums)
-        setExpenseDataSrc(response.daily_sums)
+      if (response && response?.daily_sums) {
+        setExpenseData(response?.daily_sums)
+        setExpenseDataSrc(response?.daily_sums)
         setChartData(response);
-        setYearlyExpenseTotal(response?.annual_sums[0].total_amount)
+        setYearlyExpenseTotal(response?.annual_sums[0]?.total_amount)
         // setChartDataSrc(response);
       }
     } catch (error) {
@@ -106,13 +106,13 @@ function Dashboard() {
   }
 
   function sumMontants(response) {
-    if (!response || !response || response.length === 0) {
+    if (!response || !response || response?.length === 0) {
       return 0; // Return 0 if response or daily_sums array is empty
     }
   
     // Calculate the sum of total_amount
-    const totalSum = response.reduce(
-      (accumulator, current) => accumulator + current.total_amount,
+    const totalSum = response?.reduce(
+      (accumulator, current) => accumulator + current?.total_amount,
       0
     );
   
@@ -120,23 +120,23 @@ function Dashboard() {
   }
 
   const numberWithCommas=(x)=>{
-    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
+    return x?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
   }
 
   useEffect(()=>{
     // handleGellAllExpenses();
 
     handleGetRecipeSummary();
-    handleGetRecipeSummaryPrediction();
+    // handleGetRecipeSummaryPrediction();
 
     handleGetExpenseSummary();
-    handleGetExpenseSummaryPrediction();
+    // handleGetExpenseSummaryPrediction();
   }, []);
 
   // Function to filter objects by date range
   function filterObjectsByDateRange(objects, startDate, endDate) {
     const filteredObjects = objects?.filter(obj => {
-      const objDate =new Date(obj.day.split("T")[0]).toLocaleDateString().replaceAll("/", "-").split("-").reverse().join("-");
+      const objDate =new Date(obj.day.split("T")[0]).toLocaleDateString()?.replaceAll("/", "-")?.split("-")?.reverse()?.join("-");
       return objDate >= startDate && objDate <= endDate;
     });
     return filteredObjects;

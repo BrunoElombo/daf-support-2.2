@@ -16,11 +16,11 @@ function Chart({ data, legendBorderColor, legendBgColor, predictions }) {
   };
 
   const chartData = {
-    labels: data.map(item => new Date(item.day.split("T")[0]).toLocaleDateString()),
+    labels: data?.map(item => new Date(item?.day?.split("T")[0])?.toLocaleDateString()),
     datasets: [
       {
         label: 'Recette (CFA)',
-        data: data.map(item => item.total_amount),
+        data: data?.map(item => item?.total_amount),
         borderColor: legendBorderColor,
         backgroundColor: legendBgColor,
       },

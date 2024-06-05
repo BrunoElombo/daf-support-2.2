@@ -18,6 +18,9 @@ function ExpensePage() {
   const MAX_ALLOWED_AMOUNT = 100000;
   const MAX_ALLOWED_AMOUNT_OTHERS = 250000;
   let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
+  let userRole = JSON.parse(localStorage.getItem("user"))?.role?.name;
+  let userFunction = JSON.parse(localStorage.getItem("user"))?.Function?.name;
+  let userDepartment = JSON.parse(localStorage.getItem("user"))?.Departement;
   
   const {requestLoading, fetchData, postData, requestError, updateData} = useFetch();
   const [selectionType, setSelectionType] = useState('checkbox');
@@ -40,7 +43,7 @@ function ExpensePage() {
   const [site, setSite] = useState('');
   const [beneficiaire, setBeneficiaire] = useState("");
   const [montant, setMontant] = useState("");
-  const [paymentMode, setPaymentMode] = useState("");
+  const [paymentMode, setPaymentMode] = useState("ESPECES");
   const [description, setDescription] = useState('');
   const [files, setFiles] = useState([]);
   const[recipientType, setRecipientType] = useState("PERSONNEPHYSIQUE");
@@ -78,6 +81,8 @@ function ExpensePage() {
   const [selectedRecipe, setSelectedRecipe] = useState("");
 
   const [sites, setSites] = useState([]);
+  const [departments, setDepartements] = useState([]);
+  const [entitySites, setEntitySites] = useState([]);
   const [beneficiaires, setBeneficiaires] = useState([]);
   const [externalEntities, setExternalEntities] = useState([]);
   const [bankEntity, setBankEntity] = useState([]);
@@ -131,30 +136,38 @@ function ExpensePage() {
     notification.open({
       message: title,
       description: message,
+      duration: 1,
     });
   }
 
   const handleSubmitValidation = async (e)=>{
     e.preventDefault();
-    let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
-    let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/?entity_id="+entityId
-    const data = 
-    {
-      is_urgent:typeValidation,
-      description:validationDescription,
-      transaction_number: transactionNumber,
-      employee_initiator: beneficiaire
+    try {
+      let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
+      let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/?entity_id="+entityId
+      const data = 
+      {
+        is_urgent:typeValidation,
+        description:validationDescription,
+        transaction_number: transactionNumber,
+        employee_initiator: beneficiaire
+      }
+      const response = await updateData(url, data, true);
+      if(!requestError){
+        setValidationDescription("");
+        setTransactionNumber("");
+        setPaymentMode("ESPECES");
+        setTypeValidation(false);
+        setOpenValidateModal(false);
+        handleGellAllExpenses();
+        openNotification("SUCCESS", "Fiche de dépense validé")
+        return;
+      }
+      openNotification("ECHEC", "Echec de validation")
+      
+    } catch (error) {
+      openNotification("ECHEC", "Echec de validation");      
     }
-    const response = await updateData(url, data, true);
-    if(!requestError){
-      setValidationDescription("");
-      setTypeValidation(true);
-      setOpenValidateModal(false);
-      handleGellAllExpenses();
-      openNotification("SUCCESS", "Fiche de dépense validé")
-      return;
-    }
-    openNotification("ECHEC", "Echec de validation")
 
   }
 
@@ -177,9 +190,12 @@ function ExpensePage() {
     if(!requestError){
       setRejectionDescription("");
       setOpenRejectModal(false);
+
       handleGellAllExpenses();
-      openNotification("ECHEC", "Fiche de dépense rejeté");
+      openNotification("SUCCESS", "Fiche de dépense rejeté");
+      return;
     }
+    openNotification("ECHEC", "Echec du rejet de la fiche");
 
   }
 
@@ -218,7 +234,7 @@ function ExpensePage() {
       key: 'site',
       width:  "200px",
       render: (text, record)=>{
-        const site = sites?.find(site=>site.id === record.site)
+        const site = entitySites?.find(site=>site.id === record.site)
         return <>{site?.name != undefined? site?.name :text }</>
       }
     },
@@ -230,11 +246,24 @@ function ExpensePage() {
       render: (text, record)=> beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase() ?  beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase() : externalEntities.find(externalEntity=> externalEntity?.external_entity.id === text)?.external_entity.name.toUpperCase()
     },
     {
+      title: 'Département',
+      dataIndex: 'department',
+      key: 'department',
+      width:  "200px",
+      render: (text, record)=> departments.find(department=> department?.id === text)?.name
+    },
+    {
+      title: 'Mode de paiement',
+      dataIndex: 'payment_method',
+      key: 'payment_method',
+      width:  "200px",
+      },
+    {
       title: 'Montant',
       dataIndex: 'amount',
       key: 'amount',
       width:  "200px",
-      render: (text)=><>{numberWithCommas(text)} XAF</>
+      render: (text)=><b>{numberWithCommas(text)} XAF</b>
     },
     {
       title: 'Status',
@@ -242,17 +271,42 @@ function ExpensePage() {
       render:(text, record)=>
       (
         <div className='flex space-x-2'>
-          <div 
-          className={`${((record.statut === "VALIDATION FINANCIAL MANAGEMENT"|| record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_manager_department != null && record.statut != "REJECT DEPARTMENT MANAGER")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DEX</div>
-          {
-            !record.is_urgent &&
-            <>
-              <div className={`${((record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_budgetary_department != null && record.statut != "REJECT FINANCIAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF</div>
-              <div className={`${((record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_general_director != null && record.statut != "REJECT GENERAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DG</div>
-              <div className={`${((record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_president != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>PRE</div>
-              <div className={`${((record.statut == "EXECUTED") || (record.date_valid_paymaster_general != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>TPG</div>
-            </>
-          }
+          <>
+            {
+              departments.find(department=> department?.id === record.department)?.name.includes("daf") ?
+              <>
+              {
+                !record.is_urgent ?
+                <>
+                  <div className={`${((record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_budgetary_department != null && record.statut != "REJECT FINANCIAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF</div>
+                  <div className={`${((record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_general_director != null && record.statut != "REJECT GENERAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DG</div>
+                  <div className={`${((record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_president != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>PRE</div>
+                  <div className={`${((record.statut == "EXECUTED") || (record.date_valid_paymaster_general != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>TPG</div>
+                </>:
+                <div 
+                className={`${((record.statut === "VALIDATION FINANCIAL MANAGEMENT"|| record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_manager_department != null && record.statut != "REJECT DEPARTMENT MANAGER")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF
+              </div>
+              }
+              </>
+              :
+              <>
+                <div 
+                  className={`${((record.statut === "VALIDATION FINANCIAL MANAGEMENT"|| record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_manager_department != null && record.statut != "REJECT DEPARTMENT MANAGER")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DEX
+                </div>
+                {
+                  !record.is_urgent &&
+                  <>
+                    <div className={`${((record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_budgetary_department != null && record.statut != "REJECT FINANCIAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF</div>
+                    <div className={`${((record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_general_director != null && record.statut != "REJECT GENERAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DG</div>
+                    <div className={`${((record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_president != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>PRE</div>
+                    <div className={`${((record.statut == "EXECUTED") || (record.date_valid_paymaster_general != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>TPG</div>
+                  </>
+                }
+              </>
+            }
+            
+          </>
+          
         </div>
       )
       
@@ -264,48 +318,45 @@ function ExpensePage() {
         // <EllipsisHorizontalIcon className='text-gray-500 h-6 w-6 cursor-pointer'/>
         // <button className='btn btn-primary bg-green-500 text-white text-sm'>Valider</button>
         <>
-            <div className='flex items-center space-x-2'>
-          {
-            (record.statut.includes("REJECT") || record.statut.includes("EXECUTED") || record.statut.includes("IN_DISBURSEMENT"))?
-            <>
-            </>
-            :
-            <>
-            {/* <VerifyPermissions
-              expected={["chief_financial_officer","operations_manager", "president", "general_manager", "paymaster_general"]}
-              roles={userInfo?.role?.name}
-              functions={userInfo?.Function?.name}
-            >
-            <>
-              <VerifyPermissions
-                expected={["chief_financial_officer","operations_manager", "president", "general_manager"]}
-                roles={userInfo?.role?.name}
-                functions={userInfo?.Function?.name}
-                isExclude = {true}
-              >
-              </VerifyPermissions>
-              <VerifyPermissions
-                expected={["chief_financial_officer","operations_manager", "president", "general_manager"]}
-                roles={userInfo?.role?.name}
-                functions={userInfo?.Function?.name}
-              >
+           <div className='flex items-center space-x-2'>
+            {
+              (record.statut.includes("REJECT") || record.statut.includes("EXECUTED"))?
+              <></>
+              :
+              (userFunction == "operations_manager" && record.date_valid_manager_department == null && record.statut != "IN_DISBURSEMENT") ?
+              <>
                 <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
-              </VerifyPermissions>
-              <VerifyPermissions
-                expected={["paymaster_general"]}
-                roles={userInfo?.role?.name}
-                functions={userInfo?.Function?.name}
-              >
+                <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/>
+              </>
+              :
+              ((userRole == "chief_financial_officer" && record.date_valid_manager_department) && record.date_valid_budgetary_department == null && record.statut != "IN_DISBURSEMENT") ?
+              <>
+                <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
+                <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/>
                 
-                    <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
-              </VerifyPermissions>
-            </>
-            </VerifyPermissions> */}
-            </>
-          }
-            <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
-            <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/>
-            <EyeIcon className='text-gray-500 h-6 cursor-pointer hover:bg-gray-300 hover:text-white p-1 rounded-lg' title='Voir le détail' onClick={()=>handleShowDetails(record.id)}/>
+              </>
+              :
+              ((userRole == "general_manager" && record.date_valid_budgetary_department) && record.date_valid_general_director === null && record.statut != "IN_DISBURSEMENT") ?
+              <>
+                <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
+                <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/>
+              </>
+              :
+              ((userRole == "president" && record.date_valid_general_director) && record.date_valid_president == null && record.statut != "IN_DISBURSEMENT") ?
+                <>
+                  <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
+                  <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/>
+                </>
+              :
+              ((userRole == "paymaster_general" && record.date_valid_president ) && record.date_valid_paymaster_general == null && record.statut == "IN_DISBURSEMENT") ?
+              <>
+                <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
+                {/* <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/> */}
+              </>:
+              <>
+              </>
+            }
+            <EyeIcon className='text-gray-500 h-6 cursor-pointer hover:bg-gray-300 hover:text-white p-1 rounded-lg' title='Voir le détail' onClick={()=>handleShowDetails(record)}/>
           </div>
         </>
       )
@@ -316,14 +367,19 @@ function ExpensePage() {
     setIsOpen(!isOpen);
   }
 
-  const handleShowDetails=async(id)=>{
-    setIsOpenDrawer(true);
+  const handleShowDetails=async(record)=>{
     let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
-    let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+id+"?entity_id="+entityId
-    const detail = await fetchData(url);
-    console.log(detail);
-    const selected = expenseDataSrc.find(expense=>expense.id === id);
-    setSelectedExpense(detail.result);
+
+    try {
+      let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+record?.id+"/?entity_id="+entityId
+      const detail = await fetchData(url);
+      const selected = expenseDataSrc.find(expense=>expense.id === record.id);
+      setIsOpenDrawer(true);
+      console.log(selected);
+      setSelectedExpense(selected);
+    } catch (error) {
+      openNotification("ECHEC", "Impossible de charger les détails");
+    }
   }
 
   const handleGellAllExpenses = async() =>{
@@ -341,6 +397,21 @@ function ExpensePage() {
     if(!requestError){
       setSite(response[0]?.id);
       setSites(response);
+    }
+  }
+  
+  const handleGetDepartments=async()=>{
+    let response = await fetchData(import.meta.env.VITE_USER_API+"/departments");
+    if(!requestError){
+      setDepartements(response);
+    }
+  }
+  
+  const handleGetEntitySite=async()=>{
+    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
+    if(!requestError){
+      console.log(response)
+      setEntitySites(response);
     }
   }
 
@@ -385,10 +456,40 @@ function ExpensePage() {
     }
   }
 
+  const handleDeleteExpense = async ()=>{
+    const confirmDelete = await confirm("Voulez-vous supprimer la dépense ?")
+    if(confirmDelete){
+      const url = import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/?entity_id="+entityId;
+      let headersList = {
+        "Accept": "*/*",
+        "Authorization": "Bearer "+localStorage.getItem("token"),
+        "Content-Type": "application/json"
+      }
+
+      try {
+        const response = await fetch(url, {
+          method: "DELETE",
+          headers: headersList,
+        });
+  
+        if(response.ok){
+          openNotification("SUCCESS", "Recette supprimer avec success");
+          handleGellAllExpenses();
+          setIsOpenDrawer(false);
+          return
+        }
+        openNotification("ECHEC", "Impossible de supprimer la recette");
+      } catch (error) {
+        openNotification("ECHEC", "Une erreur est survenue");
+        throw new Error(`Error: Failed to update`);      
+      }
+    }
+  }
+
   const handleClearForm = () =>{
-    setPaymentMode("");
-    setSite("");
-    setBeneficiaire("");
+    setPaymentMode("ESPECES");
+    setSite(sites[0]?.id);
+    setBeneficiaire(beneficiaires[0]?.User.id);
     setMontant("");
     setDescription("");
     setFiles([]);
@@ -451,6 +552,8 @@ function ExpensePage() {
     handleGetBank();
     handleGetExternalBank();
     handleGetExpenseSummary();
+    handleGetEntitySite();
+    handleGetDepartments();
   } , []);
 
       return (
@@ -459,7 +562,7 @@ function ExpensePage() {
             <PageHeader>
               <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une operation'/>
               <VerifyPermissions
-                expected={["coordinator","chief_financial_officer","operations_manager", "paymaster_general"]}
+                expected={["coordinator","chief_financial_officer","operations_manager", "paymaster_general", "accountant"]}
                 roles={userInfo?.role?.name}
                 functions={userInfo?.Function?.name}
               >
@@ -470,8 +573,6 @@ function ExpensePage() {
               </VerifyPermissions>
             </PageHeader>
             <div className='border-[1px] border-gray-100 w-full p-3 rounded-md mt-3 overflow-x-auto'>
-              
-              
               <Table
                 dataSource={expenseDataSrc}
                 columns={expensesCol}
@@ -552,7 +653,7 @@ function ExpensePage() {
                     </div>
                     <div className='w-full flex items-center space-x-2'>
                       <div className='flex flex-col w-1/2'>
-                        <label htmlFor="" className='text-xs'>Type de bénéficrecipientTypeiaire</label>
+                        <label htmlFor="" className='text-xs'>Type de bénéficiaire</label>
                         <select name="" id="" className='w-full' value={recipientType} onChange={e=>{
                             setRecipientType(e.target.value);
                             if(recipientType === "PERSONNEPHYSIQUE"){
@@ -684,13 +785,17 @@ function ExpensePage() {
                     </div>
                   }
                 </VerifyPermissions>
-                <VerifyPermissions
+                {
+                  selectedExpense?.payment_method !== "ESPECES" &&
+                    <VerifyPermissions
                   expected={["paymaster_general"]}
                   roles={userInfo?.role?.name}
                   functions={userInfo?.Function?.name}
                 >
                   <input type="text" placeholder='Numéro de la transaction' value={transactionNumber} onChange={e=>setTransactionNumber(e.target.value)}/>
-                </VerifyPermissions>
+                    </VerifyPermissions>
+                }
+
                 <textarea name="" id="" placeholder='Observation' value={validationDescription} onChange={e=>setValidationDescription(e.target.value)}></textarea>
                 <button className={`${requestLoading? "bg-green-300 cursor-not-allowed" :"bg-green-500"} btn  text-white`} disabled={requestLoading}>{requestLoading?"Validation encours...":"Valider"}</button>
               </form>
@@ -751,13 +856,13 @@ function ExpensePage() {
               title={<p>Détails de la recette</p>}
               placement={"bottom"}
               width={500}
-              height={"100vh"}
+              height={"90vh"}
               onClose={onClose}
               open={isOpenDrawer}
               extra={
                 <Space>
                   <>
-                    <button className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-green-300'>
+                    {/* <button className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-green-300'>
                       <CheckIcon className="h-5"/>
                       <span>Valider</span>
                     </button>
@@ -771,11 +876,14 @@ function ExpensePage() {
                     >
                       <PencilIcon className="h-5"/>
                       <span>Modifier</span>
-                    </button>
-                    <button className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-gray-300'>
-                      <TrashIcon className="h-5"/>
-                      <span>Supprimer</span>
-                    </button>
+                    </button> */}
+                    {
+                      (selectedExpense?.statut?.includes("REJECT") || selectedExpense?.statut?.includes("EXECUTED")) ?<></>:
+                        <button className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-gray-300' onClick={handleDeleteExpense}>
+                        <TrashIcon className="h-5"/>
+                        <span>Supprimer</span>
+                      </button>
+                    }
                   </>
                 </Space>
               }

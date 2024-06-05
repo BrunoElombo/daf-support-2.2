@@ -25,6 +25,8 @@ const rowSelection = {
 function RecettePage() {
 
   const { userInfo } = useContext(AUTHCONTEXT);
+  let userRole = JSON.parse(localStorage.getItem("user"))?.role?.name;
+  let userFunction = JSON.parse(localStorage.getItem("user"))?.Function?.name;
 
   const handleGetSites=async()=>{
     try {
@@ -114,6 +116,7 @@ function RecettePage() {
   const [socialReason, setSocialReason] = useState('');
   const [NIU, setNIU] = useState("");
   const [site, setSite] = useState('');
+  const [entitySites, setEntitySites] = useState([])
   const [entity, setEntity] = useState('');
   
 
@@ -232,7 +235,15 @@ function RecettePage() {
     } catch (error) {
         alert("Echedc de chargement des produits")
     }
-}
+  }
+
+  const handleGetEntitySite=async()=>{
+    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
+    if(!requestError){
+      console.log(response)
+      setEntitySites(response);
+    }
+  }
 
   const operationCol = [
     {
@@ -327,7 +338,7 @@ function RecettePage() {
       key: 'site',
       width:  "200px",
       render: (text, record)=>(
-        <>{sites.find(site=>site.id === text)?.name}</>
+        <>{entitySites.find(site=>site.id === text)?.name}</>
       )
     },
     {
@@ -379,9 +390,14 @@ function RecettePage() {
               functions={userInfo?.Function?.name}
             >
               {
-              record.statut !== "RECEIVED" &&
-              <CheckIcon onClick={()=>handleSelectedRecipe(text)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
-              }
+               (userFunction === "coordinator"  && record.date_valid_controller == null) ?
+                 <CheckIcon onClick={()=>handleSelectedRecipe(text)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
+               :
+               ((userRole === "cashier" && record.date_valid_controller) && record.date_valid_employee_checkout == null) ?
+                    <CheckIcon onClick={()=>handleSelectedRecipe(text)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
+              :
+              <></>
+            }
             </VerifyPermissions>
           }
           {/* <XMarkIcon className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/> */}
@@ -445,6 +461,7 @@ function RecettePage() {
     handleGetController();
     handleGetallProducts();
     handleGetRecipeSummary();
+    handleGetEntitySite();
   }, []);
 
   const hasSelected = selectedRowKeys.length > 0;
@@ -523,7 +540,7 @@ function RecettePage() {
           title={<p>Détails de la recette</p>}
           placement={"bottom"}
           width={500}
-          height={"100vh"}
+          height={"90vh"}
           onClose={onClose}
           open={open}
           extra={

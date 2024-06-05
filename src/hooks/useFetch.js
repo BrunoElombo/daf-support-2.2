@@ -36,7 +36,6 @@ function useFetch() {
       }
     };
 
-
     const postData = async (url, data = {}, withAuth = true) => {
       setRequestError("");
       setRequestLoading(true);
@@ -70,11 +69,12 @@ function useFetch() {
           const errorText = await response.json();
           throw new Error(`Error: ${errorText}`);
         }
+        setRequestError("Error");
         const result = await response.json();
         return result;
       } catch (error) {
         setRequestError(error.message);
-        return error; // Or throw the error for further handling
+        throw new Error(`Error: ${errorText}`);
       } finally {
         setRequestLoading(false);
       }
@@ -99,7 +99,6 @@ function useFetch() {
           });
           console.log(response);
           if(!response.ok){
-            console.warn("FAiled to update");
             setRequestError("FAiled to update");
             throw new Error(`Error: Failed to update`);
           }

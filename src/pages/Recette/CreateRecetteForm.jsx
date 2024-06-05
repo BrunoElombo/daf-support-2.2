@@ -198,7 +198,7 @@ function CreateRecetteForm(
 
     const handleGetBank= async()=>{
         const banks = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity_banks");
-        if(!requestError){
+        if(requestError === ""){
             setBankEntity(banks);
             setEntityBankAccountNumbers(banks[0]?.bankAccounts)
         }
@@ -336,15 +336,11 @@ function CreateRecetteForm(
         try {
             const response = await postData(url, data, true);
             onSubmit();
-
-            if(!requestError){
-                setCurrentStep(0);
-                setIsOpen(false);
-                handleClearRecipeForm();
-                openNotification("SUCCESS", "Recette créer avec success.");
-                return
-            }
-            openNotification("ECHEC", "Echec de creation de la recette.");
+            setCurrentStep(0);
+            setIsOpen(false);
+            handleClearRecipeForm();
+            openNotification("SUCCESS", "Recette créer avec success.");
+            
             // handleOpenModal("Recette créer avec success.", (<CheckCircleIcon className='text-green-500 h-8 w-8'/>))
         } catch (error) {
             openNotification("ECHEC", "Echec de creation de la recette.");
