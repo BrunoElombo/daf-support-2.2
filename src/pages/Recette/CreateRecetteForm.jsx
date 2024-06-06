@@ -5,6 +5,7 @@ import { PlusIcon, ChevronDoubleRightIcon, ChevronDoubleLeftIcon } from '@heroic
 import useFetch from '../../hooks/useFetch';
 import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
 import Popup from '../../components/Popup/Popup';
+import { v4 as uuid } from 'uuid'
 
 function CreateRecetteForm(
     {title, centered, open, footer, onOk, onCancel, setIsOpen, onSubmit}
@@ -85,11 +86,12 @@ function CreateRecetteForm(
     // const [product, setPoduct] = useState("");
 
     const handleDelete = (record) => {
-        const rowId = operations.indexOf(record);
-        const updatedOperations = operations.slice(rowId, 1);
+        // const rowId = operations.indexOf(record);
+        // const updatedOperations = operations.slice(rowId, 1);
         // const updatedOperations = operations.filter((op) => rowId !== record.id);
-        
+        const updatedOperations = operations?.filter(operation => operation?.id !== record.id);
         setOperationDataSrc(updatedOperations);
+        setOperations(updatedOperations);
     };
 
     const [beneficiaryBankAccount, setBeneficiaryBankAccount] = useState("");
@@ -111,33 +113,27 @@ function CreateRecetteForm(
 
     const operationCol = [
         {
-          title: '#',
-          dataIndex: 'label',
-          key: 'label',
-          render:(text, record)=>(<>{operations.indexOf(record)+1}</>)
-        },
-        {
           title: 'Type d\'opération',
           dataIndex: 'label',
-          key: 'label',
+          key: '1',
           render:(text, record)=>(<>{products.find(product => product.id === text)?.name}</>)
         },
         {
           title: 'P.U',
           dataIndex: 'unit_price',
-          key: 'unit_price',
+          key: '2',
           render:(text, record)=><>{numberWithCommas(text)}</>
         },
         {
           title: 'Qté',
           dataIndex: 'quantity',
-          key: 'quantity',
+          key: '3',
           render:(text, record)=><>{numberWithCommas(text)}</>
         },
         {
           title: 'Total',
           dataIndex: 'total_price',
-          key: 'total_price',
+          key: '4',
           render: (text, record)=>(
             <>{numberWithCommas(record.total_price)}</>
           )
@@ -234,6 +230,7 @@ function CreateRecetteForm(
         if(selectedOperationType !== "" && operationQuantity !== "" && unitPrice !== ""){
             const total = +operationQuantity * +unitPrice;
             const data = {
+                id: uuid(),
                 "label": selectedOperationType,
                 "unit_price": unitPrice,
                 "quantity": operationQuantity,
@@ -270,10 +267,7 @@ function CreateRecetteForm(
     }, [externalEntity])
 
     useEffect(()=>{
-        console.log(bankEntity)
         const selectedBank = bankEntity.find(bank=> bank.bank.id === entityBank);
-        console.log(selectedBank?.bankAccounts[0].id);
-        console.log(selectedBank?.bankAccounts);
         setEntityBankAccountNumbers(selectedBank?.bankAccounts);
         setEntityBankAccountNumber(selectedBank?.bankAccounts[0].id);
     }, [entityBank]);
@@ -287,18 +281,11 @@ function CreateRecetteForm(
     }
 
     function operationsTotal(operations) {
-        // Validate input data
         if (!Array.isArray(operations)) {
             throw new TypeError('Input must be an array');
         }
-        // const totals = operations.map(operation =>operation.total);
-        // console.log(totals);
-
-        // Reduce function to iterate through objects and sum totals
         return operations.reduce((acc, current) => {
-            // Check if "total" exists and convert to number if needed
             const total = typeof current.total_price === 'number' ? current.total_price : +current.total_price;
-            // Check if conversion to number was successful (avoid NaN)
             if (!isNaN(total)) {
                 setTotalAmount(acc + (+current.total_price));
                 return acc + (+current.total_price);
@@ -441,8 +428,8 @@ function CreateRecetteForm(
                         <input type="text" value={transactionNumber} onChange={e=>setTransactionNumber(e.target.value)} placeholder='Numéro de transaction'/>
                     }
 
+                    <>
                     { paymentMethod === "VIREMENT" &&
-                      <>
                         <div className='w-full flex flex-col md:flex-row items-center space-x-3 justify-center'>
                             <div className='flex flex-col w-full md:w-1/2'>
                                 <label htmlFor="" className='text-xs'>Bank de l'entité</label>
@@ -467,8 +454,15 @@ function CreateRecetteForm(
                                 </select>
                             </div>
                         </div>
+                    }
 
-
+                    <VerifyPermissions
+                        expected={["gueritte_chef"]}
+                        // received={userInfo?.role.name || userInfo?.Function.name}
+                        roles={userInfo?.role?.name}
+                        functions={userInfo?.Function?.name}
+                        isExclude={true}
+                    >
                         {/* Entite extern */}
                         <label htmlFor="" className='text-xs'>Entitées externe</label>
                         <select name="" id="" value={externalEntity} onChange={e=>setExternalEntity(e.target.value)}>
@@ -478,9 +472,12 @@ function CreateRecetteForm(
                                 )
                             }
                         </select>
+                    </VerifyPermissions>
 
                         {/*  */}
-                        <div className='w-full flex flex-col md:flex-row items-center space-x-3 justify-center'>
+                        {
+                            paymentMethod === "VIREMENT" &&
+                            <div className='w-full flex flex-col md:flex-row items-center space-x-3 justify-center'>
                             <div className='flex flex-col w-1/2'>
                                 <label htmlFor="" className='text-xs'>Choisir la banque du bénéficiaire</label>
                                 <select className='w-full' value={beneficiaryBankAccount} onChange={e=>setBeneficiaryBankAccount(e.target.value)}>
@@ -506,9 +503,10 @@ function CreateRecetteForm(
                                     }
                               </select>
                             </div>
-                        </div>
+                            </div>
+                        }
                       </>
-                    }
+                    
                     <VerifyPermissions
                         expected={["guerrite_chef"]}
                         // received={userInfo?.role.name || userInfo?.Function.name}
@@ -618,16 +616,12 @@ function CreateRecetteForm(
                                         setSelectedOperationType(e.target.value);
 
                                         const price = products.find(product=> product.id == e.target.value);
-                                        console.log(price)
                                         setUnitPrice(+price?.unit);
                                     }}>
                                     <option value="">Type d'opération</option>
                                     {
                                         products.map(product=><option key={product.id} value={product.id}>{product.name}</option>)
                                     }
-                                    {/* <option value="NORMALE">Normale</option>
-                                    <option value="HORS_PESEE">Hors pesée</option>
-                                    <option value="TEST">Test</option> */}
                                 </select>
                                 {/* <input type="number" name="" id="" placeholder='Prix unitaire' className='w-1/4' value={unitPrice} onChange={e=>setUnitPrice(e.target.value)} disabled={true}/> */}
                                 <div className='px-2 py-1 bg-gray-50 border-b-2 border-b-green-500'>

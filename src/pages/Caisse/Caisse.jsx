@@ -11,135 +11,59 @@ import ApproForm from '../Reporting/ApproForm'
 import { ArrowsRightLeftIcon } from '@heroicons/react/24/outline'
 
 function Caisse() {
-  const [path, setPath] = useState("appro");
+  const [path, setPath] = useState("billeterie");
   const {userInfo} = useContext(AUTHCONTEXT);
   let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
   const {requestLoading, fetchData, postData, requestError, updateData} = useFetch();
 
   // Approvisionement
   const [openApproModal, setOpenApproModal] = useState(false);
+
+  // Billeterie
+  const  [billeterieFormIsOpen, setBilleterieFormIsOpen] = useState(false);
   const handleTabClick = (selectedPath) =>{
     setPath(selectedPath);
   }
 
   const APPRO_COLUMNS = [
-    {
-      title:"#",
-      dataIndex:"",
-      key:"",
-      width: "200px",
-    },
-    {
-      title:"Numéro ref",
-      dataIndex:"",
-      key:"",
-      width: "200px",
-    },
-    {
-      title:"Initiateur",
-      dataIndex:"",
-      key:"",
-      width: "200px",
-    },
-    {
-      title:"Provenance",
-      dataIndex:"",
-      key:"",
-      width: "200px",
-    },
-    {
-      title:"Destination",
-      dataIndex:"",
-      key:"",
-      width: "200px",
-    },
-    {
-      title:"Montant",
-      dataIndex:"",
-      key:"",
-      width: "200px",
-    },
-    {
-      title:"Site",
-      dataIndex:"",
-      key:"",
-      width: "200px",
-    },
-    {
-      title:"Entite",
-      dataIndex:"",
-      key:"",
-      width: "200px",
-    },
-    {
-      title:"Actions",
-      dataIndex:"",
-      key:"",
-      width: "200px",
-      render:(text, record)=><p></p>
-    },
+    { title: "#", dataIndex: "id", key: "id", width: "200px" },
+    { title: "Numéro ref", dataIndex: "ref_number", key: "ref_number", width: "200px" },
+    { title: "Initiateur", dataIndex: "initiator", key: "initiator", width: "200px" },
+    { title: "Provenance", dataIndex: "origin", key: "origin", width: "200px" },
+    { title: "Destination", dataIndex: "destination", key: "destination", width: "200px" },
+    { title: "Montant", dataIndex: "amount", key: "amount", width: "200px" },
+    { title: "Site", dataIndex: "site", key: "site", width: "200px" },
+    { title: "Entite", dataIndex: "entity", key: "entity", width: "200px" },
+    { title: "Actions", dataIndex: "", key: "actions", width: "200px", render: () => <p></p> }
   ];
 
   const CASH_DESK_COLUMNS = [
+    { title: "Numéro de référence", dataIndex: "reference_number", key: "reference_number" },
+    { title: "Caisse enregistreuse", dataIndex: "cash_register", key: "cash_register" },
+    { title: "Monnaie", dataIndex: "currency", key: "currency" },
     {
-      title:"Numéro de référence",
-      dataIndex:"reference_number",
-      key:"reference_number",
-      width: "200px",
+      title: "Employer initiateur",
+      dataIndex: "employee_initiator",
+      key: "employee_initiator",
+      render: (text) => employees.find(emp => emp?.User.id === text)?.User.name.toUpperCase()
     },
+    { title: "Montant Total", dataIndex: "total_amount", key: "total_amount" },
+    { title: "État des caisses actuel", dataIndex: "current_step_cash_state", key: "current_step_cash_state" },
     {
-      title:"Caisse enregistreuse",
-      dataIndex:"cash_register",
-      key:"cash_register",
-      width: "200px",
-    },
-    {
-      title:"Monnaie",
-      dataIndex:"currency",
-      key:"currency",
-      width: "200px",
-    },
-    {
-      title:"Employer initiateur",
-      dataIndex:"employee_initiator",
-      key:"employee_initiator",
-      width: "200px",
-      render: (text, record)=>employees.find(benef=> benef?.User.id === text)?.User.name.toUpperCase()
-    },
-    {
-      title:"Montant Total",
-      dataIndex:"total_amount",
-      key:"total_amount",
-      width: "200px",
-    },
-    {
-      title:"État des caisses actuel",
-      dataIndex:"current_step_cash_state",
-      key:"current_step_cash_state",
-    },
-    {
-      title:"Site",
-      dataIndex:"site",
-      key:"site",
-      width: "200px",
-      render: (text, record)=>{
-        const site = sites?.find(site=>site.id === record.site)
-        return <>{site?.name != undefined? site?.name :text }</>
+      title: "Site",
+      dataIndex: "site",
+      key: "site",
+      render: (text, record) => {
+        const site = sites?.find(site => site.id === record.site);
+        return site?.name || text;
       }
     },
     {
-      title:"Entites",
-      dataIndex:"entity",
-      key:"entity",
-      width: "200px",
-      render: (text, record)=>entities.find(entity=> entity?.id === text)?.Sigle.toUpperCase()
-    },
-    // {
-    //   title:"Actions",
-    //   dataIndex:"",
-    //   key:"",
-    //   render:(text, record)=><p></p>
-    // },
+      title: "Entites",
+      dataIndex: "entity",
+      key: "entity",
+      render: (text) => entities.find(entity => entity?.id === text)?.Sigle.toUpperCase()
+    }
   ];
 
   const [cashDeskStateData, setCashDeskStateData] = useState([]);
@@ -158,14 +82,16 @@ function Caisse() {
       }
   }
 
+  // Get the sites
   const [sites, setSites] = useState([]);
   const handleGetSite=async()=>{
-    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
+    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
     if(!requestError){
       setSites(response);
     }
   }
 
+  // Get the employees
   const [employees, setEmployees] = useState([]);
   const handleGetEmployees = async()=>{
       try {
@@ -176,6 +102,7 @@ function Caisse() {
       }
   }
 
+  // Get the entities
   const [entities, setEntities] = useState([]);
   const handleGetAllEntities = async ()=>{
     try {
@@ -192,14 +119,16 @@ function Caisse() {
     handleGetEmployees();
     handleGetAllEntities();
   }, [])
+
+  
   return (
     <LoginLayout>
         <TabsComponent>
-          <Tab
+          {/* <Tab
             title={<p>Appro caisse</p>}
             isActive={path === "appro"}
             onClick={()=>handleTabClick("appro")}
-          />
+          /> */}
           <Tab
             title={<p>Billeterie</p>}
             isActive={path === "billeterie"}
@@ -213,7 +142,7 @@ function Caisse() {
         </TabsComponent>
         <div className='p-3'>
             <div>
-              <h3>Appro caisse</h3>
+              <h3>{path == "appro" ? "Appro caisse" : path == "billeterie" ? "Billeterie" :path == "tresorerie" && "Tresorerie"}</h3>
               <PageHeader>
                 <div className='flex items-center justify-between w-full'>
                   <input type="search" className='text-sm' placeholder='Recherche'/>
@@ -222,11 +151,22 @@ function Caisse() {
                       roles={userInfo?.role?.name}
                       functions={userInfo?.Function?.name}
                   >
-                    <button 
-                      className='btn bg-green-500 text-white text-sm'
-                      onClick={()=>setOpenApproModal(true)}
-                    >Initier un appro.
-                    </button>
+                    {
+                      path == "billeterie"?
+                      <button 
+                        className='btn bg-green-500 text-white text-sm'
+                        onClick={()=>setBilleterieFormIsOpen(true)}
+                      >
+                        Enregistrer l'etat
+                      </button>
+                      :
+                      <button 
+                        className='btn bg-green-500 text-white text-sm'
+                        onClick={()=>setOpenApproModal(true)}
+                      >
+                        Initier un appro.
+                      </button>
+                    }
                 </VerifyPermissions>
                 </div>
               </PageHeader>
@@ -237,6 +177,7 @@ function Caisse() {
                   footer={()=>(
                     <div></div>
                   )}
+                  loading={requestLoading}
                   pagination={{
                     pageSize: 50,
                   }}
@@ -261,6 +202,21 @@ function Caisse() {
         >
           <div className='pt-5'>
             <ApproForm /> 
+          </div>
+        </Modal>
+        
+
+        {/* Modal de la billieterie */}
+        <Modal
+          open={billeterieFormIsOpen}
+          onCancel={()=>setBilleterieFormIsOpen(false)}
+          title={<p className='flex items-center space-x-2'>
+            <ArrowsRightLeftIcon className='text-gray-500 h-6 w-6'/>
+            <span></span>
+          </p>}
+          footer={()=>{}}
+        >
+          <div className='pt-5'>
           </div>
         </Modal>
     </LoginLayout>
