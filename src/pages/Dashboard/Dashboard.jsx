@@ -137,32 +137,34 @@ function Dashboard() {
   function filterObjectsByDateRange(objects, startDate, endDate) {
     const filteredObjects = objects?.filter(obj => {
       const objDate =new Date(obj.day.split("T")[0]).toLocaleDateString()?.replaceAll("/", "-")?.split("-")?.reverse()?.join("-");
+      console.log(objDate);
       return objDate >= startDate && objDate <= endDate;
     });
     return filteredObjects;
   }
 
   useEffect(()=>{
-    if(startDate.length > 0 && endDate.length > 0){
+    if(startDate && endDate){
       const filteredData = filterObjectsByDateRange(recipeData, startDate, endDate);
-      const expenseFilteredData = filterObjectsByDateRange(expenseData, startDate, endDate);
+      // const expenseFilteredData = filterObjectsByDateRange(expenseData, startDate, endDate);
+
       setRecipeData(filteredData);
-      setExpenseData(expenseFilteredData);
-      console.log(filteredData,expenseFilteredData);
+      // setExpenseData(expenseFilteredData);
     }else{
       setRecipeData(recipeDataSrc);
-      setExpenseData(expenseDataSrc);
+      // setExpenseData(expenseDataSrc);
     }
+
   }, [startDate, endDate]);
 
   return (
     <LoginLayout>
       <div className='w-full h-full overflow-y-auto flex flex-col p-5'>
-        <div className='border-[1px] border-gray-100 my-2 p-2 rounded-lg flex items-center space-x-2'> 
-          {/* <Topfilter /> */}
+        {/* <div className='border-[1px] border-gray-100 my-2 p-2 rounded-lg flex items-center space-x-2'> 
+          
           <input type="date" value={startDate} className='text-sm' onChange={e => setStartDate(e.target.value)}/>
           <input type="date" value={endDate} className='text-sm' onChange={e => setEndDate(e.target.value)}/>
-        </div>
+        </div> */}
         <div className='h-1/4 flex flex-col md:flex-row items-center justify-evenly space-y-2 md:space-x-2'>
 
           <div className='bg-gradient-to-r from-green-500 to-green-400 rounded-lg shadow-lg p-4 w-full md:w-1/4 text-white'>

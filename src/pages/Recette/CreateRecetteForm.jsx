@@ -55,6 +55,7 @@ function CreateRecetteForm(
     const [provenanceValue, setProvenanceValue] = useState("INVOICE PAYMENT");
 
     const [entityBankAccountNumber, setEntityBankAccountNumber] = useState("");
+    const [bankExternalEntity, setBankExternalEntity] = useState([]);
     
 
     const [entityBankAccountNumbers, setEntityBankAccountNumbers] = useState([]);
@@ -457,11 +458,10 @@ function CreateRecetteForm(
                     }
 
                     <VerifyPermissions
-                        expected={["gueritte_chef"]}
+                        expected={["accountant"]}
                         // received={userInfo?.role.name || userInfo?.Function.name}
                         roles={userInfo?.role?.name}
                         functions={userInfo?.Function?.name}
-                        isExclude={true}
                     >
                         {/* Entite extern */}
                         <label htmlFor="" className='text-xs'>Entitées externe</label>

@@ -15,11 +15,12 @@ const rowSelection = {
   onChange: (selectedRowKeys, selectedRows) => {
     console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
   },
-  getCheckboxProps: (record) => ({
-    disabled: record.name === 'Disabled User',
-    // Column configuration not to be checked
-    name: record.name,
-  }),
+  onSelect: (record, selected, selectedRows) => {
+    console.log(record, selected, selectedRows);
+  },
+  onSelectAll: (selected, selectedRows, changeRows) => {
+    console.log(selected, selectedRows, changeRows);
+  },
 };
 
 function RecettePage() {
@@ -730,6 +731,9 @@ function RecettePage() {
                     <Table 
                       columns={operationCol}
                       dataSource={operationDataSrc}
+                      rowSelection={{
+                        ...rowSelection
+                      }}
                       footer={()=>(
                         <div className='flex justify-between items-center'>
                           <p className='text-xs'><b>Total encaissé (XAF):</b></p>

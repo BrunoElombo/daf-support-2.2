@@ -24,10 +24,10 @@ function Chart({ data, legendBorderColor, legendBgColor, predictions }) {
         borderColor: legendBorderColor,
         backgroundColor: legendBgColor,
       },
-      {
-        label:"Prédictions de recette (CFA)",
-        data: Object?.values(predictions) || 0
-      }
+      // {
+      //   label:"Prédictions de recette (CFA)",
+      //   data: Object?.values(predictions) || 0
+      // }
     ],
   };
 

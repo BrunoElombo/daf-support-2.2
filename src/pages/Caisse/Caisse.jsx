@@ -6,16 +6,20 @@ import VerifyPermissions from '../../components/Permissions/VerifyPermissions'
 import Tab from '../../components/TabsComponents/Tab'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import useFetch from '../../hooks/useFetch'
-import { Modal, Table } from 'antd'
+import { Drawer, Modal, Table } from 'antd'
 import ApproForm from '../Reporting/ApproForm'
 import { ArrowsRightLeftIcon } from '@heroicons/react/24/outline'
+import StateForm from '../../components/caisse/StateForm'
 
 function Caisse() {
   const [path, setPath] = useState("billeterie");
   const {userInfo} = useContext(AUTHCONTEXT);
+
   let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
   const {requestLoading, fetchData, postData, requestError, updateData} = useFetch();
 
+  // UseState
+  const [] = useState()
   // Approvisionement
   const [openApproModal, setOpenApproModal] = useState(false);
 
@@ -134,11 +138,11 @@ function Caisse() {
             isActive={path === "billeterie"}
             onClick={()=>handleTabClick("billeterie")}
           />
-          <Tab
+          {/* <Tab
             title={<p>Trésorerie</p>}
             isActive={path === "tresorerie"}
             onClick={()=>handleTabClick("tresorerie")}
-          />
+          /> */}
         </TabsComponent>
         <div className='p-3'>
             <div>
@@ -212,13 +216,33 @@ function Caisse() {
           onCancel={()=>setBilleterieFormIsOpen(false)}
           title={<p className='flex items-center space-x-2'>
             <ArrowsRightLeftIcon className='text-gray-500 h-6 w-6'/>
-            <span></span>
+            <span>État de caisse</span>
           </p>}
           footer={()=>{}}
         >
           <div className='pt-5'>
+            <StateForm onSubmit={()=>{
+              handleGetCashDeskState();
+              setBilleterieFormIsOpen(false);
+            }}/>
           </div>
         </Modal>
+
+        <Drawer
+          title={<p>Détails de la billeterie</p>}
+          placement={"bottom"}
+          width={500}
+          height={"90vh"}
+          onClose={false}
+          open={false}
+          extra={
+            <>
+
+            </>
+          }
+        >
+
+        </Drawer>
     </LoginLayout>
   )
 }
