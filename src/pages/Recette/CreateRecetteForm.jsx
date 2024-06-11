@@ -618,9 +618,8 @@ function CreateRecetteForm(
                                         const price = products.find(product=> product.id == e.target.value);
                                         setUnitPrice(+price?.unit);
                                     }}>
-                                    <option value="">Type d'opération</option>
                                     {
-                                        products.map(product=><option key={product.id} value={product.id}>{product.name}</option>)
+                                        products.map(product=><option key={product?.id} value={product?.id}>{product?.displayName}</option>)
                                     }
                                 </select>
                                 {/* <input type="number" name="" id="" placeholder='Prix unitaire' className='w-1/4' value={unitPrice} onChange={e=>setUnitPrice(e.target.value)} disabled={true}/> */}

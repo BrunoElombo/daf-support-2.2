@@ -196,7 +196,7 @@ const handleChangedEntity=async (id)=>{
             <div>
                 <p><b>Role / Function :</b></p>
                 <div className='p-2 bg-gray-200 border-gray-300 border-[1px] rounded-lg'>
-                   <p className='text-md'>{userInfo?.role?.name || userInfo?.Function?.name}</p> 
+                   <p className='text-md'>{`${userInfo?.role?.displayName || userInfo?.Function?.displayName}`}</p> 
                 </div>
             </div>
             <div>

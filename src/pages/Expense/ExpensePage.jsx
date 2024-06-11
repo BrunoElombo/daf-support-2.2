@@ -13,6 +13,18 @@ import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
 import SuggestInput from '../../components/SuggestInput/SuggestInput';
 
 
+const rowSelection = {
+  onChange: (selectedRowKeys, selectedRows) => {
+    console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
+  },
+  onSelect: (record, selected, selectedRows) => {
+    console.log(record, selected, selectedRows);
+  },
+  onSelectAll: (selected, selectedRows, changeRows) => {
+    console.log(selected, selectedRows, changeRows);
+  },
+};
+
 function ExpensePage() {
   
   const MAX_ALLOWED_AMOUNT = 100000;
@@ -575,6 +587,9 @@ function ExpensePage() {
             <div className='border-[1px] border-gray-100 w-full p-3 rounded-md mt-3 overflow-x-auto'>
               <Table
                 dataSource={expenseDataSrc}
+                rowSelection={{
+                  ...rowSelection
+                }}
                 columns={expensesCol}
                 footer={()=>(
                   <div className='flex items-center'>

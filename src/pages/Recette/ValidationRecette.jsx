@@ -5,7 +5,7 @@ import { notification } from 'antd';
 import { CheckCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 function ValidationRecette({
-    onSubmit, recipeId
+    onSubmit, recipeId, isMultipleSelect
 }) {
     const [confirmModalText, setConfirmModalText] = useState("");
     const [confirmModalIcon, setConfirmModalIcon] = useState(undefined);
@@ -36,17 +36,29 @@ function ValidationRecette({
     const [observation, setObservation] = useState("");
     const handleSubmitValidation= async (evt)=>{
         evt.preventDefault();
+        let url ="";
+        let data={};
         try {
-            console.log(ENTITY_ID)
-            const url = import.meta.env.VITE_DAF_API+"/recipesheet/"+recipeId+"/?entity_id="+ENTITY_ID;
-            const data = {
+            if(!isMultipleSelect){
+              url = import.meta.env.VITE_DAF_API+"/recipesheet/"+recipeId+"/?entity_id="+ENTITY_ID;
+              data = {
+                  "description": observation,
+                  "it_is_a_cash_desk_movement": false
+              };
+            }else{
+              url = import.meta.env.VITE_DAF_API+"/recipesheet/bulk_validation/?entity_id="+ENTITY_ID;
+              data = {
+                "pk_list": recipeId,
                 "description": observation,
                 "it_is_a_cash_desk_movement": false
-            };
+              };
+            }
 
             const response = await updateData(url, data, true)
+            if(!requestError){
+              openNotification("SUCCESS", "Validé avec success");
+            }
             // handleOpenModal("Validé avec success",(<CheckCircleIcon className='text-green-500 h-8 w-8'/>))
-            openNotification("SUCCESS", "Validé avec success");
             onSubmit();
             
         } catch (error) {

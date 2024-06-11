@@ -11,19 +11,22 @@ import CreateRecetteForm from './CreateRecetteForm';
 import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
 import { AUTHCONTEXT } from '../../context/AuthProvider';
 
-const rowSelection = {
-  onChange: (selectedRowKeys, selectedRows) => {
-    console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
-  },
-  onSelect: (record, selected, selectedRows) => {
-    console.log(record, selected, selectedRows);
-  },
-  onSelectAll: (selected, selectedRows, changeRows) => {
-    console.log(selected, selectedRows, changeRows);
-  },
-};
 
 function RecettePage() {
+  
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+
+  const rowSelection = {
+    onChange: (selectedRowKeys, selectedRows) => {
+      setSelectedRowKeys(selectedRowKeys);
+    },
+    onSelect: (record, selected, selectedRows) => {
+      // console.log(record, selected, selectedRows);
+    },
+    onSelectAll: (selected, selectedRows, changeRows) => {
+      // console.log(selected, selectedRows, changeRows);
+    },
+  };
 
   const { userInfo } = useContext(AUTHCONTEXT);
   let userRole = JSON.parse(localStorage.getItem("user"))?.role?.name;
@@ -48,6 +51,17 @@ function RecettePage() {
           console.error("Error creating recipe:", error);
       }
   }
+  
+  const handleGetEmployees = async()=>{
+      const controller = await fetchData(import.meta.env.VITE_USER_API+"/employees");
+      try {
+          let result = controller ;
+          setEmployees(result);
+          console.log(result);
+      } catch (error) {
+          console.error("Error creating recipe:", error);
+      }
+  }
 
   const openNotification = (title, message, icon) => {
     notification.open({
@@ -64,7 +78,7 @@ function RecettePage() {
   const  [recipeDataSrc, setRecetteDataSrc] = useState([]);
   const  [recipeData, setRecipeData] = useState([]);
   const  [operationDataSrc, setOperationDataSrc] = useState([]);
-
+  const  [employees, setEmployees] = useState([]);
   const generateRefNumber = (table) => {
     const existingNumbers = table.map(expense => parseInt(expense.ref_number.split('/')[0]));
     const nextNumber = existingNumbers.length === 0 ? 1001 : Math.max(...existingNumbers) + 1;
@@ -74,12 +88,16 @@ function RecettePage() {
   };
 
   const [searchValue, setSearchValue] = useState("");
-
   useEffect(()=>{
     if(searchValue.length > 0){
-      const search = filteredData?.filter(
-        recipe => recipe.reference_number.toLowerCase().includes(searchValue.toLowerCase())
-      )
+      console.log("Search value :",searchValue);
+      const search = filteredData?.filter((item) => {
+        const searchTextLower = searchValue.toLowerCase();
+        return Object.values(item)?.some((fieldValue) => fieldValue?.toString().toLowerCase().includes(searchTextLower)
+      );
+    }
+  )
+      console.log("Search result :",search);
       setRecetteDataSrc(search)
     }else{
       setRecetteDataSrc(filteredData);
@@ -99,7 +117,6 @@ function RecettePage() {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [isAddingOperation, setIsAddingOperation] = useState(false);
-  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState([]);
 
@@ -119,6 +136,7 @@ function RecettePage() {
   const [site, setSite] = useState('');
   const [entitySites, setEntitySites] = useState([])
   const [entity, setEntity] = useState('');
+  const [isMultipleSelect, setIsMultipleSelect] = useState(false);
   
 
   // Operation fields
@@ -137,6 +155,7 @@ function RecettePage() {
 
   const [entitiesBank, setEntitiesBank] = useState("");
   const [isUpdateMode, setIsUpdateMode] = useState(false);
+  const [match, setMatch] = useState("");
 
   const handleGetBank= async()=>{
     const banks = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity_banks");
@@ -144,6 +163,16 @@ function RecettePage() {
       setEntitiesBank(banks);
     }
   }
+
+  const highlightText = (text) => {
+    if (!searchValue) return text;
+
+    const regex = new RegExp(searchValue, 'gi');
+    return <span dangerouslySetInnerHTML={{ __html: text.replace(
+      new RegExp(searchValue, 'gi'),
+      (match) => `<mark style="background-color: yellow;">${match}</mark>`
+    )}} />
+  };
 
   // Validation recette
   const [openValidationModal, setOpenValidationModal] = useState(false);
@@ -158,37 +187,12 @@ function RecettePage() {
     setOpen(false);
   };
 
-  function sumMontants(objects) {
-    // Initialize a variable to store the sum
-    let total = 0;
-
-    console.log(objects)
-    // Loop through each object in the list
-    for (const obj of objects) {
-      // Check if the object has a `montant` attribute
-      if (obj.hasOwnProperty('total_amount')) {
-        // Get the value of the `montant` attribute
-        const montant = obj.total_amount;
-
-        // Ensure montant is a number before adding
-        if (typeof montant === 'number') {
-          total += montant;
-        } else {
-          console.warn("Skipping object with non-numeric 'montant' attribute");
-        }
-      }
-    }
-
-    // Return the calculated sum
-    return total;
-  }
-
   const numberWithCommas=(x)=>{
     return x?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
   }
 
   const [selectedRecipe, setSelectedRecipe] = useState("")
- const  [activeRecipe, setActiveRecipe] = useState({})
+  const  [activeRecipe, setActiveRecipe] = useState({})
 
   const handleSelectedRecipe=async(_selectedRecipe)=>{
     const selected = recipeDataSrc.find(recipe=>recipe.id == _selectedRecipe?.id);
@@ -311,18 +315,50 @@ function RecettePage() {
     {
       title: 'Numéro de références',
       dataIndex: 'reference_number',
-      key: 'reference_number',
+      key: '1',
       width: "200px",
+      // render: (text) => (
+      //   searchValue == "" ? <span>{text}</span> :
+      //   <span>
+      //     {text.replace(
+      //       new RegExp(searchValue, 'gi'),
+      //       (match) => <span style={{ backgroundColor: 'yellow' }}>{match}</span>
+      //     )}
+      //   </span>
+      // ),
+      render: (text) => highlightText(text)
+    },
+    {
+      title: 'Initiateur',
+      dataIndex: 'employee_initiator',
+      key: '2',
+      width:  "200px",
+      render:(text, record)=>(
+        <>{highlightText(employees.find(employee=>employee?.User?.id === text)?.User?.name?.toUpperCase())}</>
+      )
     },
     {
       title: 'Controleur',
       dataIndex: 'employee_controller',
-      key: 'employee_controller',
+      key: '3',
       width:  "200px",
       render:(text, record)=>(
         <>{
           record.provenance !== "INVOICE PAYMENT"?
-          employeesControllers.find(employee=>employee?.User?.id === text)?.User?.name?.toUpperCase():
+          highlightText(employees.find(employee=>employee?.User?.id === text)?.User?.name?.toUpperCase()):
+          "N/A"
+          }</>
+      )
+    },
+    {
+      title: 'Caissier',
+      dataIndex: 'employee_controller',
+      key: '4',
+      width:  "200px",
+      render:(text, record)=>(
+        <>{
+          record.provenance !== "INVOICE PAYMENT"?
+          highlightText(employees.find(employee=>employee?.User?.id === text)?.User?.name?.toUpperCase()):
           "N/A"
           }</>
       )
@@ -330,30 +366,32 @@ function RecettePage() {
     {
       title: 'Provenance',
       dataIndex: 'provenance',
-      key: 'provenance',
+      key: '5',
       width:  "200px",
+      render: (text) => highlightText(text),
     },
     {
       title: 'Site',
       dataIndex: 'site',
-      key: 'site',
+      key: '6',
       width:  "200px",
       render: (text, record)=>(
-        <>{entitySites.find(site=>site.id === text)?.name}</>
+        <>{highlightText(entitySites.find(site=>site.id === text)?.name)}</>
       )
     },
     {
       title: 'Montant Total',
       dataIndex: 'total_amount',
-      key: 'total_amount',
+      key: '7',
       width:  "200px",
       render:(text, record)=>(
-        <b>{numberWithCommas(record.total_amount)+" XAF"}</b>
+        <b>{highlightText(numberWithCommas(record.total_amount))+" XAF"}</b>
       )
     },
     {
       title: 'Status',
       width:  "200px",
+      key: '8',	
       render:(text, record)=>(
         record.statut !== "RECEIVED" ?
           <div className='flex space-x-2'>
@@ -367,12 +405,12 @@ function RecettePage() {
     {
       title: 'Shift',
       dataIndex: 'shift',
-      key: 'shift',
+      key: '9',
       width:  "200px",
       render:(text, record)=>(
         <>
         {
-          record.provenance !== "INVOICE PAYMENT"? text : "N/A"
+          record.provenance !== "INVOICE PAYMENT"? highlightText(text) : "N/A"
         }
         </>
       )
@@ -382,6 +420,8 @@ function RecettePage() {
       title: 'Actions',
       data:"id",
       width:  "200px",
+      fixed: 'right',
+      key: "10",
       render: (text, record)=>(
         <div className='flex items-center space-x-2'>
           {
@@ -416,8 +456,11 @@ function RecettePage() {
     const url = import.meta.env.VITE_DAF_API+"/recipesheet/?entity_id="+entityValue;
     try {
       const response = await fetchData(url);
-      setFilteredData(response?.results);
-      setRecetteDataSrc(response?.results);
+      const formatedData = response?.results?.map(obj => {
+        return { ...obj, key: obj.id };
+      });
+      setFilteredData(formatedData);
+      setRecetteDataSrc(formatedData);
       handleGetRecipeSummary();
     } catch (error) {
       console.error("Error creating recipe:", error);
@@ -463,16 +506,78 @@ function RecettePage() {
     handleGetallProducts();
     handleGetRecipeSummary();
     handleGetEntitySite();
+    handleGetEmployees();
   }, []);
 
-  const hasSelected = selectedRowKeys.length > 0;
+  
   
   return (
     <LoginLayout classNam="space-y-3">
         <h3 className='py-2 bold'>FICHE DE RECETTE</h3>
-
+        <div className='flex w-ful p-3 space-x-2'>
+          <div className='flex flex-col'>
+            <label htmlFor="" className='text-xs'>Debut :</label>
+            <input type="date" className='text-xs'/>
+          </div>
+          <div className='flex flex-col'>
+            <label htmlFor="" className='text-xs'>Fin :</label>
+            <input type="date" className='text-xs'/>
+          </div>
+          <div className='flex flex-col'>
+            <label htmlFor="" className='text-xs'>Initiateur :</label>
+            <select name="" id="" className='text-xs'>
+              {
+                employees?.map(employee =><option key={employee?.User?.id} value={employee?.User?.id}>{employee?.User?.name}</option>)
+              }
+            </select>
+          </div>
+          <div className='flex flex-col'>
+            <label htmlFor="" className='text-xs'>Controlleur :</label>
+            <select name="" id="" className='text-xs'>
+              {
+                employees?.map(employee =><option key={employee?.User?.id} value={employee?.User?.id}>{employee?.User?.name}</option>)
+              }
+            </select>
+          </div>
+          <div className='flex flex-col'>
+            <label htmlFor="" className='text-xs'>Caissier :</label>
+            <select name="" id="" className='text-xs'>
+              {
+                employees.map(employee =><option key={employee?.User?.id} value={employee?.User?.id}>{employee?.User?.name}</option>)
+              }
+            </select>
+          </div>
+          <div className='flex flex-col'>
+            <label htmlFor="" className='text-xs'>Provenance :</label>
+            <select name="" id="" className='text-xs'>
+              {
+                employees.map(employee =><option key={employee?.User?.id} value={employee?.User?.id}>{employee?.User?.name}</option>)
+              }
+            </select>
+          </div>
+          <div className='flex flex-col'>
+            <label htmlFor="" className='text-xs'>Site :</label>
+            <select name="" id="" className='text-xs'>
+              {
+                entitySites.map(site =><option key={site?.id} value={site?.id}>{site?.name}</option>)
+              }
+            </select>
+          </div>
+          <div className='flex flex-col'>
+            <label htmlFor="" className='text-xs'>Montant :</label>
+            <div className='flex items-end space-x-2'>
+              <select className='text-xs'>
+                <option value="lt">Inferieur</option>
+                <option value="eq">Egale</option>
+                <option value="gt">Superieur</option>
+              </select>
+              <input type="number" placeholder='Montant'  className='text-xs'/>
+            </div>
+          </div>
+        </div>
         <PageHeader >
           <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une recette' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/>
+          
           <div className='w-full md:w-auto'>
             <VerifyPermissions 
               expected={["gueritte_chef", "accountant"]}
@@ -485,6 +590,16 @@ function RecettePage() {
                 onClick={handleToggleOpenForm}
               >Initier une opération</button>
             </VerifyPermissions>
+            {
+              selectedRowKeys.length > 0 &&
+              <div className='flex items-center space-x-2'>
+                <p className='text-xs'><b>{selectedRowKeys.length}</b> Fiches selectionés</p>
+                <button className='text-xs bg-green-500 text-white p-2 rounded-lg shadow-md' onClick={()=>{
+                  setOpenValidationModal(true);
+                  setIsMultipleSelect(true);
+                  }}>Validation</button>
+              </div>
+            }
           </div>
         </PageHeader>
 
@@ -495,10 +610,12 @@ function RecettePage() {
           <Table 
             footer={() => <div className='flex'>
               <p className='text-sm'>
-                {/* Total : <b className='bg-yellow-300 p-2 rounded-lg'>{numberWithCommas(sumMontants(recipeDataSrc))} XAF</b> */}
                 Total : <b className='bg-yellow-300 p-2 rounded-lg'>{numberWithCommas(recipeTotal)} XAF</b>
               </p>
             </div>}
+            rowSelection={{
+              ...rowSelection
+            }}
             dataSource={recipeDataSrc}
             columns={recetteCol}
             scroll={{
@@ -527,12 +644,14 @@ function RecettePage() {
           centered={true}
           open={openValidationModal}
           footer={<></>}
+          afterClose={()=>setIsMultipleSelect(false)}
           onOk={handleSubmitValidationModal}
           onCancel={handleCloseValidationModal}
         >
           <ValidationRecette 
             onSubmit={handleSubmitValidationModal}
-            recipeId={selectedRecipe}
+            recipeId={ isMultipleSelect ? selectedRowKeys : selectedRecipe}
+            isMultipleSelect={isMultipleSelect}
           />
         </Modal>
         
@@ -731,9 +850,6 @@ function RecettePage() {
                     <Table 
                       columns={operationCol}
                       dataSource={operationDataSrc}
-                      rowSelection={{
-                        ...rowSelection
-                      }}
                       footer={()=>(
                         <div className='flex justify-between items-center'>
                           <p className='text-xs'><b>Total encaissé (XAF):</b></p>
