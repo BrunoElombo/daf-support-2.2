@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useContext } from 'react'
 import LoginLayout from '../../Layout/LoginLayout'
 import PageHeader from '../../components/PageHeader/PageHeader'
-import { Table, Modal, Drawer, Space, notification, Form, Input } from 'antd'
-import { CheckIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, EllipsisHorizontalIcon, EyeIcon, PencilIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { Table, Modal, Drawer, Space, notification, Form, Input, Popover } from 'antd'
+import { CheckIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, EllipsisHorizontalIcon, EyeIcon, FunnelIcon, PencilIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import Collapsible from '../../components/Collapsible/Collapsible';
 import DetailCard from '../../components/DetailCard/DetailCard';
 import useFetch from '../../hooks/useFetch'
@@ -10,6 +11,11 @@ import ValidationRecette from './ValidationRecette';
 import CreateRecetteForm from './CreateRecetteForm';
 import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
 import { AUTHCONTEXT } from '../../context/AuthProvider';
+import RecetteSheetFilter from './RecetteSheetFilter';
+import { saveAs } from 'file-saver';
+import * as Excel from 'exceljs';
+// import * as XLSX from 'xlsx';
+// import $ from 'jquery';
 
 
 function RecettePage() {
@@ -79,6 +85,7 @@ function RecettePage() {
   const  [recipeData, setRecipeData] = useState([]);
   const  [operationDataSrc, setOperationDataSrc] = useState([]);
   const  [employees, setEmployees] = useState([]);
+  const [departments, setDepartements] = useState([]);
   const generateRefNumber = (table) => {
     const existingNumbers = table.map(expense => parseInt(expense.ref_number.split('/')[0]));
     const nextNumber = existingNumbers.length === 0 ? 1001 : Math.max(...existingNumbers) + 1;
@@ -93,8 +100,19 @@ function RecettePage() {
       console.log("Search value :",searchValue);
       const search = filteredData?.filter((item) => {
         const searchTextLower = searchValue.toLowerCase();
-        return Object.values(item)?.some((fieldValue) => fieldValue?.toString().toLowerCase().includes(searchTextLower)
-      );
+        // return Object.values(item)?.some((fieldValue) => fieldValue?.toString().toLowerCase().includes(searchTextLower)
+      // );
+      return(
+        item?.reference_number.toString().toLowerCase().includes(searchTextLower) ||
+        item?.recipe_type.toString().toLowerCase().includes(searchTextLower) ||
+        item?.total_amount.toString().toLowerCase().includes(searchTextLower) ||
+        item?.provenance.toString().toLowerCase().includes(searchTextLower) ||
+        item?.shift.toString().toLowerCase().includes(searchTextLower) ||
+        item?.payment_method.toString().toLowerCase().includes(searchTextLower)||
+        employees?.find(employee => employee?.User.id == item?.employee_initiator)?.User?.name?.toLowerCase().includes(searchTextLower) ||
+        employees?.find(employee => employee?.User.id == item?.employee_controller)?.User?.name?.toLowerCase().includes(searchTextLower) ||
+        entitySites?.find(site => site?.id == item?.site)?.name.toLowerCase().includes(searchTextLower) 
+      )
     }
   )
       console.log("Search result :",search);
@@ -108,6 +126,7 @@ function RecettePage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredData, setFilteredData] = useState([]);
+  const [openFilter, setOpenFilter] = useState(false)
 
   const [employeesControllers, setEmployeesControllers] = useState([])
   const [sites, setSites] = useState([])
@@ -148,6 +167,8 @@ function RecettePage() {
   const [qty, setQty] = useState('');
   const [totalPrice, setTotalPrice] = useState('');
   const [operationTotalPrice, setOperationTotalPrice] = useState('');
+
+
   const [name, setName] = useState("");
 
   const [addOperation, setAddOperation] = useState(false);
@@ -156,6 +177,7 @@ function RecettePage() {
   const [entitiesBank, setEntitiesBank] = useState("");
   const [isUpdateMode, setIsUpdateMode] = useState(false);
   const [match, setMatch] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleGetBank= async()=>{
     const banks = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity_banks");
@@ -238,14 +260,23 @@ function RecettePage() {
         let response = await fetchData(url);
         setProducts(response);
     } catch (error) {
-        alert("Echedc de chargement des produits")
+        alert("Echec de chargement des produits")
+    }
+  }
+
+  const handleGetallDepartments = async ()=>{
+    try {
+        const url = import.meta.env.VITE_USER_API+"/departments";
+        let response = await fetchData(url);
+        setDepartements(response);
+    } catch (error) {
+        alert("Echec de chargement des departments")
     }
   }
 
   const handleGetEntitySite=async()=>{
     let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
     if(!requestError){
-      console.log(response)
       setEntitySites(response);
     }
   }
@@ -317,15 +348,6 @@ function RecettePage() {
       dataIndex: 'reference_number',
       key: '1',
       width: "200px",
-      // render: (text) => (
-      //   searchValue == "" ? <span>{text}</span> :
-      //   <span>
-      //     {text.replace(
-      //       new RegExp(searchValue, 'gi'),
-      //       (match) => <span style={{ backgroundColor: 'yellow' }}>{match}</span>
-      //     )}
-      //   </span>
-      // ),
       render: (text) => highlightText(text)
     },
     {
@@ -341,19 +363,6 @@ function RecettePage() {
       title: 'Controleur',
       dataIndex: 'employee_controller',
       key: '3',
-      width:  "200px",
-      render:(text, record)=>(
-        <>{
-          record.provenance !== "INVOICE PAYMENT"?
-          highlightText(employees.find(employee=>employee?.User?.id === text)?.User?.name?.toUpperCase()):
-          "N/A"
-          }</>
-      )
-    },
-    {
-      title: 'Caissier',
-      dataIndex: 'employee_controller',
-      key: '4',
       width:  "200px",
       render:(text, record)=>(
         <>{
@@ -384,9 +393,10 @@ function RecettePage() {
       dataIndex: 'total_amount',
       key: '7',
       width:  "200px",
-      render:(text, record)=>(
-        <b>{highlightText(numberWithCommas(record.total_amount))+" XAF"}</b>
-      )
+      render:(text, record)=>{
+        let formatedAmount = numberWithCommas(text)
+        return <b>{formatedAmount+" XAF"}</b>
+      }
     },
     {
       title: 'Status',
@@ -507,78 +517,167 @@ function RecettePage() {
     handleGetRecipeSummary();
     handleGetEntitySite();
     handleGetEmployees();
+    handleGetallDepartments();
   }, []);
 
+  const formatExportData=(data)=>{
+    return data?.map(item=>{
+      const {id, department, employee_initiator, employee_controller, date_valid_controller, date_valid_employee_checkout, site, entity, time_created, is_active, operation_types, ...rest} = item
+
+      return {
+        ...rest,
+        department: departments.find(dept=>dept?.dept?.id === department)?.displayName,
+        employee_initiator: employees?.find(employee=>employee?.User.id === employee_initiator)?.User.name,
+        employee_controller: employees?.find(employee=>employee?.User.id === employee_controller)?.User.name,
+        date_valid_controller: date_valid_controller?.split("T")[0],
+        date_valid_employee_checkout: date_valid_employee_checkout?.split("T")[0],
+        time_created: time_created?.split("T")[0],
+        site: entitySites?.find(item=>item?.id === site)?.name,
+      }
+    })
+  }
+
+  const handleDataExport = async ()=>{
+    const workbook = new Excel.Workbook();
+    const worksheet = workbook.addWorksheet('Recipes');
+
+    // Add headers
+    worksheet.addRow([
+      'Num Ref', 'Type Recette',
+       'Montant Total', 'Provenance',
+       'Site', 'Entites', 
+       'Description', 'Shift', 
+       'NIU client', 'Numero transaction',
+      'Bank account', 'Initiateur', 'Controlleur', 'Caissier',
+      'Status', 'Method de paiment','Department', 
+      'Date validation controlleur','Date validation caissier', 'Date de création']);
+
+    
+    try {
+      // if(recipeDataSrc.length < 1) {
+      //   setIsLoading(true);
+      //   let url = `${import.meta.env.VITE_DAF_API}/recipesheet/multi_criteria_search/`;
+      //   let headersList = {
+      //       "Accept": "*/*",
+      //       "Content-Type": "application/json"
+      //   }
+      //   let data = {
+      //     "entity_id":entityValue
+      //   };
+      //   $.ajax({
+      //       method: "GET",
+      //       url: url,
+      //       data: data,
+      //       headers: {
+      //           'Authorization':'Bearer '+localStorage.getItem('token')
+      //       },
+      //       contentType: "application/json",
+      //     })
+      //   .done(async function( data ) {
+      //       setIsLoading(false);
+      //       // Add data
+      //     const formated = formatExportData(data)
+      //     formated.forEach(async (recipe) => {
+      //       worksheet.addRow([
+      //         recipe.reference_number, 
+      //         recipe.recipe_type, 
+      //         recipe.total_amount, 
+      //         recipe.provenance,
+      //         recipe.description,
+      //         recipe.shift,
+      //         recipe.uin_client,
+      //         recipe.transaction_number,
+      //         recipe.bank_account_number,
+      //         recipe.employee_initiator,
+      //         recipe.employee_controller,
+      //         recipe.employee_checkout,
+      //         recipe.statut,
+      //         recipe.payment_method,
+      //         recipe.department,
+      //         recipe.date_valid_controller,
+      //         recipe.date_valid_employee_checkout,
+      //         recipe.time_created,
+      //       ]);
+      //     });
+
+      //     const buffer = await workbook.xlsx.writeBuffer();
+      //     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+      //     saveAs(blob, 'recipes.xlsx');
+      //   });
+      // }
+      // else{
+      //   // let formated = formatExportData(recipeDataSrc);
+      //   // console.log(formated)
+      //   // const worksheet = XLSX.utils.json_to_sheet(formated);
+      //   // const workbook = XLSX.utils.book_new();
+      //   // XLSX.utils.book_append_sheet(workbook, worksheet, 'Recipes');
+      //   // const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      //   // const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+        
+      //   // console.log(blob);
+      //   // saveAs(blob, 'recipes_'+new Date().getTime()+'.xlsx');
+      // }
+      // Add data
+      const formated = formatExportData(recipeDataSrc);
+      formated.forEach((recipe) => {
+        worksheet.addRow([
+          recipe.reference_number, 
+          recipe.recipe_type, 
+          recipe.total_amount, 
+          recipe.provenance,
+          recipe.description,
+          recipe.shift,
+          recipe.uin_client,
+          recipe.transaction_number,
+          recipe.bank_account_number,
+          recipe.employee_initiator,
+          recipe.employee_controller,
+          recipe.employee_checkout,
+          recipe.statut,
+          recipe.payment_method,
+          recipe.department,
+          recipe.date_valid_controller,
+          recipe.date_valid_employee_checkout,
+          recipe.time_created,
+        ]);
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+      saveAs(blob, 'Recettes_'+new Date().getTime()+'.xlsx');
+
+      } catch (error) {
+          console.log("Error :", error);
+          setIsLoading(false);
+      }
+  }
   
   
   return (
     <LoginLayout classNam="space-y-3">
         <h3 className='py-2 bold'>FICHE DE RECETTE</h3>
-        <div className='flex w-ful p-3 space-x-2'>
-          <div className='flex flex-col'>
-            <label htmlFor="" className='text-xs'>Debut :</label>
-            <input type="date" className='text-xs'/>
-          </div>
-          <div className='flex flex-col'>
-            <label htmlFor="" className='text-xs'>Fin :</label>
-            <input type="date" className='text-xs'/>
-          </div>
-          <div className='flex flex-col'>
-            <label htmlFor="" className='text-xs'>Initiateur :</label>
-            <select name="" id="" className='text-xs'>
-              {
-                employees?.map(employee =><option key={employee?.User?.id} value={employee?.User?.id}>{employee?.User?.name}</option>)
-              }
-            </select>
-          </div>
-          <div className='flex flex-col'>
-            <label htmlFor="" className='text-xs'>Controlleur :</label>
-            <select name="" id="" className='text-xs'>
-              {
-                employees?.map(employee =><option key={employee?.User?.id} value={employee?.User?.id}>{employee?.User?.name}</option>)
-              }
-            </select>
-          </div>
-          <div className='flex flex-col'>
-            <label htmlFor="" className='text-xs'>Caissier :</label>
-            <select name="" id="" className='text-xs'>
-              {
-                employees.map(employee =><option key={employee?.User?.id} value={employee?.User?.id}>{employee?.User?.name}</option>)
-              }
-            </select>
-          </div>
-          <div className='flex flex-col'>
-            <label htmlFor="" className='text-xs'>Provenance :</label>
-            <select name="" id="" className='text-xs'>
-              {
-                employees.map(employee =><option key={employee?.User?.id} value={employee?.User?.id}>{employee?.User?.name}</option>)
-              }
-            </select>
-          </div>
-          <div className='flex flex-col'>
-            <label htmlFor="" className='text-xs'>Site :</label>
-            <select name="" id="" className='text-xs'>
-              {
-                entitySites.map(site =><option key={site?.id} value={site?.id}>{site?.name}</option>)
-              }
-            </select>
-          </div>
-          <div className='flex flex-col'>
-            <label htmlFor="" className='text-xs'>Montant :</label>
-            <div className='flex items-end space-x-2'>
-              <select className='text-xs'>
-                <option value="lt">Inferieur</option>
-                <option value="eq">Egale</option>
-                <option value="gt">Superieur</option>
-              </select>
-              <input type="number" placeholder='Montant'  className='text-xs'/>
-            </div>
-          </div>
-        </div>
         <PageHeader >
-          <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une recette' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/>
-          
-          <div className='w-full md:w-auto'>
+          <div className='flex items-center space-x-2'>
+            <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une recette' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/>
+            <Popover content={<RecetteSheetFilter setRecetteDataSrc={setRecetteDataSrc}/>} title="Filtre" trigger="click">
+              <button className='w-auto text-sm text-white btn bg-green-500 p-2 rounded-lg shadow-sm flex items-center'>
+                <FunnelIcon className='text-white w-4 h-4'/>
+                Filtrer
+              </button>
+            </Popover>
+          </div>
+            {/* {
+              openFilter &&
+              <div >
+                  <RecetteSheetFilter />
+              </div>
+            } */}
+          <div className='w-full md:w-auto space-x-2'>
+            <button className={`${isLoading?"bg-green-300 cursor-not-allowed":"bg-green-500"}  btn p-2 text-white rounded-lg shadow-sm`} onClick={handleDataExport}>
+              {
+                isLoading ?"En cours...":"Export to excel"
+              }
+            </button>
             <VerifyPermissions 
               expected={["gueritte_chef", "accountant"]}
               // received={userInfo?.role.name || userInfo?.Function.name}
@@ -620,7 +719,7 @@ function RecettePage() {
             columns={recetteCol}
             scroll={{
               x: 500,
-              y: "50vh"
+              y: "40vh"
             }}
           />
         </div>

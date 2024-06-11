@@ -180,6 +180,8 @@ function CreateRecetteForm(
     const [accountNumbers, setAccountNumbers] = useState([]);
     const [destinationAccount, setDestinationAccount ] = useState("");
 
+    const [operators, setOperators] = useState("MTN");
+    const [operatorNumber, setOperatorNumber] = useState();
     const handleExternalEntity = async()=>{
         try {
             const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
@@ -423,7 +425,37 @@ function CreateRecetteForm(
                             <option value="PAIMENT MOBILE">Paiment mobile</option>
                         </select>
                     </div>
+                    {
+                        paymentMethod==="PAIMENT MOBILE" &&
+                        <div className='w-full flex space-x-2'>
+                            <div className='w-1/2 flex flex-col'>
+                                <label className='text-xs'>Opérateur :</label>
+                                <select value={operators} onChange={e=>setOperators(e.target.value)}>
+                                    {
+                                        <>
+                                            <option value="MTN">MTN</option>
+                                            <option value="ORANGE">Orange</option>
+                                        </>
+                                    }
+                                </select>
+                            </div>
+                            <div className='w-1/2 flex flex-col'>
+                                <label className='text-xs'>Compte marchand :</label>
+                                <select >
+                                    {
+                                        operators === "MTN" ?
+                                        <>
+                                            <option value="67477778596">67477778596</option>
+                                        </>:
+                                        <>
+                                            <option value="69536698">69536698</option>
+                                        </>
+                                    }
+                                </select>
+                            </div>
+                        </div>
 
+                    }
                     {
                         (paymentMethod === "CHEQUE" || paymentMethod === "CARTE" || paymentMethod === "PAIMENT MOBILE") &&
                         <input type="text" value={transactionNumber} onChange={e=>setTransactionNumber(e.target.value)} placeholder='Numéro de transaction'/>

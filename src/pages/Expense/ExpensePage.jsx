@@ -2,11 +2,11 @@ import React, { useContext, useEffect, useRef, useState } from 'react'
 import LoginLayout from '../../Layout/LoginLayout'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import { InboxOutlined } from '@ant-design/icons';
-import { Table, Modal, Upload, Drawer, Space, Select, notification } from 'antd';
+import { Table, Modal, Upload, Drawer, Space, Select, notification, Popover } from 'antd';
 import { v4 as uuidV4 } from 'uuid';
 import useFetch from '../../hooks/useFetch';
 const { Dragger } = Upload;
-import { ChevronDoubleLeftIcon, ChevronDoubleRightIcon, TrashIcon, EllipsisHorizontalIcon, PaperClipIcon, PlusIcon, EyeIcon, PencilIcon, CheckIcon, XMarkIcon, BanknotesIcon, CalculatorIcon, ArrowUpRightIcon, ArrowTopRightOnSquareIcon  } from '@heroicons/react/24/outline';
+import { FunnelIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, TrashIcon, EllipsisHorizontalIcon, PaperClipIcon, PlusIcon, EyeIcon, PencilIcon, CheckIcon, XMarkIcon, BanknotesIcon, CalculatorIcon, ArrowUpRightIcon, ArrowTopRightOnSquareIcon  } from '@heroicons/react/24/outline';
 import { AUTHCONTEXT } from '../../context/AuthProvider';
 import Collapsible from '../../components/Collapsible/Collapsible';
 import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
@@ -37,6 +37,7 @@ function ExpensePage() {
   const {requestLoading, fetchData, postData, requestError, updateData} = useFetch();
   const [selectionType, setSelectionType] = useState('checkbox');
   const  [expenseDataSrc, setExpenseDataSrc] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
   
 
   const [isUpdateMode, setIsUpdateMode] = useState(false);
@@ -50,6 +51,7 @@ function ExpensePage() {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expenseTotal, setExpenseTotal] = useState(0);
+  const [openValidationModal, setOpenValidationModal] = useState(false);
 
 
   const [site, setSite] = useState('');
@@ -111,6 +113,19 @@ function ExpensePage() {
   const recipientRef= useRef();
 
   const [selectedExpense, setSelectedExpense] = useState({})
+  const [isMultipleSelect, setIsMultipleSelect] = useState(false);
+  const [multipleAction, setMultipleAction] = useState("VALIDER");
+  const rowSelection = {
+    onChange: (selectedRowKeys, selectedRows) => {
+      setSelectedRowKeys(selectedRowKeys);
+    },
+    onSelect: (record, selected, selectedRows) => {
+      // console.log(record, selected, selectedRows);
+    },
+    onSelectAll: (selected, selectedRows, changeRows) => {
+      // console.log(selected, selectedRows, changeRows);
+    },
+  };
 
   // Validation fields
   const [openValidateModal, setOpenValidateModal] = useState(false);
@@ -156,10 +171,22 @@ function ExpensePage() {
     e.preventDefault();
     try {
       let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
-      let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/?entity_id="+entityId
-      const data = 
+      let url = 
+        isMultipleSelect  ? 
+        import.meta.env.VITE_DAF_API+"/expensesheet/bulk_validation/?entity_id="+entityId
+        :
+        import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/?entity_id="+entityId
+      
+      const data = isMultipleSelect  ? 
       {
-        is_urgent:typeValidation,
+        is_urgent:false,
+        "pk_list": selectedRowKeys,
+        "description": validationDescription,
+        transaction_number: ""
+      }:
+      {
+        // is_urgent:typeValidation,
+        is_urgent:false,
         description:validationDescription,
         transaction_number: transactionNumber,
         employee_initiator: beneficiaire
@@ -186,8 +213,21 @@ function ExpensePage() {
   const handleRejectExpenses = async (e)=>{
     e.preventDefault();
     let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
-    let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/rejection/?entity_id="+entityId
-    const data={
+    let url = 
+    isMultipleSelect ?
+    import.meta.env.VITE_DAF_API+"/expensesheet/bulk_rejection/?entity_id="+entityId
+    :
+    import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/rejection/?entity_id="+entityId
+    const data=
+    isMultipleSelect ?
+    {
+      is_urgent:true,
+      description:rejectionDescription,
+      pk_list: selectedRowKeys,
+      employee_initiator: JSON.parse(localStorage.getItem("user"))?.id
+    }
+    :
+    {
       is_urgent:true,
       description:rejectionDescription,
       // payment_method: "ESPECE",
@@ -195,19 +235,19 @@ function ExpensePage() {
     }
     try {
       const response = await updateData(url, data, true);
+      if(!requestError){
+        setRejectionDescription("");
+        setOpenRejectModal(false);
+  
+        handleGellAllExpenses();
+        openNotification("SUCCESS", "Fiche de dépense rejeté");
+        return;
+      }
+      openNotification("ECHEC", "Echec du rejet de la fiche");
       
     } catch (error) {
-      
+      openNotification("ECHEC", "Echec du rejet de la fiche"); 
     }
-    if(!requestError){
-      setRejectionDescription("");
-      setOpenRejectModal(false);
-
-      handleGellAllExpenses();
-      openNotification("SUCCESS", "Fiche de dépense rejeté");
-      return;
-    }
-    openNotification("ECHEC", "Echec du rejet de la fiche");
 
   }
 
@@ -239,6 +279,7 @@ function ExpensePage() {
       dataIndex: 'reference_number',
       key: 'reference_number',
       width:  "200px",
+      render:(text)=>highlightText(text)
     },
     {
       title: 'Site',
@@ -247,28 +288,36 @@ function ExpensePage() {
       width:  "200px",
       render: (text, record)=>{
         const site = entitySites?.find(site=>site.id === record.site)
-        return <>{site?.name != undefined? site?.name :text }</>
+        return <>{site?.name != undefined? highlightText(site?.name) :highlightText(text) }</>
       }
+    },
+    {
+      title: 'Initiateur',
+      dataIndex: 'employee_initiator',
+      key: 'employee_initiator',
+      width:  "200px",
+      render: (text, record)=> beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase() ?  highlightText(beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase()) : highlightText(externalEntities.find(externalEntity=> externalEntity?.external_entity.id === text)?.external_entity.name.toUpperCase())
     },
     {
       title: 'Beneficiaire',
       dataIndex: 'employee_beneficiary',
       key: 'employee_beneficiary',
       width:  "200px",
-      render: (text, record)=> beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase() ?  beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase() : externalEntities.find(externalEntity=> externalEntity?.external_entity.id === text)?.external_entity.name.toUpperCase()
+      render: (text, record)=> beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase() ?  highlightText(beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase()) : highlightText(externalEntities.find(externalEntity=> externalEntity?.external_entity.id === text)?.external_entity.name.toUpperCase())
     },
     {
       title: 'Département',
       dataIndex: 'department',
       key: 'department',
       width:  "200px",
-      render: (text, record)=> departments.find(department=> department?.id === text)?.name
+      render: (text, record)=> highlightText(departments.find(department=> department?.id === text)?.displayName)
     },
     {
       title: 'Mode de paiement',
       dataIndex: 'payment_method',
       key: 'payment_method',
       width:  "200px",
+      render: (text, record)=> highlightText(text)
       },
     {
       title: 'Montant',
@@ -326,6 +375,7 @@ function ExpensePage() {
     {
       title: 'Actions',
       width:  "200px",
+      fixed: "right",
       render: (text, record)=>(
         // <EllipsisHorizontalIcon className='text-gray-500 h-6 w-6 cursor-pointer'/>
         // <button className='btn btn-primary bg-green-500 text-white text-sm'>Valider</button>
@@ -398,7 +448,11 @@ function ExpensePage() {
     let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
     try {
       const response = await fetchData(import.meta.env.VITE_DAF_API+"/expensesheet/?entity_id="+entityId);
-      setExpenseDataSrc(response.results);
+      const formatedData = response?.results?.map(obj => {
+        return { ...obj, key: obj.id };
+      });
+      setExpenseDataSrc(formatedData);
+      setFilteredData(formatedData);
     } catch (error) {
       console.error(error.message);
     }
@@ -539,8 +593,8 @@ function ExpensePage() {
     const url = import.meta.env.VITE_DAF_API+"/expensesheet/?entity_id="+entityId;
     try {
       const response = await fetch(url, requestOptions)
-      handleGellAllExpenses();
       if(response.status === 201) {
+        handleGellAllExpenses();
         handleClearForm();
         setIsOpen(false);
         openNotification("SUCCESS", "Dépense initier avec success.");
@@ -551,10 +605,50 @@ function ExpensePage() {
     } catch (error) {
       console.log(error);
       openNotification("ECHEC", "Une erreur s'est produite.");
-    }finally{
-      setLoading(false);
     }
+    // finally{
+    //   setLoading(false);
+    // }
   }
+
+  const [searchValue, setSearchValue] = useState("");
+  useEffect(()=>{
+    if(searchValue.length > 0){
+      const search = filteredData?.filter((item) => {
+        const searchTextLower = searchValue.toLowerCase();
+        // return Object.values(item)?.some((fieldValue) => fieldValue?.toString().toLowerCase().includes(searchTextLower)
+      // );
+      return(
+        item?.reference_number?.toString().toLowerCase().includes(searchTextLower) ||
+        item?.statut?.toString().toLowerCase().includes(searchTextLower) ||
+        item?.payment_method?.toString().toLowerCase().includes(searchTextLower) ||
+        item?.amount?.toString().toLowerCase().includes(searchTextLower) ||
+        item?.transaction_number?.toString().toLowerCase().includes(searchTextLower) ||
+        item?.uin_beneficiary?.toString().toLowerCase().includes(searchTextLower) ||
+        beneficiaires?.find(employee => employee?.User.id == item?.employee_initiator)?.User?.name?.toLowerCase().includes(searchTextLower) ||
+        (beneficiaires?.find(employee => employee?.User.id == item?.employee_controller)?.User?.name?.toLowerCase().includes(searchTextLower) ? 
+        beneficiaires?.find(employee => employee?.User.id == item?.employee_controller)?.User?.name?.toLowerCase().includes(searchTextLower)
+        :externalEntities.find(externalEntity=> externalEntity?.external_entity.id === item?.employee_controller)?.external_entity.name.toUpperCase()) ||
+        entitySites?.find(site => site?.id == item?.site)?.name.toLowerCase().includes(searchTextLower) 
+      )
+    }
+  )
+      setExpenseDataSrc(search)
+    }else{
+      setExpenseDataSrc(filteredData);
+    }
+  }, [searchValue]);
+  const highlightText = (text) => {
+    if (!searchValue) return text;
+
+    const regex = new RegExp(searchValue, 'gi');
+    return <span dangerouslySetInnerHTML={{ __html: text.replace(
+      new RegExp(searchValue, 'gi'),
+      (match) => `<mark style="background-color: yellow;">${match}</mark>`
+    )}} />
+  };
+
+
 
   useEffect(()=>{
     handleGellAllExpenses();
@@ -572,7 +666,38 @@ function ExpensePage() {
         <LoginLayout classNam="space-y-3">
             <h3 className='py-2 bold'>FICHE DE DÉPENSE</h3>
             <PageHeader>
-              <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une operation'/>
+              {/* <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une operation' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/> */}
+              <div className='flex items-center space-x-2'>
+              <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une recette' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/>
+              <Popover content={<></>} title="Filtre" trigger="click">
+                <button className='w-auto text-sm text-white btn bg-green-500 p-2 rounded-lg shadow-sm flex items-center'>
+                  <FunnelIcon className='text-white w-4 h-4'/>
+                  Filtrer
+                </button>
+              </Popover>
+            </div>
+            <div className='w-full md:w-auto space-x-2 flex '>
+              {
+                selectedRowKeys.length > 0 &&
+                <>
+                  <div className='flex items-center space-x-2'>
+                    <p className='text-xs'><b>{selectedRowKeys.length}</b> Fiches selectionés</p>
+                    <button className='text-xs bg-green-500 text-white p-2 rounded-lg shadow-md' onClick={()=>{
+                      {
+                        multipleAction === "VALIDER" ?
+                          setOpenValidateModal(true)
+                        :
+                          setOpenRejectModal(true)
+                      };
+                      setIsMultipleSelect(true);
+                      }}>Action</button>
+                  </div>
+                  <select className='text-xs' value={multipleAction} onChange={e=>setMultipleAction(e.target.value)}>
+                    <option value="VALIDER">Valider</option>
+                    <option value="REJETER">Rejeter</option>
+                  </select>
+                </>
+              }
               <VerifyPermissions
                 expected={["coordinator","chief_financial_officer","operations_manager", "paymaster_general", "accountant"]}
                 roles={userInfo?.role?.name}
@@ -583,6 +708,7 @@ function ExpensePage() {
                   onClick={handleToggleOpenForm}
                 >Initier une dépense</button>
               </VerifyPermissions>
+            </div>
             </PageHeader>
             <div className='border-[1px] border-gray-100 w-full p-3 rounded-md mt-3 overflow-x-auto'>
               <Table
@@ -790,7 +916,7 @@ function ExpensePage() {
                   roles={userInfo?.role?.name}
                   functions={userInfo?.Function?.name}
                 >
-                  { selectedExpense?.statut === "VALIDATION DEPARTMENT MANAGER" &&
+                  {/* { selectedExpense?.statut === "VALIDATION DEPARTMENT MANAGER" &&
                     <div className='flex flex-col w-full'>
                       <label htmlFor="" className='text-xs'>Type de validation</label>
                       <select name="" id="" value={typeValidation} onChange={e=>setTypeValidation(e.target.value)}>
@@ -798,7 +924,7 @@ function ExpensePage() {
                         <option value={false}>Pas urgent</option>
                       </select>
                     </div>
-                  }
+                  } */}
                 </VerifyPermissions>
                 {
                   selectedExpense?.payment_method !== "ESPECES" &&
@@ -831,7 +957,7 @@ function ExpensePage() {
             </Modal>
 
             {/* Formulaire du TPG */}
-            {/* <Modal
+            <Modal
               title={<p className='flex items-center'><CalculatorIcon className='text-gray-500 h-6 w-6'/> Validation TPG</p>}
               // open={true}
               open={openTPGValidation}
@@ -848,7 +974,7 @@ function ExpensePage() {
                   </button>
                 </div>
               </form>
-            </Modal> */}
+            </Modal>
 
             {/* Observation du caissier */}
             <Modal

@@ -167,28 +167,22 @@ function Dashboard() {
         </div> */}
         <div className='h-1/4 flex flex-col md:flex-row items-center justify-evenly space-y-2 md:space-x-2'>
 
-          <div className='bg-gradient-to-r from-green-500 to-green-400 rounded-lg shadow-lg p-4 w-full md:w-1/4 text-white'>
+          <div className='bg-gradient-to-r from-green-500 to-green-400 rounded-lg shadow-lg p-4 w-full md:w-1/3 text-white'>
             <h3>Recettes</h3>
             <p className='text-sm'>
             Total : <b> {numberWithCommas(sumMontants(recipeData))} XAF</b>
             </p>
           </div>
-          <div className='bg-gradient-to-r from-red-500 to-red-400 rounded-lg shadow-lg p-4 w-full md:w-1/4 text-white'>
+          <div className='bg-gradient-to-r from-red-500 to-red-400 rounded-lg shadow-lg p-4 w-full md:w-1/3 text-white'>
             <h3>Dépenses</h3>
             <p className='text-sm'>
             Total : <b> {numberWithCommas(sumMontants(expenseData))} XAF</b>
             </p>
           </div>
-          <div className='bg-gradient-to-r from-green-600 to-green-400 rounded-lg shadow-lg p-4 w-full md:w-1/4 text-white'>
-            <h3>Recette de l'année</h3>
+          <div className='bg-gradient-to-r from-green-600 to-green-400 rounded-lg shadow-lg p-4 w-full md:w-1/3 text-white'>
+            <h3>Trésorerie</h3>
             <p className='text-sm'>
-              Total : <b>{numberWithCommas(yearlyRecipeTotal)} XAF</b>
-            </p>
-          </div>
-          <div className='bg-gradient-to-r from-red-500 to-red-400 rounded-lg shadow-lg p-4 w-full md:w-1/4 text-white'>
-            <h3>Dépenses de l'année</h3>
-            <p className='text-sm'>
-              Total : <b>{numberWithCommas(yearlyExpenseTotal)} XAF</b>
+              Total : <b>0 XAF</b>
             </p>
           </div>
 
