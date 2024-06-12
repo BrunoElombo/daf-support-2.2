@@ -22,6 +22,12 @@ function Dashboard() {
 
   const [yearlyRecipeTotal, setYearlyRecipeTotal] = useState("0");
   const [yearlyExpenseTotal, setYearlyExpenseTotal] = useState("0");
+
+  const [recipeTotal, setRecipeTotal] = useState(0);
+  const [expenseTotal, setExpenseTotal] = useState(0);
+
+  const [tempRecipeTotal, setTempRecipeTotal] = useState("0");
+  const [tempExpenseTotal, setTempExpenseTotal] = useState("0");
   
   const  [recipeDataSrc, setRecipeDataSrc] = useState([]);
   const [recipeData, setRecipeData] = useState([]);
@@ -56,6 +62,13 @@ function Dashboard() {
         setRecipeDataSrc(response?.daily_sums)
         setChartData(response);
 
+        let recipeTotal = response?.annual_sums?.find(sum => sum.year?.split("-")[0] == new Date().getFullYear())?.total_amount
+        // let recipeTotal = response?.daily_sums?.reduce((total, item)=>{
+        //   return total + item.total_amount
+        // }, 0)
+        setRecipeTotal(recipeTotal);
+        setTempRecipeTotal(recipeTotal);
+
         setYearlyRecipeTotal(response?.annual_sums[0]?.total_amount)
         // setChartDataSrc(response);
       }
@@ -87,6 +100,14 @@ function Dashboard() {
         setChartData(response);
         setYearlyExpenseTotal(response?.annual_sums[0]?.total_amount)
         // setChartDataSrc(response);
+
+        let expenseTotal = response?.annual_sums?.find(sum => sum.year?.split("-")[0] == new Date().getFullYear())?.total_amount
+        // let expenseTotal = response?.daily_sums?.reduce((total, item)=>{
+        //   return total + item.total_amount
+        // }, 0)
+
+        setExpenseTotal(expenseTotal);
+        setTempExpenseTotal(expenseTotal);
       }
     } catch (error) {
       console.log(error);
@@ -106,16 +127,15 @@ function Dashboard() {
   }
 
   function sumMontants(response) {
-    if (!response || !response || response?.length === 0) {
+    if (response == ""|| response === 0 || response?.length === 0) {
       return 0; // Return 0 if response or daily_sums array is empty
     }
   
     // Calculate the sum of total_amount
-    const totalSum = response?.reduce(
+    const totalSum = +response?.reduce(
       (accumulator, current) => accumulator + current?.total_amount,
       0
-    );
-  
+    );  
     return totalSum;
   }
 
@@ -144,15 +164,32 @@ function Dashboard() {
   }
 
   useEffect(()=>{
-    if(startDate && endDate){
-      const filteredData = filterObjectsByDateRange(recipeData, startDate, endDate);
-      // const expenseFilteredData = filterObjectsByDateRange(expenseData, startDate, endDate);
+    if(startDate != "" && endDate != ""){
+      const filteredData = filterObjectsByDateRange(recipeDataSrc, startDate, endDate);
+      const expenseFilteredData = filterObjectsByDateRange(expenseDataSrc, startDate, endDate);
 
       setRecipeData(filteredData);
-      // setExpenseData(expenseFilteredData);
+      setExpenseData(expenseFilteredData);
+
+      // 
+
+      const expense = expenseFilteredData?.reduce((total, item)=>{
+        return total + item.total_amount
+      }, 0);
+      
+      const recipe = filteredData?.reduce((total, item)=>{
+        return total + item.total_amount
+      }, 0);
+
+      setRecipeTotal(recipe);
+      setExpenseTotal(expense);
+      
     }else{
+      setExpenseTotal(tempExpenseTotal);
+      setRecipeTotal(tempRecipeTotal);
+      
       setRecipeData(recipeDataSrc);
-      // setExpenseData(expenseDataSrc);
+      setExpenseData(expenseDataSrc);
     }
 
   }, [startDate, endDate]);
@@ -160,29 +197,31 @@ function Dashboard() {
   return (
     <LoginLayout>
       <div className='w-full h-full overflow-y-auto flex flex-col p-5'>
-        {/* <div className='border-[1px] border-gray-100 my-2 p-2 rounded-lg flex items-center space-x-2'> 
+        <div className='border-[1px] border-gray-100 my-2 p-2 rounded-lg flex items-center space-x-2'> 
           
-          <input type="date" value={startDate} className='text-sm' onChange={e => setStartDate(e.target.value)}/>
-          <input type="date" value={endDate} className='text-sm' onChange={e => setEndDate(e.target.value)}/>
-        </div> */}
+          <input type="date" value={startDate} className='text-xs' onChange={e => setStartDate(e.target.value)}/>
+          <input type="date" value={endDate} className='text-xs' onChange={e => setEndDate(e.target.value)}/>
+        </div>
         <div className='h-1/4 flex flex-col md:flex-row items-center justify-evenly space-y-2 md:space-x-2'>
 
           <div className='bg-gradient-to-r from-green-500 to-green-400 rounded-lg shadow-lg p-4 w-full md:w-1/3 text-white'>
             <h3>Recettes</h3>
             <p className='text-sm'>
-            Total : <b> {numberWithCommas(sumMontants(recipeData))} XAF</b>
+            Total : <b> {numberWithCommas(recipeTotal)} XAF</b>
+            {/* Total : <b> {numberWithCommas(sumMontants(recipeData))} XAF</b> */}
             </p>
           </div>
           <div className='bg-gradient-to-r from-red-500 to-red-400 rounded-lg shadow-lg p-4 w-full md:w-1/3 text-white'>
             <h3>Dépenses</h3>
             <p className='text-sm'>
-            Total : <b> {numberWithCommas(sumMontants(expenseData))} XAF</b>
+            Total : <b> {numberWithCommas(expenseTotal)} XAF</b>
+            {/* Total : <b> {numberWithCommas(sumMontants(expenseData))} XAF</b> */}
             </p>
           </div>
           <div className='bg-gradient-to-r from-green-600 to-green-400 rounded-lg shadow-lg p-4 w-full md:w-1/3 text-white'>
             <h3>Trésorerie</h3>
             <p className='text-sm'>
-              Total : <b>0 XAF</b>
+              Total : <b>{numberWithCommas(recipeTotal - expenseTotal)} XAF</b>
             </p>
           </div>
 

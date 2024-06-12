@@ -244,7 +244,7 @@ function CreateRecetteForm(
             setAllOperationsTotal(operationsTotal([...operations, data]));
             clearOperationsForm();
             setIsAddingOperation(false);
-            return
+            return;
         }else{
             if(selectedOperationType === ""){
                 setOperationErrMsg("Type d'operations requis");
@@ -330,6 +330,7 @@ function CreateRecetteForm(
             setIsOpen(false);
             handleClearRecipeForm();
             openNotification("SUCCESS", "Recette créer avec success.");
+            return;
             
             // handleOpenModal("Recette créer avec success.", (<CheckCircleIcon className='text-green-500 h-8 w-8'/>))
         } catch (error) {

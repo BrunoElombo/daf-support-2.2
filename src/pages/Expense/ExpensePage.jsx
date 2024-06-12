@@ -669,7 +669,7 @@ function ExpensePage() {
               {/* <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une operation' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/> */}
               <div className='flex items-center space-x-2'>
               <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une recette' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/>
-              <Popover content={<></>} title="Filtre" trigger="click">
+              <Popover content={<ExepenseSheetFilter />} title="Filtre" trigger="click">
                 <button className='w-auto text-sm text-white btn bg-green-500 p-2 rounded-lg shadow-sm flex items-center'>
                   <FunnelIcon className='text-white w-4 h-4'/>
                   Filtrer

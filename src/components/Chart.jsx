@@ -19,10 +19,10 @@ function Chart({ data, legendBorderColor, legendBgColor, predictions }) {
     labels: data?.map(item => new Date(item?.day?.split("T")[0])?.toLocaleDateString()),
     datasets: [
       {
-        label: 'Recette (CFA)',
+        // label: 'Recette (CFA)',
         data: data?.map(item => item?.total_amount),
-        borderColor: legendBorderColor,
-        backgroundColor: legendBgColor,
+        // borderColor: legendBorderColor,
+        // backgroundColor: legendBgColor,
       },
       // {
       //   label:"Prédictions de recette (CFA)",
