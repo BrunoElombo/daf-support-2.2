@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import useFetch from '../../hooks/useFetch';
-// import $ from 'jquery';
+import $ from 'jquery';
 
 
 const filterOptions = [
@@ -28,7 +28,6 @@ function RecetteSheetFilter({setRecetteDataSrc}) {
 //   Filter form fields
     const [initiator, setInitiator] = useState("");
     const [controller, setController] = useState("");
-    const [department, setDepartment] = useState("");
     const [site, setSite] = useState("");
     const [provenance, setProvenance] = useState("INVOICE PAYMENT");
     const [shift, setShift] = useState("6h-15h");
@@ -43,47 +42,47 @@ function RecetteSheetFilter({setRecetteDataSrc}) {
     // Handle Filter submits
     const handleSubmitFilter= async(e)=>{
         e.preventDefault();
-        // try {
-        //     setIsLoading(true);
-        //     let url = `${import.meta.env.VITE_DAF_API}/recipesheet/multi_criteria_search/`;
-        //     let headersList = {
-        //         "Accept": "*/*",
-        //         "Content-Type": "application/json"
-        //     }
-        //     let data = {
-        //         "employee_initiator":initiator,
-        //         "employee_controller":controller,
-        //         "site":site,
-        //         "shift":shift,
-        //         "grt_total_amount":amountGreaterThan,
-        //         "lst_total_amount":amountLessThan,
-        //         "total_amount":amount,
-        //         "provenance":provenance,
-        //         "start_date":startDate,
-        //         "end_date":endDate,
-        //         "entity_id":entityId
-        //     };
-        //     $.ajax({
-        //         method: "GET",
-        //         url: url,
-        //         data: data,
-        //         headers: {
-        //             'Authorization':'Bearer '+localStorage.getItem('token')
-        //         },
-        //         contentType: "application/json",
-        //       })
-        //     .done(function( data ) {
-        //         const formatedData = data?.map(obj => {
-        //             return { ...obj, key: obj.id };
-        //           });
-        //         setRecetteDataSrc(formatedData);
-        //         setIsLoading(false);
-        //     });
+        try {
+            setIsLoading(true);
+            let url = `${import.meta.env.VITE_DAF_API}/recipesheet/multi_criteria_search/`;
+            let headersList = {
+                "Accept": "*/*",
+                "Content-Type": "application/json"
+            }
+            let data = {
+                "employee_initiator":initiator,
+                "employee_controller":controller,
+                "site":site,
+                "shift":shift,
+                "grt_total_amount":amountGreaterThan,
+                "lst_total_amount":amountLessThan,
+                "total_amount":amount,
+                "provenance":provenance,
+                "start_date":startDate,
+                "end_date":endDate,
+                "entity_id":entityId
+            };
+            $.ajax({
+                method: "GET",
+                url: url,
+                data: data,
+                headers: {
+                    'Authorization':'Bearer '+localStorage.getItem('token')
+                },
+                contentType: "application/json",
+              })
+            .done(function( data ) {
+                const formatedData = data?.map(obj => {
+                    return { ...obj, key: obj.id };
+                  });
+                setRecetteDataSrc(formatedData);
+                setIsLoading(false);
+            });
 
-        // } catch (error) {
-        //     console.log("Error :", error);
-        //     setIsLoading(false);
-        // }
+        } catch (error) {
+            console.log("Error :", error);
+            setIsLoading(false);
+        }
     }
 
 
@@ -107,40 +106,6 @@ function RecetteSheetFilter({setRecetteDataSrc}) {
         setStartDate("");
         setEndDate("");
     }
-
-    const handleAttributeChange = (index, attribute) => {
-        const newFilters = [...filters];
-        newFilters[index].attribute = attribute;
-        setFilters(newFilters);
-
-        const newAvailableOptions = filterOptions.filter(option => !newFilters.map(f => f.attribute).includes(option));
-        setAvailableOptions(newAvailableOptions);
-    };
-
-    const handleValueChange = (index, value) => {
-        const newFilters = [...filters];
-        newFilters[index].value = value;
-        setFilters(newFilters);
-    };
-
-    const addFilter = () => {
-        setFilters([...filters, { attribute: '', value: '' }]);
-    };
-    
-    const handleSearch = async () => {
-        const queryParams = await filters
-          .filter(f => f.attribute && f.value)
-          .map(f => `${encodeURIComponent(f.attribute)}=${encodeURIComponent(f.value)}`)
-          .join('&');
-        
-        const url = `${import.meta.env.VITE_DAF_API}/recipesheet/multi_criteria_search?${queryParams}&entity_id=${entityId}`;
-        try {
-          const response = await fetchData(url);
-          console.log(response.results);
-        } catch (error) {
-          console.error('Error fetching data:', error);
-        }
-    };
     
     const handleGetEmployees = async()=>{
         const controller = await fetchData(import.meta.env.VITE_USER_API+"/employees");

@@ -344,6 +344,7 @@ function CreateRecetteForm(
         try {
             const url = import.meta.env.VITE_USER_API+"/products";
             let response = await fetchData(url);
+            setUnitPrice(response[0]?.unit)
             setProducts(response);
         } catch (error) {
             alert("Echedc de chargement des produits")

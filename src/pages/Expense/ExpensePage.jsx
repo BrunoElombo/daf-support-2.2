@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import LoginLayout from '../../Layout/LoginLayout'
 import PageHeader from '../../components/PageHeader/PageHeader'
+import ExepenseSheetFilter from './ExepenseSheetFilter';
 import { InboxOutlined } from '@ant-design/icons';
 import { Table, Modal, Upload, Drawer, Space, Select, notification, Popover } from 'antd';
 import { v4 as uuidV4 } from 'uuid';
@@ -11,6 +12,8 @@ import { AUTHCONTEXT } from '../../context/AuthProvider';
 import Collapsible from '../../components/Collapsible/Collapsible';
 import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
 import SuggestInput from '../../components/SuggestInput/SuggestInput';
+import $ from 'jquery';
+import axios from 'axios';
 
 
 const rowSelection = {
@@ -36,7 +39,7 @@ function ExpensePage() {
   
   const {requestLoading, fetchData, postData, requestError, updateData} = useFetch();
   const [selectionType, setSelectionType] = useState('checkbox');
-  const  [expenseDataSrc, setExpenseDataSrc] = useState([]);
+  const [expenseDataSrc, setExpenseDataSrc] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   
 
@@ -109,6 +112,7 @@ function ExpensePage() {
   const [beneficiaryBankAccount, setBeneficiaryBankAccount] = useState("");
 
   const [beneficiairyBanks, setBeneficiairyBanks] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const recipientRef= useRef();
 
@@ -169,46 +173,105 @@ function ExpensePage() {
 
   const handleSubmitValidation = async (e)=>{
     e.preventDefault();
-    try {
-      let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
-      let url = 
-        isMultipleSelect  ? 
-        import.meta.env.VITE_DAF_API+"/expensesheet/bulk_validation/?entity_id="+entityId
-        :
-        import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/?entity_id="+entityId
-      
-      const data = isMultipleSelect  ? 
-      {
-        is_urgent:false,
-        "pk_list": selectedRowKeys,
-        "description": validationDescription,
-        transaction_number: ""
-      }:
-      {
-        // is_urgent:typeValidation,
-        is_urgent:false,
-        description:validationDescription,
-        transaction_number: transactionNumber,
-        employee_initiator: beneficiaire
-      }
-      const response = await updateData(url, data, true);
-      if(!requestError){
-        setValidationDescription("");
-        setTransactionNumber("");
-        setPaymentMode("ESPECES");
-        setTypeValidation(false);
-        setOpenValidateModal(false);
-        handleGellAllExpenses();
-        openNotification("SUCCESS", "Fiche de dépense validé")
-        return;
-      }
-      openNotification("ECHEC", "Echec de validation")
-      
-    } catch (error) {
-      openNotification("ECHEC", "Echec de validation");      
+    if(isMultipleSelect){
+      selectedRowKeys?.forEach(async (rowKey)=>{
+        let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
+        let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+rowKey+"/?entity_id="+entityId;
+        let data ={
+          // is_urgent:typeValidation,
+          is_urgent:false,
+          description:validationDescription,
+          transaction_number: transactionNumber,
+          employee_initiator: beneficiaire
+        }
+        try {
+          const response = await updateData(url, data, true);
+          setValidationDescription("");
+          setTransactionNumber("");
+          setPaymentMode("ESPECES");
+          setTypeValidation(false);
+          setOpenValidateModal(false);
+          handleGetAllExpenses();
+          openNotification("SUCCESS", "Fiche de dépense validé");
+          return
+          // if(!requestError){
+          //     return;
+          // }
+          // openNotification("ECHEC", "Echec de validation")
+          
+        } catch (error) {
+          openNotification("ECHEC", "Echec de validation");      
+        }
+      })
+    }else{
+      let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
+        let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/?entity_id="+entityId;
+        let data ={
+          // is_urgent:typeValidation,
+          is_urgent:false,
+          description:validationDescription,
+          transaction_number: transactionNumber,
+          employee_initiator: beneficiaire
+        }
+        try {
+          const response = await updateData(url, data, true);
+          if(!requestError){
+            setValidationDescription("");
+            setTransactionNumber("");
+            setPaymentMode("ESPECES");
+            setTypeValidation(false);
+            setOpenValidateModal(false);  
+            handleGetAllExpenses();
+            openNotification("SUCCESS", "Fiche de dépense validé");
+            return;
+          }
+        } catch (error) {
+          openNotification("ECHEC", "Echec de validation");      
+        }
     }
-
   }
+  // const handleSubmitValidation = async (e)=>{
+  //   e.preventDefault();
+  //   try {
+  //     let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
+  //     let url = 
+  //       isMultipleSelect  ? 
+  //       import.meta.env.VITE_DAF_API+"/expensesheet/bulk_validation/?entity_id="+entityId
+  //       :
+  //       import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/?entity_id="+entityId
+      
+  //     const data = isMultipleSelect  ? 
+  //     {
+  //       is_urgent:false,
+  //       "pk_list": selectedRowKeys,
+  //       "description": validationDescription,
+  //       transaction_number: ""
+  //     }:
+  //     {
+  //       // is_urgent:typeValidation,
+  //       is_urgent:false,
+  //       description:validationDescription,
+  //       transaction_number: transactionNumber,
+  //       employee_initiator: beneficiaire
+  //     }
+  //     console.log(data);
+  //     const response = await updateData(url, data, true);
+  //     if(!requestError){
+  //       setValidationDescription("");
+  //       setTransactionNumber("");
+  //       setPaymentMode("ESPECES");
+  //       setTypeValidation(false);
+  //       setOpenValidateModal(false);
+  //       handleGetAllExpenses();
+  //       openNotification("SUCCESS", "Fiche de dépense validé")
+  //       return;
+  //     }
+  //     openNotification("ECHEC", "Echec de validation")
+      
+  //   } catch (error) {
+  //     openNotification("ECHEC", "Echec de validation");      
+  //   }
+  // }
 
   const handleRejectExpenses = async (e)=>{
     e.preventDefault();
@@ -239,7 +302,7 @@ function ExpensePage() {
         setRejectionDescription("");
         setOpenRejectModal(false);
   
-        handleGellAllExpenses();
+        handleGetAllExpenses();
         openNotification("SUCCESS", "Fiche de dépense rejeté");
         return;
       }
@@ -252,17 +315,13 @@ function ExpensePage() {
   }
 
   const setSelectionRow = (expense) => {
-    // console.log('selectedRowKeys changed: ', id);
     setSelectedExpense(expense);
     setOpenValidateModal(true);
-    // setSelectedRowKeys(newSelectedRowKeys);
   };
 
   const setSelectionRow2 = (expense) => {
-    // console.log('selectedRowKeys changed: ', id);
     setSelectedExpense(expense);
     setOpenRejectModal(true);
-    // setSelectedRowKeys(newSelectedRowKeys);
   };
 
   const onClose = () => {
@@ -444,7 +503,7 @@ function ExpensePage() {
     }
   }
 
-  const handleGellAllExpenses = async() =>{
+  const handleGetAllExpenses = async() =>{
     let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
     try {
       const response = await fetchData(import.meta.env.VITE_DAF_API+"/expensesheet/?entity_id="+entityId);
@@ -540,7 +599,7 @@ function ExpensePage() {
   
         if(response.ok){
           openNotification("SUCCESS", "Recette supprimer avec success");
-          handleGellAllExpenses();
+          handleGetAllExpenses();
           setIsOpenDrawer(false);
           return
         }
@@ -561,7 +620,7 @@ function ExpensePage() {
     setFiles([]);
   }
 
-  const handleSubmitOperation= async (e)=>{
+  const handleSubmitExpense= async (e)=>{
     e.preventDefault();
     setLoading(true);
 
@@ -594,7 +653,7 @@ function ExpensePage() {
     try {
       const response = await fetch(url, requestOptions)
       if(response.status === 201) {
-        handleGellAllExpenses();
+        handleGetAllExpenses();
         handleClearForm();
         setIsOpen(false);
         openNotification("SUCCESS", "Dépense initier avec success.");
@@ -638,6 +697,7 @@ function ExpensePage() {
       setExpenseDataSrc(filteredData);
     }
   }, [searchValue]);
+  
   const highlightText = (text) => {
     if (!searchValue) return text;
 
@@ -647,11 +707,113 @@ function ExpensePage() {
       (match) => `<mark style="background-color: yellow;">${match}</mark>`
     )}} />
   };
+  const formatExportData=(data)=>{
+    return data?.map(item=>{
+      const {id, department, employee_initiator, employee_controller, date_valid_controller, date_valid_employee_checkout, site, entity, time_created, is_active, operation_types, ...rest} = item
 
+      return {
+        ...rest,
+        department: departments.find(dept=>dept?.dept?.id === department)?.displayName,
+        employee_initiator: beneficiaires?.find(employee=>employee?.User.id === employee_initiator)?.User.name,
+        employee_controller: beneficiaires?.find(employee=>employee?.User.id === employee_controller)?.User.name,
+        date_valid_controller: date_valid_controller?.split("T")[0],
+        date_valid_employee_checkout: date_valid_employee_checkout?.split("T")[0],
+        time_created: time_created?.split("T")[0],
+        site: entitySites?.find(item=>item?.id === site)?.name,
+      }
+    })
+  }
 
+  const handleExportToExcel= async(filteredData)=>{
+    let headings = [
+        'Num Ref', 'Type Recette',
+         'Montant Total', 'Provenance',
+         'Site', 'Entites', 
+         'Description', 'Shift', 
+         'NIU client', 'Numero transaction',
+        'Bank account', 'Initiateur', 'Controlleur', 'Caissier',
+        'Status', 'Method de paiment','Department', 
+        'Date validation controlleur','Date validation caissier', 'Date de création']
+    try{
+      let url = import.meta.env.VITE_USER_API+"/file/export-to-excel";
+      let bodyContent = {
+        "data": filteredData,
+        headings
+      };
+      // let response = await postData(url, bodyContent, true);
+      axios.post(url, bodyContent)
+      .then((response) => {
+        console.log(response.data);
+        // Create a URL for the Excel file
+        // const url = URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+
+        // // Create a link to download the Excel file
+        const link = document.createElement('a');
+        link.href = response.data.fileUrl;
+        link.download = 'export.xlsx';
+        link.click();
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+      // console.log(response)
+      // if(!requestError){
+      //   const url = URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      //   const link = document.querySelector('file-link');
+      //   link.href = url;
+      //   link.download = 'export.xlsx';
+      //   link.click();
+      //   // openNotification("SUCCESS","Fichier téléchargé avec success");
+      // }
+    }catch(e){
+      console.log(e)
+    }
+  }
+
+  const handleDataExport = async ()=>{
+   try {
+      if(expenseDataSrc.length < 1) {
+        setIsLoading(true);
+        let url = `${import.meta.env.VITE_DAF_API}/eexpensesheet/multi_criteria_search/`;
+        let headersList = {
+            "Accept": "*/*",
+            "Content-Type": "application/json"
+        }
+        let data = {
+          "entity_id":entityId
+        };
+        $.ajax({
+            method: "GET",
+            url: url,
+            data: data,
+            headers: {
+                'Authorization':'Bearer '+localStorage.getItem('token')
+            },
+            contentType: "application/json",
+          })
+        .done(async function( data ) {
+          // Add data
+          let formated = formatExportData(data)
+          handleExportToExcel(formated);
+          setIsLoading(false);
+          openNotification("SUCCESS", "Fichier exporté");
+          });
+        }
+        else{
+          let formated = formatExportData(expenseDataSrc);
+          handleExportToExcel(formated);
+          setIsLoading(false);
+          openNotification("SUCCESS", "Fichier exporté");
+        }     
+    } catch (error) {
+        console.log("Error :", error);
+        openNotification("ECHEC", "Une erreur est survenue lors de l'export");
+        setIsLoading(false);
+      }
+  }
 
   useEffect(()=>{
-    handleGellAllExpenses();
+    handleGetAllExpenses();
     handleGetSite();
     handleBenef();
     handleExternalEntity();
@@ -664,15 +826,21 @@ function ExpensePage() {
 
       return (
         <LoginLayout classNam="space-y-3">
-            <h3 className='py-2 bold'>FICHE DE DÉPENSE</h3>
+            <a id="file-link"></a>
+            <div className='flex justify-between'>
+              <h3 className='py-2 bold'>FICHE DE DÉPENSE</h3>
+              <div className='flex items-center text-sm'>
+                <p> Total : <b className='bg-yellow-300 p-2 rounded-lg'>{expenseDataSrc?.length > 0 ? numberWithCommas(expenseTotal):"0"} XAF</b></p>
+              </div>
+            </div>
             <PageHeader>
               {/* <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une operation' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/> */}
               <div className='flex items-center space-x-2'>
               <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une recette' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/>
-              <Popover content={<ExepenseSheetFilter />} title="Filtre" trigger="click">
+              <Popover content={<ExepenseSheetFilter setExpenseDataSrc={setExpenseDataSrc}/>} title="Filtre" trigger="click">
                 <button className='w-auto text-sm text-white btn bg-green-500 p-2 rounded-lg shadow-sm flex items-center'>
                   <FunnelIcon className='text-white w-4 h-4'/>
-                  Filtrer
+                  Filtre
                 </button>
               </Popover>
             </div>
@@ -698,6 +866,11 @@ function ExpensePage() {
                   </select>
                 </>
               }
+              <button className={`${isLoading?"bg-green-300 cursor-not-allowed":"bg-green-500"}  btn p-2 text-white rounded-lg shadow-sm text-sm`} onClick={handleDataExport}>
+                {
+                  isLoading ?"En cours...":"Export to excel"
+                }
+              </button>
               <VerifyPermissions
                 expected={["coordinator","chief_financial_officer","operations_manager", "paymaster_general", "accountant"]}
                 roles={userInfo?.role?.name}
@@ -717,14 +890,12 @@ function ExpensePage() {
                   ...rowSelection
                 }}
                 columns={expensesCol}
-                footer={()=>(
-                  <div className='flex items-center'>
-                    <p> Total : <b className='bg-yellow-300 p-2 rounded-lg'>{expenseDataSrc?.length > 0 ? numberWithCommas(expenseTotal):"0"} XAF</b></p>
-                  </div>
-                )}
+                // footer={()=>(
+                  
+                // )}
                 scroll={{
                   x: 500,
-                  y: "80vh"
+                  y: "50vh"
                 }}
               />
             </div>
@@ -893,7 +1064,7 @@ function ExpensePage() {
                   </form>
                 
                   <div className="flex justify-end">
-                    <button className={`${loading ? "bg-green-300 cursor-not-allowed" : "bg-green-500" } btn text-white text-sm shadow flex items-center`} onClick={handleSubmitOperation} disabled={loading}> 
+                    <button className={`${loading ? "bg-green-300 cursor-not-allowed" : "bg-green-500" } btn text-white text-sm shadow flex items-center`} onClick={handleSubmitExpense} disabled={loading}> 
                       <span>
                         {loading ? "En cours de création":"Initier la dépense"}
                       </span>
@@ -1113,6 +1284,7 @@ function ExpensePage() {
 
               </div>
             </Drawer>
+
         </LoginLayout>
       )
 }

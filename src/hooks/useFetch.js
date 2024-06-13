@@ -75,7 +75,7 @@ function useFetch() {
         return result;
       } catch (error) {
         setRequestError(error.message);
-        throw new Error(`Error: ${errorText}`);
+        throw new Error(`Error: ${error}`);
       } finally {
         setRequestLoading(false);
       }
@@ -85,7 +85,6 @@ function useFetch() {
       setRequestError("");
       setRequestLoading(true);
         let headersList = {
-          "Accept": "*/*",
           "Authorization": (withAuth ? "Bearer "+localStorage.getItem("token") : ""),
           "Content-Type": "application/json"
         }
@@ -94,20 +93,18 @@ function useFetch() {
           const response = await fetch(url, {
             method: "PATCH",
             headers: headersList,
-            body: JSON.stringify({
-              ...data
-            })
+            body: JSON.stringify({...data})
           });
-          console.log(response);
           if(!response.ok){
-            setRequestError("FAiled to update");
+            setRequestError("Failed to update");
+            const errorText = await response.json();
             throw new Error(`Error: Failed to update`);
           }
+          setRequestError("");
           let result = await response.json();
           // let data = await result ;
           return result;
           // throw new Error
-          // setRequestError("Cant create request")
         } catch (error) {
           setRequestError(error.message);
           throw new Error(`Failed to server error`);

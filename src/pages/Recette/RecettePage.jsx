@@ -13,9 +13,10 @@ import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
 import { AUTHCONTEXT } from '../../context/AuthProvider';
 import RecetteSheetFilter from './RecetteSheetFilter';
 import { saveAs } from 'file-saver';
-import * as Excel from 'exceljs';
+// import * as Excel from 'exceljs';
 // import * as XLSX from 'xlsx';
-// import $ from 'jquery';
+import $ from 'jquery';
+import axios from 'axios';
 
 
 function RecettePage() {
@@ -500,7 +501,7 @@ function RecettePage() {
     try {
       const response = await fetchData(url+"/recipesheet/summary_by_year/?year="+actualYear+"&entity_id="+entityValue);
       if (response && response.annual_sums) {
-        setRecipeTotal(response.annual_sums[0].total_amount)
+        setRecipeTotal(response.annual_sums?.find(sum=>sum?.year?.split("-")[0] == new Date().getFullYear()).total_amount)
       }
       
     } catch (error) {
@@ -522,27 +523,52 @@ function RecettePage() {
 
   const formatExportData=(data)=>{
     return data?.map(item=>{
-      const {id, department, employee_initiator, employee_controller, date_valid_controller, date_valid_employee_checkout, site, entity, time_created, is_active, operation_types, ...rest} = item
+      const {
+        reference_number, recipe_type, total_amount, provenance, 
+        site, entity, description, shift, uin_client, transaction_number, bank_account_number, employee_initiator, employee_controller, employee_checkout, statut, payment_method, department, date_valid_controller, date_valid_employee_checkout, time_created} = item
 
       return {
-        ...rest,
+        reference_number,
+        recipe_type,
+        total_amount,
+        provenance,
+        site: entitySites?.find(item=>item?.id === site)?.name,
+        entity,
+        description,
+        shift,
+        uin_client,
+        transaction_number,
         department: departments.find(dept=>dept?.dept?.id === department)?.displayName,
         employee_initiator: employees?.find(employee=>employee?.User.id === employee_initiator)?.User.name,
         employee_controller: employees?.find(employee=>employee?.User.id === employee_controller)?.User.name,
         date_valid_controller: date_valid_controller?.split("T")[0],
         date_valid_employee_checkout: date_valid_employee_checkout?.split("T")[0],
         time_created: time_created?.split("T")[0],
-        site: entitySites?.find(item=>item?.id === site)?.name,
       }
+
     })
   }
 
-  const handleDataExport = async ()=>{
-    const workbook = new Excel.Workbook();
-    const worksheet = workbook.addWorksheet('Recipes');
 
-    // Add headers
-    worksheet.addRow([
+  const handleExportToExcel= async(data)=>{
+    try{
+      let url = import.meta.env.VITE_USER_API+"/file/export-to-excel";
+      let response = await postData(url, data);
+      if(!requestError){
+        const url = URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'export.xlsx';
+        link.click();
+        openNotification("SUCCESS","Fichier téléchargé avec success");
+      }
+    }catch(e){
+      console.log(e)
+    }
+  }
+  const handleDataExport = async ()=>{
+
+    let headings = [
       'Num Ref', 'Type Recette',
        'Montant Total', 'Provenance',
        'Site', 'Entites', 
@@ -550,119 +576,48 @@ function RecettePage() {
        'NIU client', 'Numero transaction',
       'Bank account', 'Initiateur', 'Controlleur', 'Caissier',
       'Status', 'Method de paiment','Department', 
-      'Date validation controlleur','Date validation caissier', 'Date de création']);
+      'Date validation controlleur','Date validation caissier', 'Date de création'];
 
-    
-    try {
-      // if(recipeDataSrc.length < 1) {
-      //   setIsLoading(true);
-      //   let url = `${import.meta.env.VITE_DAF_API}/recipesheet/multi_criteria_search/`;
-      //   let headersList = {
-      //       "Accept": "*/*",
-      //       "Content-Type": "application/json"
-      //   }
-      //   let data = {
-      //     "entity_id":entityValue
-      //   };
-      //   $.ajax({
-      //       method: "GET",
-      //       url: url,
-      //       data: data,
-      //       headers: {
-      //           'Authorization':'Bearer '+localStorage.getItem('token')
-      //       },
-      //       contentType: "application/json",
-      //     })
-      //   .done(async function( data ) {
-      //       setIsLoading(false);
-      //       // Add data
-      //     const formated = formatExportData(data)
-      //     formated.forEach(async (recipe) => {
-      //       worksheet.addRow([
-      //         recipe.reference_number, 
-      //         recipe.recipe_type, 
-      //         recipe.total_amount, 
-      //         recipe.provenance,
-      //         recipe.description,
-      //         recipe.shift,
-      //         recipe.uin_client,
-      //         recipe.transaction_number,
-      //         recipe.bank_account_number,
-      //         recipe.employee_initiator,
-      //         recipe.employee_controller,
-      //         recipe.employee_checkout,
-      //         recipe.statut,
-      //         recipe.payment_method,
-      //         recipe.department,
-      //         recipe.date_valid_controller,
-      //         recipe.date_valid_employee_checkout,
-      //         recipe.time_created,
-      //       ]);
-      //     });
+  try{
+    let url = import.meta.env.VITE_USER_API+"/file/export-to-excel";
+    let bodyContent = {
+      "data": filteredData,
+      headings
+    };
+    // let response = await postData(url, bodyContent, true);
+    axios.post(url, bodyContent)
+    .then((response) => {
+      const link = document.createElement('a');
+      link.href = response.data.fileUrl;
+      link.download = 'export.xlsx';
+      link.click();
+    })
+    .catch((error) => {
+      console.error(error);
+    });
 
-      //     const buffer = await workbook.xlsx.writeBuffer();
-      //     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
-      //     saveAs(blob, 'recipes.xlsx');
-      //   });
-      // }
-      // else{
-      //   // let formated = formatExportData(recipeDataSrc);
-      //   // console.log(formated)
-      //   // const worksheet = XLSX.utils.json_to_sheet(formated);
-      //   // const workbook = XLSX.utils.book_new();
-      //   // XLSX.utils.book_append_sheet(workbook, worksheet, 'Recipes');
-      //   // const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-      //   // const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
-        
-      //   // console.log(blob);
-      //   // saveAs(blob, 'recipes_'+new Date().getTime()+'.xlsx');
-      // }
-      // Add data
-      const formated = formatExportData(recipeDataSrc);
-      formated.forEach((recipe) => {
-        worksheet.addRow([
-          recipe.reference_number, 
-          recipe.recipe_type, 
-          recipe.total_amount, 
-          recipe.provenance,
-          recipe.description,
-          recipe.shift,
-          recipe.uin_client,
-          recipe.transaction_number,
-          recipe.bank_account_number,
-          recipe.employee_initiator,
-          recipe.employee_controller,
-          recipe.employee_checkout,
-          recipe.statut,
-          recipe.payment_method,
-          recipe.department,
-          recipe.date_valid_controller,
-          recipe.date_valid_employee_checkout,
-          recipe.time_created,
-        ]);
-      });
-
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
-      saveAs(blob, 'Recettes_'+new Date().getTime()+'.xlsx');
-
-      } catch (error) {
-          console.log("Error :", error);
-          setIsLoading(false);
-      }
+  }catch(e){
+    console.log(e)
   }
-  
+  }
   
   return (
     <LoginLayout classNam="space-y-3">
+        <div className='flex justify-between'>
         <h3 className='py-2 bold'>FICHE DE RECETTE</h3>
+          <div className='flex items-center text-sm'>
+            <p className='text-sm'>
+              Total : <b className='bg-yellow-300 p-2 rounded-lg'>{numberWithCommas(recipeTotal)} XAF</b>
+            </p>
+          </div>
+        </div>
         <PageHeader >
           <div className='flex items-center space-x-2'>
             <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une recette' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/>
             <Popover content={<RecetteSheetFilter setRecetteDataSrc={setRecetteDataSrc}/>} title="Filtre" trigger="click">
               <button className='w-auto text-sm text-white btn bg-green-500 p-2 rounded-lg shadow-sm flex items-center'>
                 <FunnelIcon className='text-white w-4 h-4'/>
-                Filtrer
+                Filtre
               </button>
             </Popover>
           </div>
@@ -708,9 +663,7 @@ function RecettePage() {
           {/* Recette Table */}
           <Table 
             footer={() => <div className='flex'>
-              <p className='text-sm'>
-                Total : <b className='bg-yellow-300 p-2 rounded-lg'>{numberWithCommas(recipeTotal)} XAF</b>
-              </p>
+              
             </div>}
             rowSelection={{
               ...rowSelection
