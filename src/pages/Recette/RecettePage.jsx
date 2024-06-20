@@ -12,7 +12,7 @@ import CreateRecetteForm from './CreateRecetteForm';
 import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
 import { AUTHCONTEXT } from '../../context/AuthProvider';
 import RecetteSheetFilter from './RecetteSheetFilter';
-import { saveAs } from 'file-saver';
+// import { saveAs } from 'file-saver';
 // import * as Excel from 'exceljs';
 // import * as XLSX from 'xlsx';
 import $ from 'jquery';
@@ -78,7 +78,7 @@ function RecettePage() {
     });
   };
 
-  const {fetchData, postData, requestError} = useFetch();
+  const {fetchData, postData, requestError, requestLoading} = useFetch();
   const entityValue = JSON.parse(localStorage.getItem('user'))?.entity.id;
   const [selectionType, setSelectionType] = useState('checkbox');
   // Recette can be of 2 types, Recette Portiere and Reglement de Factures. The inputs depends on what is selected
@@ -179,6 +179,7 @@ function RecettePage() {
   const [isUpdateMode, setIsUpdateMode] = useState(false);
   const [match, setMatch] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [popOverIsOpen, setPopOverIsOpen] = useState(false);
 
   const handleGetBank= async()=>{
     const banks = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity_banks");
@@ -528,77 +529,106 @@ function RecettePage() {
         site, entity, description, shift, uin_client, transaction_number, bank_account_number, employee_initiator, employee_controller, employee_checkout, statut, payment_method, department, date_valid_controller, date_valid_employee_checkout, time_created} = item
 
       return {
-        reference_number,
-        recipe_type,
-        total_amount,
-        provenance,
-        site: entitySites?.find(item=>item?.id === site)?.name,
-        entity,
-        description,
-        shift,
-        uin_client,
-        transaction_number,
-        department: departments.find(dept=>dept?.dept?.id === department)?.displayName,
-        employee_initiator: employees?.find(employee=>employee?.User.id === employee_initiator)?.User.name,
-        employee_controller: employees?.find(employee=>employee?.User.id === employee_controller)?.User.name,
-        date_valid_controller: date_valid_controller?.split("T")[0],
-        date_valid_employee_checkout: date_valid_employee_checkout?.split("T")[0],
-        time_created: time_created?.split("T")[0],
+        reference_number:reference_number || "N/A",
+        recipe_type : recipe_type || "N/A",
+        total_amount :total_amount || "N/A",
+        provenance:provenance || "N/A",
+        site: entitySites?.find(item=>item?.id === site)?.name || "N/A",
+        entity : entity || "N/A",
+        description : description || "N/A",
+        shift : shift || "N/A",
+        uin_client : uin_client || "N/A",
+        transaction_number :transaction_number || "N/A",
+        bank_account_number : bank_account_number || "N/A",
+        employee_initiator: employees?.find(employee=>employee?.User.id === employee_initiator)?.User.name || "N/A",
+        employee_controller: employees?.find(employee=>employee?.User.id === employee_controller)?.User.name || "N/A",
+        employee_checkout: employees?.find(employee=>employee?.User.id === employee_checkout)?.User.name || "N/A",
+        statut:statut || "N/A",
+        payment_method: payment_method || "N/A",
+        department: departments.find(dept=>dept?.id === department)?.displayName || "N/A",
+        date_valid_controller: date_valid_controller?.split("T")[0] || "N/A",
+        date_valid_employee_checkout: date_valid_employee_checkout?.split("T")[0] || "N/A",
+        time_created: time_created || "N/A",
       }
 
     })
   }
 
 
-  const handleExportToExcel= async(data)=>{
+  const handleExportToExcel= async(filteredData)=>{
+    let headings = [
+        'Num Ref', 'Type Recette',
+         'Montant Total', 'Provenance',
+         'Site', 'Entites', 
+         'Description', 'Shift', 
+         'NIU client', 'Numero transaction',
+        'Bank account', 'Initiateur', 'Controlleur', 'Caissier',
+        'Status', 'Method de paiment','Department', 
+        'Date validation controlleur','Date validation caissier', 'Date de création']
     try{
       let url = import.meta.env.VITE_USER_API+"/file/export-to-excel";
-      let response = await postData(url, data);
-      if(!requestError){
-        const url = URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      let bodyContent = {
+        "data": filteredData,
+        headings
+      };
+      // let response = await postData(url, bodyContent, true);
+      axios.post(url, bodyContent)
+      .then((response) => {
+        console.log(response.data);
         const link = document.createElement('a');
-        link.href = url;
+        link.href = response.data.fileUrl;
         link.download = 'export.xlsx';
         link.click();
-        openNotification("SUCCESS","Fichier téléchargé avec success");
-      }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
     }catch(e){
       console.log(e)
     }
   }
+
   const handleDataExport = async ()=>{
-
-    let headings = [
-      'Num Ref', 'Type Recette',
-       'Montant Total', 'Provenance',
-       'Site', 'Entites', 
-       'Description', 'Shift', 
-       'NIU client', 'Numero transaction',
-      'Bank account', 'Initiateur', 'Controlleur', 'Caissier',
-      'Status', 'Method de paiment','Department', 
-      'Date validation controlleur','Date validation caissier', 'Date de création'];
-
-  try{
-    let url = import.meta.env.VITE_USER_API+"/file/export-to-excel";
-    let bodyContent = {
-      "data": filteredData,
-      headings
-    };
-    // let response = await postData(url, bodyContent, true);
-    axios.post(url, bodyContent)
-    .then((response) => {
-      const link = document.createElement('a');
-      link.href = response.data.fileUrl;
-      link.download = 'export.xlsx';
-      link.click();
-    })
-    .catch((error) => {
-      console.error(error);
-    });
-
-  }catch(e){
-    console.log(e)
-  }
+    try {
+       if(recipeDataSrc.length < 1) {
+         setIsLoading(true);
+         let url = `${import.meta.env.VITE_DAF_API}/recipesheet/multi_criteria_search/`;
+         let headersList = {
+             "Accept": "*/*",
+             "Content-Type": "application/json"
+         }
+         let data = {
+           "entity_id":entityValue
+         };
+         $.ajax({
+             method: "GET",
+             url: url,
+             data: data,
+             headers: {
+                 'Authorization':'Bearer '+localStorage.getItem('token')
+             },
+             contentType: "application/json",
+           })
+         .done(async function( data ) {
+           // Add data
+           let formated = formatExportData(data)
+           handleExportToExcel(formated);
+           setIsLoading(false);
+           openNotification("SUCCESS", "Fichier exporté");
+           });
+         }
+         else{
+           let formated = formatExportData(recipeDataSrc);
+           handleExportToExcel(formated);
+           setIsLoading(false);
+           openNotification("SUCCESS", "Fichier exporté");
+         }     
+     } 
+     catch (error) {
+         console.log("Error :", error);
+         openNotification("ECHEC", "Une erreur est survenue lors de l'export");
+         setIsLoading(false);
+      }
   }
   
   return (
@@ -614,8 +644,20 @@ function RecettePage() {
         <PageHeader >
           <div className='flex items-center space-x-2'>
             <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une recette' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/>
-            <Popover content={<RecetteSheetFilter setRecetteDataSrc={setRecetteDataSrc}/>} title="Filtre" trigger="click">
-              <button className='w-auto text-sm text-white btn bg-green-500 p-2 rounded-lg shadow-sm flex items-center'>
+            <Popover 
+              content={
+              <RecetteSheetFilter 
+                setRecetteDataSrc={setRecetteDataSrc}
+                onSubmit={()=>setPopOverIsOpen(false)}
+              />} 
+              title="Filtre" 
+              trigger="click"
+              open={popOverIsOpen}
+              >
+              <button 
+                className='w-auto text-sm text-white btn bg-green-500 p-2 rounded-lg shadow-sm flex items-center'
+                onClick={()=>setPopOverIsOpen(true)}
+              >
                 <FunnelIcon className='text-white w-4 h-4'/>
                 Filtre
               </button>
@@ -662,12 +704,11 @@ function RecettePage() {
 
           {/* Recette Table */}
           <Table 
-            footer={() => <div className='flex'>
-              
-            </div>}
+            footer={() => <div className='flex'></div>}
             rowSelection={{
               ...rowSelection
             }}
+            loading={requestLoading}
             dataSource={recipeDataSrc}
             columns={recetteCol}
             scroll={{
@@ -761,24 +802,24 @@ function RecettePage() {
           <div className='w-full h-full overflow-hidden flex flex-col md:flex-row justify-evenly md:space-x-2'>
 
             {/* Recette details */}
-            <div className='w-full md:w-1/2 bg-white border-[1px] rounded-lg overflow-y-auto p-3'>
+            <div className='w-full md:w-1/2 bg-white border-[1px] rounded-lg overflow-y-auto p-3 space-y-2'>
               
-              <div className='flex items-center space-x-5 space-y-3'>
+              <div className='flex items-center md:space-x-5 space-y-3 md:space-y-0'>
                 <div>
-                  <label htmlFor="">Date initiatier :</label>
+                  <label htmlFor="" className='text-xs'>Date initiatier :</label>
                     <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
                       <p>{activeRecipe.time_created}</p>
                     </div>
                 </div>
                 <div>
-                  <label htmlFor="">Numéro de Références :</label>
+                  <label htmlFor="" className='text-xs'>Numéro de Références :</label>
                   <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
                     <p>{activeRecipe.reference_number}</p>
                   </div>
                 </div>
               </div>
               <div>
-                <label htmlFor="">Controlleur :</label>
+                <label htmlFor="" className='text-xs'>Controlleur :</label>
                   {isUpdateMode ? 
                   <div>
                     <select className='w-full' name="" id="" value={controller} onChange={e=>setController(e.target.value)}>
@@ -797,7 +838,7 @@ function RecettePage() {
                   }
               </div>
               <div>
-                <label htmlFor="">Provenence :</label>
+                <label htmlFor="" className='text-xs'>Provenence :</label>
                 {isUpdateMode ? 
                   <div>
                     <select className='w-full' name="" id="" value={origin} onChange={e=>setOrigin(e.target.value)}>
@@ -814,7 +855,7 @@ function RecettePage() {
                   }
               </div>
               <div>
-                <label htmlFor="">Shift :</label>
+                <label htmlFor="" className='text-xs'>Shift :</label>
                 {isUpdateMode ? 
                   <div>
                     <select className='w-full' name="" id="" value={shift} onChange={e=>setShift(e.target.value)}>
@@ -831,24 +872,27 @@ function RecettePage() {
                 }
               </div>
               <div>
-                <label htmlFor="">Mode de paiment :</label>
-                {isUpdateMode ? 
-                  <div>
-                    <select className='w-full' name="" id="" value={shift} onChange={e=>setShift(e.target.value)}>
-                      <option value="">Choisir le shift</option>
-                      <option value="">6h-15h</option>
-                      <option value="">15h-22h</option>
-                      <option value="">22h-6h</option>
-                    </select>
+                <label htmlFor="" className='text-xs'>Mode de paiment :</label>
+                <div className='flex space-x-0 md:space-x-2 space-y-2 md:space-y-0 w-full'>
+                    {isUpdateMode ? 
+                      <div className='w-full md:w-1/2'>
+                        <select className='w-full' name="" id="" value={shift} onChange={e=>setShift(e.target.value)}>
+                          <option value="ESPECES">Especes</option>
+                          <option value="PAIMENTMOBILE">Paiment mobile</option>
+                        </select>
+                      </div>
+                      :
+                      <div className="bg-gray-200 border-gray-300 border rounded-lg p-1 w-1/2">
+                        <p>{activeRecipe.payment_method == null ? "N/A": activeRecipe.payment_method}</p> 
+                      </div>
+                    }
+                  <div className="bg-gray-200 border-gray-300 border rounded-lg p-1 w-1/2">
+                    <p>{activeRecipe.total_amount == null ? "N/A": numberWithCommas(activeRecipe.total_amount)} XAF</p> 
                   </div>
-                  :
-                  <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
-                    <p>{activeRecipe.payment_method == null ? "N/A": activeRecipe.payment_method}</p> 
-                  </div>
-                }
+                </div>
               </div>
               <div>
-                <label htmlFor="">Description :</label>
+                <label htmlFor="" className='text-xs'>Description :</label>
                 {isUpdateMode ? 
                   <div>
                     <textarea className='w-full' name="" id="" value={description} onChange={e=>setDescription(e.target.value)}>
@@ -860,7 +904,6 @@ function RecettePage() {
                   </div>
                 }
               </div>
-
             </div>
 
             {/* Operations details */}
@@ -902,6 +945,7 @@ function RecettePage() {
                     <Table 
                       columns={operationCol}
                       dataSource={operationDataSrc}
+                      loading={requestLoading}
                       footer={()=>(
                         <div className='flex justify-between items-center'>
                           <p className='text-xs'><b>Total encaissé (XAF):</b></p>

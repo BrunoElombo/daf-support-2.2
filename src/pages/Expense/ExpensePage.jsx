@@ -14,6 +14,9 @@ import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
 import SuggestInput from '../../components/SuggestInput/SuggestInput';
 import $ from 'jquery';
 import axios from 'axios';
+import StateForm from '../../components/caisse/StateForm';
+import CurrencyCuts from '../../components/caisse/CurrencyCuts';
+import { v4 as uuid } from 'uuid'
 
 
 const rowSelection = {
@@ -26,10 +29,14 @@ const rowSelection = {
   onSelectAll: (selected, selectedRows, changeRows) => {
     console.log(selected, selectedRows, changeRows);
   },
+  getCheckboxProps: (record) => ({
+    disabled: record.statut.includes("REJECT") || record.statut.includes("EXECUTED")
+  }),
 };
 
+const fileList = [];
+
 function ExpensePage() {
-  
   const MAX_ALLOWED_AMOUNT = 100000;
   const MAX_ALLOWED_AMOUNT_OTHERS = 250000;
   let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
@@ -58,7 +65,7 @@ function ExpensePage() {
 
 
   const [site, setSite] = useState('');
-  const [beneficiaire, setBeneficiaire] = useState("");
+  const [beneficiaire, setBeneficiaire] = useState(JSON.parse(localStorage.getItem("user"))?.User?.id);
   const [montant, setMontant] = useState("");
   const [paymentMode, setPaymentMode] = useState("ESPECES");
   const [description, setDescription] = useState('');
@@ -66,14 +73,31 @@ function ExpensePage() {
   const[recipientType, setRecipientType] = useState("PERSONNEPHYSIQUE");
   const[recipient, setRecipient] = useState("");
 
+  
+  const [cut, setCut] = useState("");
+  const [qty, setQty] = useState(0);
+  const [currency, setCurrency] = useState("");
+  const [currencies, setCurrencies] = useState([]);
+  const [currencyCuts, setCurrencyCuts] = useState([]);
+  const [cashDesks, setCashDesks] = useState([]);
+
+  const handleGetCashDesks= async ()=>{
+    let url = import.meta.env.VITE_USER_API+"/cash-desk";
+    try {
+      const response = await fetchData(url);
+      setCashDesks(response);
+      setCashDeskId(response[0]?.id)
+    } catch (error) {
+      
+    }
+  }
+
   const handleBeneficiaryBankAccount= async (id)=>{
     let url = import.meta.env.VITE_USER_API+`${recipientType === "PERSONNEPHYSIQUE" ?"/employees/" :"/external_entities/"}${id}/banks`;
     try {
         const response = await fetchData(url);
         setBeneficiaryBankAccount(response[0]?.bank.id);
         setBeneficiairyBanks(response);
-        console.log(url);
-        console.log(response[0]?.bankAccounts[0].account_number);
         setBeneficiaryBankAccountNumber(response[0]?.bankAccounts[0].account_number);
         setBeneficiaryBankAccountNumbers(response[0]?.bankAccounts);    
     } catch (error) {
@@ -110,6 +134,47 @@ function ExpensePage() {
   const [beneficiaryBankAccountNumber, setBeneficiaryBankAccountNumber] = useState("");
   const [beneficiaryBankAccountNumbers, setBeneficiaryBankAccountNumbers] = useState([]);
   const [beneficiaryBankAccount, setBeneficiaryBankAccount] = useState("");
+
+  const [file, setFile] = useState(null);
+  const [fileUrl, setFileUrl] = useState(null);
+  const fileRef = useRef(null);
+
+  // const handleFileChange = (event) => {
+  //   setFile(event.target.files[0]);
+  // };
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+
+  const handleFileChange =(event)=> {
+    setFiles([...event.target.files]);
+  };
+
+  const handleFileRemove = (index) => {
+    setFiles(files.filter((_, i) => i !== index));
+  }
+
+  const handleSubmitFiles = async () => {
+    const formData = new FormData();
+  
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
+  
+    if (files.length > 0) {
+      try {
+        const response = await axios.post(import.meta.env.VITE_USER_API + '/file/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        
+        const fileData = await response?.data?.map(file => file.url);
+        setUploadedFiles(fileData);
+      } catch (error) {
+        console.log(error);
+        openNotification("ECHEC", "Echec lors de la sauvegarde du fichier");
+      }
+    }
+  };
 
   const [beneficiairyBanks, setBeneficiairyBanks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -149,6 +214,39 @@ function ExpensePage() {
   const [openCashierValidation, setOpenCashierValidation] = useState(false);
   const [cashierObservation, setCashierObservation] = useState("");
   
+  
+  const [cashDeskCuts, setCashDeskCuts] = useState([]);
+  const handleSubmitForm =async (e)=>{
+    e.preventDefault();
+    try {
+      let url = import.meta.env.VITE_DAF_API+"/cash_desk_state/?entity_id="+entityId;
+      const data ={
+        "cash_register": cashDeskId,
+        "currency": currency,
+        "total_amount": totalAmount,
+        "current_step_cash_state":cashDeskState,
+        "description": description,
+        "site": site,
+        "shift":shift,
+        "entity":entityId,
+        "denomination_cash_cuts" : cashDeskCuts
+      }
+
+      if(!requestError){
+        const response = await postData(url, data, true);
+        onSubmit();
+        openNotification("SUCCESS", "Enregistrement réussi");
+        handleClearCaisseForm();
+        handleClearCutsForm();
+        return;
+      }
+      openNotification("ECHEC", "Echec d'enregistrement");
+    } catch (error) {
+      console.log(error);
+      openNotification("ECHEC", "Une erreur est survenue");
+    }
+  }
+
   const handleGetExpenseSummary = async () => {
     let url = import.meta.env.VITE_DAF_API;
     const actualYear = new Date().getFullYear();
@@ -230,48 +328,57 @@ function ExpensePage() {
         }
     }
   }
-  // const handleSubmitValidation = async (e)=>{
-  //   e.preventDefault();
-  //   try {
-  //     let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
-  //     let url = 
-  //       isMultipleSelect  ? 
-  //       import.meta.env.VITE_DAF_API+"/expensesheet/bulk_validation/?entity_id="+entityId
-  //       :
-  //       import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/?entity_id="+entityId
+
+  const handleGetCurrencies=async()=>{
+    try {
+      let response = await fetchData(import.meta.env.VITE_USER_API+"/currencies");
+      if(!requestError){
+        setCurrency(response[0]?.id);
+        setCut(response[0]?.currencyCuts[0]?.value)
+        setCurrencyCuts(response[0]?.currencyCuts)
+        setCurrencies(response);
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  
+  const handleClearCutsForm =()=>{
+    // setCut(currency?.currencyCuts[0]?.value);
+    setQty(0);
+  }
+
+  const handleAddCashDeskCut= async (e) =>{
+    e.preventDefault();
+    if(cut && qty != 0){
+
+      // New cut
+      let newData = {
+        "id": uuid(),
+        "currency": currencies?.find(obj=>obj?.id == currency)?.code,
+        "value": cut,
+        "quantity": qty,
+        "total_amount": +cut*+qty
+      }
+
+      // Update the cuts list
+      let updatedValues = [newData, ...cashDeskCuts];
+      setCashDeskCuts(updatedValues);
       
-  //     const data = isMultipleSelect  ? 
-  //     {
-  //       is_urgent:false,
-  //       "pk_list": selectedRowKeys,
-  //       "description": validationDescription,
-  //       transaction_number: ""
-  //     }:
-  //     {
-  //       // is_urgent:typeValidation,
-  //       is_urgent:false,
-  //       description:validationDescription,
-  //       transaction_number: transactionNumber,
-  //       employee_initiator: beneficiaire
-  //     }
-  //     console.log(data);
-  //     const response = await updateData(url, data, true);
-  //     if(!requestError){
-  //       setValidationDescription("");
-  //       setTransactionNumber("");
-  //       setPaymentMode("ESPECES");
-  //       setTypeValidation(false);
-  //       setOpenValidateModal(false);
-  //       handleGetAllExpenses();
-  //       openNotification("SUCCESS", "Fiche de dépense validé")
-  //       return;
-  //     }
-  //     openNotification("ECHEC", "Echec de validation")
-      
-  //   } catch (error) {
-  //     openNotification("ECHEC", "Echec de validation");      
-  //   }
-  // }
+      // 
+      let cutsTotal = updatedValues?.reduce((accumulator, item)=>{
+        return accumulator + item?.total_amount;
+      }, 0);
+
+      // Set the total amount
+      setMontant(cutsTotal);
+     
+      handleClearCutsForm();
+    }else{
+      openNotification("Echec", "Choisir la coupure et la qté");
+    }
+  }
 
   const handleRejectExpenses = async (e)=>{
     e.preventDefault();
@@ -284,29 +391,28 @@ function ExpensePage() {
     const data=
     isMultipleSelect ?
     {
-      is_urgent:true,
+      is_urgent:false,
       description:rejectionDescription,
       pk_list: selectedRowKeys,
       employee_initiator: JSON.parse(localStorage.getItem("user"))?.id
     }
     :
     {
-      is_urgent:true,
+      is_urgent:false,
       description:rejectionDescription,
       // payment_method: "ESPECE",
       employee_initiator: JSON.parse(localStorage.getItem("user"))?.id
     }
     try {
       const response = await updateData(url, data, true);
-      if(!requestError){
-        setRejectionDescription("");
-        setOpenRejectModal(false);
-  
-        handleGetAllExpenses();
-        openNotification("SUCCESS", "Fiche de dépense rejeté");
-        return;
-      }
-      openNotification("ECHEC", "Echec du rejet de la fiche");
+      setRejectionDescription("");
+      setOpenRejectModal(false);
+      handleGetAllExpenses();
+      openNotification("SUCCESS", "Fiche de dépense rejeté");
+      return;
+      // if(!requestError){
+      // }
+      // openNotification("ECHEC", "Echec du rejet de la fiche");
       
     } catch (error) {
       openNotification("ECHEC", "Echec du rejet de la fiche"); 
@@ -614,63 +720,102 @@ function ExpensePage() {
   const handleClearForm = () =>{
     setPaymentMode("ESPECES");
     setSite(sites[0]?.id);
-    setBeneficiaire(beneficiaires[0]?.User.id);
+    setBeneficiaire(JSON.parse(localStorage.getItem("user"))?.User?.id);
+    // setUploadedFiles([]);
+    setFiles([]);
     setMontant("");
     setDescription("");
     setFiles([]);
   }
 
-  const handleSubmitExpense= async (e)=>{
+  const handleSubmitExpense = async (e) => {
     e.preventDefault();
     setLoading(true);
+    let fileList = [];
+
+    const fileFormData = new FormData();
+  
+    files.forEach((file) => {
+      fileFormData.append('files', file);
+    });
+  
+    if (files.length > 0) {
+      try {
+        const response = await axios.post(import.meta.env.VITE_USER_API + '/file/upload', fileFormData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        
+        const fileData = await response?.data?.map(file => file.url);
+        fileList = fileData;
+        setUploadedFiles(fileData);
+      } catch (error) {
+        console.log(error);
+        openNotification("ECHEC", "Echec lors de la sauvegarde du fichier");
+      }
+    }
 
     const headersList = new Headers();
+  
+    // remove ids form the currency cuts
+    let updatedCurrencyCuts = cashDeskCuts.map((item) => {
+      let { id, ...rest } = item;
+      return { ...rest };
+    });
+
     headersList.append(
-      "Authorization", "Bearer "+localStorage.getItem("token")
+      "Authorization", "Bearer " + localStorage.getItem("token")
     );
+
+    // Perform changes
+    console.log(JSON.stringify(updatedCurrencyCuts));
+  
     const formData = new FormData();
     formData.append("site", site);
     formData.append("employee_beneficiary", beneficiaire);
     formData.append("employee_initiator", JSON.parse(localStorage.getItem("user"))?.User.id);
     formData.append("payment_method", paymentMode);
     formData.append("amount", montant);
-    formData.append("beneficiary_bank_account_number", beneficiaryBankAccountNumber)
-    formData.append("bank_account_number", bankAccountNumber)
+    formData.append("beneficiary_bank_account_number", beneficiaryBankAccountNumber);
+    formData.append("bank_account_number", bankAccountNumber);
     formData.append("description", description);
     formData.append("entity", entityId);
-    formData.append("file_number", "file_number");
-    // formData.append("image_list", "file_number");
-
+    formData.append("denomination_cash_cut_expenses", JSON.stringify(updatedCurrencyCuts));
+    formData.append("image_list", `["${[fileList]}"]`);
+  
     const requestOptions = {
       method: "POST",
       headers: headersList,
       body: formData,
-    }
-
-    
-    
-    const url = import.meta.env.VITE_DAF_API+"/expensesheet/?entity_id="+entityId;
+    };
+  
     try {
-      const response = await fetch(url, requestOptions)
-      if(response.status === 201) {
-        handleGetAllExpenses();
-        handleClearForm();
-        setIsOpen(false);
-        openNotification("SUCCESS", "Dépense initier avec success.");
+      const url = import.meta.env.VITE_DAF_API + "/expensesheet/?entity_id=" + entityId;
+      const response = await fetch(url, requestOptions);
+      if (!response.ok) {
+        openNotification("ECHEC", "Echec de creation de la dépense.");
         return;
       }
-      openNotification("ECHEC", "Echec de creation de la dépense.");
-      // alert("Echec de creation de la dépense");          
+      handleGetAllExpenses();
+      handleClearForm();
+      setCashDeskCuts([]);
+      setIsOpen(false);
+      openNotification("SUCCESS", "Dépense initier avec success.");
+      // Clear the file input
+      setFiles([]);
+      return;
     } catch (error) {
       console.log(error);
       openNotification("ECHEC", "Une erreur s'est produite.");
+    } finally {
+      setLoading(false);
     }
-    // finally{
-    //   setLoading(false);
-    // }
-  }
+  };
+  
 
   const [searchValue, setSearchValue] = useState("");
+  
   useEffect(()=>{
     if(searchValue.length > 0){
       const search = filteredData?.filter((item) => {
@@ -706,34 +851,81 @@ function ExpensePage() {
       new RegExp(searchValue, 'gi'),
       (match) => `<mark style="background-color: yellow;">${match}</mark>`
     )}} />
-  };
+  }
+
   const formatExportData=(data)=>{
+    // let headings = [
+    //   "Numéro de référence", "Site", "Initiateur", "Beneficiaire", "Departement", "Method de paiment", "Montant", "Status"]
     return data?.map(item=>{
-      const {id, department, employee_initiator, employee_controller, date_valid_controller, date_valid_employee_checkout, site, entity, time_created, is_active, operation_types, ...rest} = item
+      const {
+          reference_number, 
+          site, 
+          employee_initiator, 
+          employee_beneficiary, 
+          manager_department,
+          budgetary_department,
+          general_director,
+          president,
+          paymaster_general,
+          description,
+          amount, 
+          payment_method, 
+          transaction_number,
+          uin_beneficiary,
+          cash_desk_number,
+          bank_account_number,
+          it_is_a_cash_desk_movement,
+          observation_manager_department,
+          observation_budgetary_department,
+          observation_general_director,
+          observation_president,
+          date_valid_manager_department,
+          date_valid_budgetary_department,
+          date_valid_general_director,
+          date_valid_president,
+          date_valid_paymaster_general,
+          department, 
+          statut,
+          time_created
+        } = item
 
       return {
-        ...rest,
-        department: departments.find(dept=>dept?.dept?.id === department)?.displayName,
-        employee_initiator: beneficiaires?.find(employee=>employee?.User.id === employee_initiator)?.User.name,
-        employee_controller: beneficiaires?.find(employee=>employee?.User.id === employee_controller)?.User.name,
-        date_valid_controller: date_valid_controller?.split("T")[0],
-        date_valid_employee_checkout: date_valid_employee_checkout?.split("T")[0],
-        time_created: time_created?.split("T")[0],
-        site: entitySites?.find(item=>item?.id === site)?.name,
+        reference_number: reference_number || "N/A",
+        site: entitySites?.find(item=>item?.id === site)?.name || "N/A",
+        employee_initiator: beneficiaires?.find(employee=>employee?.User.id === employee_initiator)?.User.name || "N/A",
+        employee_beneficiary: beneficiaires?.find(employee=>employee?.User.id === employee_beneficiary)?.User.name || "N/A",
+        manager_department: beneficiaires?.find(employee=>employee?.User.id === manager_department)?.User.name || "N/A",
+        budgetary_department: beneficiaires?.find(employee=>employee?.User.id === budgetary_department)?.User.name || "N/A",
+        general_director: beneficiaires?.find(employee=>employee?.User.id === general_director)?.User.name || "N/A",
+        president: beneficiaires?.find(employee=>employee?.User.id === president)?.User.name || "N/A",
+        paymaster_general:beneficiaires?.find(employee=>employee?.User.id === paymaster_general)?.User.name || "N/A",
+        description: description || "N/A",
+        amount: amount || 0,
+        payment_method: payment_method || "N/A",
+        transaction_number: transaction_number || "N/A",
+        uin_beneficiary: uin_beneficiary || "N/A",
+        cash_desk_number: cash_desk_number || "N/A",
+        bank_account_number: bank_account_number || "N/A",
+        it_is_a_cash_desk_movement:it_is_a_cash_desk_movement ||"N/A",
+        observation_manager_department:observation_manager_department ||"N/A",
+        observation_budgetary_department:observation_budgetary_department ||"N/A",
+        observation_general_director:observation_general_director ||"N/A",
+        observation_president:observation_president ||"N/A",
+        date_valid_manager_department:date_valid_manager_department?.split("T")[0] ||"N/A",
+        date_valid_budgetary_department:date_valid_budgetary_department?.split("T")[0] ||"N/A",
+        date_valid_general_director:date_valid_general_director?.split("T")[0] ||"N/A",
+        date_valid_president:date_valid_president?.split("T")[0] ||"N/A",
+        date_valid_paymaster_general:date_valid_paymaster_general?.split("T")[0] ||"N/A",
+        department: departments.find(dept=>dept?.dept?.id === department)?.displayName || "N/A",
+        statut:statut || "N/A",
+        time_created: time_created
       }
     })
   }
 
   const handleExportToExcel= async(filteredData)=>{
     let headings = [
-        'Num Ref', 'Type Recette',
-         'Montant Total', 'Provenance',
-         'Site', 'Entites', 
-         'Description', 'Shift', 
-         'NIU client', 'Numero transaction',
-        'Bank account', 'Initiateur', 'Controlleur', 'Caissier',
-        'Status', 'Method de paiment','Department', 
-        'Date validation controlleur','Date validation caissier', 'Date de création']
+      "Numéro de référence", "Site", "Initiateur", "Beneficiaire", "Chef de département", "Directeur Affaires Financiaire", "Directeur General", "President(e)", "TPG", "Description", "Montant total", "Methode de paiment", "Numéro de transaction", "NIU bénéficiaire", "Numéro de caisse", "Numéro du compte banquaire", "Appro", "Observation chef de département", "Observation DAF", "Observation DG", "Observation président(e)", "Date validation Chef de département", "Date validation DAF",  "Date validation DG",  "Date validation président", "Date validation TPG", "Department", "Statut", "Date de creation"]
     try{
       let url = import.meta.env.VITE_USER_API+"/file/export-to-excel";
       let bodyContent = {
@@ -744,10 +936,6 @@ function ExpensePage() {
       axios.post(url, bodyContent)
       .then((response) => {
         console.log(response.data);
-        // Create a URL for the Excel file
-        // const url = URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-
-        // // Create a link to download the Excel file
         const link = document.createElement('a');
         link.href = response.data.fileUrl;
         link.download = 'export.xlsx';
@@ -756,15 +944,6 @@ function ExpensePage() {
       .catch((error) => {
         console.error(error);
       });
-      // console.log(response)
-      // if(!requestError){
-      //   const url = URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-      //   const link = document.querySelector('file-link');
-      //   link.href = url;
-      //   link.download = 'export.xlsx';
-      //   link.click();
-      //   // openNotification("SUCCESS","Fichier téléchargé avec success");
-      // }
     }catch(e){
       console.log(e)
     }
@@ -812,6 +991,8 @@ function ExpensePage() {
       }
   }
 
+  
+
   useEffect(()=>{
     handleGetAllExpenses();
     handleGetSite();
@@ -822,6 +1003,8 @@ function ExpensePage() {
     handleGetExpenseSummary();
     handleGetEntitySite();
     handleGetDepartments();
+    handleGetCashDesks();
+    handleGetCurrencies();
   } , []);
 
       return (
@@ -889,6 +1072,7 @@ function ExpensePage() {
                 rowSelection={{
                   ...rowSelection
                 }}
+                loading={requestLoading}
                 columns={expensesCol}
                 // footer={()=>(
                   
@@ -948,13 +1132,27 @@ function ExpensePage() {
                             <label htmlFor="" className='text-xs'>Numéro de compte :</label>
                             <select name="" id="" value={bankAccountNumber} onChange={e=>setBankAccountNumber(e.target.value)} className='w-full'>
                               {
-                                bankAccountNumbers?.map(accountNumber => <option key={accountNumber?.id} value={accountNumber?.id}>{accountNumber?.account_number}</option>)
+                                bankAccountNumbers?.map(accountNumber => <option key={accountNumber?.account_number} value={accountNumber?.account_number}>{accountNumber?.account_number}</option>)
                               }
                             </select>
                           </div>
                         </div>
                       </>
                     }
+                    <div className='w-full flex flex-col'>
+                      <input type="file" multiple onChange={handleFileChange}/>
+                      <p className="text-xs">Selected Files</p>
+                      <ul className="flex flex-wrap space-x-2 space-y-2">
+                        {
+                          files.map((file, index) => (
+                            <li key={index} className="p-1 bg-gray-200 rounded-full text-xs flex space-x-2 items-center">
+                              <span className="text-xs">{file.name}</span>
+                              <XMarkIcon  className="text-red-500 text-xs w-3 h-3 cursor-pointer" onClick={() => handleFileRemove(index)}/>
+                            </li>
+                          ))
+                        }
+                      </ul>
+                    </div>
                     <div className='w-full flex flex-col'>
                       <label htmlFor="" className='text-xs'>Choisir le site</label>
                       <select name="" id="" value={site} onChange={e=>setSite(e.target.value)}>
@@ -1047,13 +1245,81 @@ function ExpensePage() {
                               placeholder="Numéro du compte bénéficiaire"
                             /> */}
                           </div>
+                      </div>
+                    }
+                    <input 
+                      type="" 
+                      className='' 
+                      placeholder='Montant' 
+                      value={montant} 
+                      onChange={e=>{
+                        if(!isNaN(Number(e.target.value))){
+                          setMontant(e.target.value?.replaceAll("-","")?.trim());
+                        }
+                      }}
+                      disabled={paymentMode === "ESPECES"}
+                    />
+                    {
+                      paymentMode === "ESPECES" &&
+                      <div className=''>
+                       {/* Currency selection */}
+                        <div className='flex flex-col w-full'>
+                          <label htmlFor="" className='text-xs'>Choisir la monnaie</label>
+                          <select 
+                            className='w-full' 
+                            name="" 
+                            id="" 
+                            value={currency} 
+                            onChange={e=>{
+                              setCurrency(e.target.value);
+                              let selectedCurrency = currencies?.find(obj=>obj?.code == e.target.value);
+                              setCurrencyCuts(selectedCurrency?.currencyCuts)
+                            }}
+                          >
+                            {
+                              currencies?.map(item=><option value={item?.code} key={item?.id}>{`${item?.name} (${item?.code})`}</option>)
+                            }
+                          </select>
                         </div>
+                        {/* Cash desk cuts */}
+                        <div>
+                          <div className='flex flex-col md:flex-col w-full'>
+                            <div className='flex flex-col md:flex-row space-x-2 items-end'>
+                              <div className='flex flex-col w-full md:w-1/4'>
+                                  <label htmlFor="" className='text-xs'>Coupure :</label>
+                                  <select value={cut} onChange={e=>setCut(e.target.value)}>
+                                      {
+                                          // currencyCuts?.map(cut=><option value={cut?.value}>{`${cut?.value}`}</option>)
+                                          currencyCuts?.map(cut=><option value={cut?.value}>{`${numberWithCommas(cut?.value)}`}</option>)
+                                      }
+                                  </select>
+                              </div>
+                              <div className='w-1/4'>
+                                  <input type="number" placeholder='Qté' className='w-full' value={qty} onChange={e=>setQty(e.target.value)}/>
+                              </div>
+                              <div className='py-2 px-1 border-b-2 border-b-green-500 bg-gray-50 w-full md:w-1/5 md:max-w-1/2 overflow-x-auto'>
+                                {
+                                  numberWithCommas(+cut * +qty)
+                                }
+                              </div>
+                              <div className='space-x-2 w-1/4'>
+                                  <button className='btn bg-green-500 text-xs text-white shadow-md w-full' onClick={handleAddCashDeskCut}>Ajouter</button>
+                              </div>
+                          </div>
+                          </div>
+                          <CurrencyCuts 
+                            data={cashDeskCuts}
+                            setCashDeskCuts={setCashDeskCuts}
+                            // currencyCuts={currencyCuts}
+                            // currencies={currencies}
+                          />
+                        </div>
+                      </div>
                     }
                     {/* {
                       ((montant > MAX_ALLOWED_AMOUNT && recipient === "" && recipientType === "PERSONNEPHYSIQUE" && paymentMode === "ESPECES") || montant > MAX_ALLOWED_AMOUNT_OTHERS) &&
                       <input type="text" placeholder='NIU'/>
                     } */}
-                    <input type="number" className='' placeholder='Montant' value={montant} onChange={e=>setMontant(e.target.value)}/>
                     {/* <Dragger >
                       <p className="ant-upload-text text-xs flex items-center justify-center"> 
                         <PaperClipIcon className='text-gray-500 h-6 w-6'/>
@@ -1123,7 +1389,7 @@ function ExpensePage() {
             >
               <form className='flex flex-col w-full space-y-3' onSubmit={handleRejectExpenses}>
                 <textarea name="" id="" placeholder='Observation' value={rejectionDescription} onChange={e=>setRejectionDescription(e.target.value)}></textarea>
-                <button className='btn bg-red-500 text-white'>Rejeter</button>
+                <button className={`${requestLoading?"bg-red-300 cursor-not-allowed":"bg-red-500"} btn text-white`} disable={requestLoading}>{requestLoading?"En cours...":"Rejeter"}</button>
               </form>
             </Modal>
 

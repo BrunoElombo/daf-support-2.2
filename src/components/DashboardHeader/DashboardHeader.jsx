@@ -1,7 +1,17 @@
 import React, {useContext, useEffect, useState} from 'react'
 import { Drawer, Space } from 'antd';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLongLeftIcon, BanknotesIcon, Bars3Icon, BellIcon, ChartBarIcon, CogIcon, DocumentArrowDownIcon, DocumentArrowUpIcon, HomeIcon } from "@heroicons/react/24/outline";
+import { ArrowLongLeftIcon, 
+    BanknotesIcon, 
+    Bars3Icon,
+    BellIcon, 
+    ChartBarIcon, 
+    CogIcon, 
+    DocumentArrowDownIcon, 
+    DocumentArrowUpIcon, 
+    HomeIcon,
+    CurrencyDollarIcon
+} from "@heroicons/react/24/outline";
 import { AUTHCONTEXT } from '../../context/AuthProvider';
 import VerifyPermissions from '../Permissions/VerifyPermissions';
 
@@ -50,9 +60,6 @@ const handleChangedEntity=async (id)=>{
         handleGetEntities();
     }
 
-    // console.log(userInfo);
-    // console.log(defaultEntity);
-    // console.log(allEntities);
   }, [])
 
   const onClose=()=>{
@@ -133,8 +140,8 @@ const handleChangedEntity=async (id)=>{
                 >
                     <li>
                         <Link className={`${pathname.includes("reporting") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/reporting"}>
-                            <ChartBarIcon className="text-white h-6 w-6" />
-                            <span>Reporting</span>
+                            <CurrencyDollarIcon className="text-white h-6 w-6" />
+                            <span>Trésorerie</span>
                         </Link>
                     </li>
                 </VerifyPermissions>

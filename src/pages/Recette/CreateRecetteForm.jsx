@@ -6,6 +6,7 @@ import useFetch from '../../hooks/useFetch';
 import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
 import Popup from '../../components/Popup/Popup';
 import { v4 as uuid } from 'uuid'
+import SuggestInput from '../../components/SuggestInput/SuggestInput';
 
 function CreateRecetteForm(
     {title, centered, open, footer, onOk, onCancel, setIsOpen, onSubmit}
@@ -50,7 +51,7 @@ function CreateRecetteForm(
     const [sites, setSites] = useState([]);
     const [recipeType, setRecipeType] = useState("");
     const [employeeController, setEmployeeController] = useState("");
-    const [paymentMethod, setPaymentMethod] = useState("");
+    const [paymentMethod, setPaymentMethod] = useState("ESPECES");
     const [totalAmount, setTotalAmount] = useState("");
     const [provenanceValue, setProvenanceValue] = useState("INVOICE PAYMENT");
 
@@ -59,6 +60,7 @@ function CreateRecetteForm(
     
 
     const [entityBankAccountNumbers, setEntityBankAccountNumbers] = useState([]);
+    const [externalEntityBankAccountNumbers, setExternalEntityBankAccountNumbers] = useState([]);
     const [externalEntityBankAccountNumber, setExternalEntityBankAccountNumber] = useState("");
     const [transactionNumber, setTransactionNumber] = useState("");
     const [cashDeskNumber, setCashDeskNumber] = useState("");
@@ -84,6 +86,7 @@ function CreateRecetteForm(
 
     const [products, setProducts] = useState([]);
     const [entities, setEntities] = useState([]);
+
     // const [product, setPoduct] = useState("");
 
     const handleDelete = (record) => {
@@ -98,6 +101,7 @@ function CreateRecetteForm(
     const [beneficiaryBankAccount, setBeneficiaryBankAccount] = useState("");
     const [beneficiairyBanks, setBeneficiairyBanks] = useState([]);
     const [beneficiaryBankAccountNumbers, setBeneficiaryBankAccountNumbers] = useState([]);
+    const [beneficiaryBankAccountNumber, setBeneficiaryBankAccountNumber] = useState("");
       
     const handleBeneficiaryBankAccount= async (id)=>{
         let url = import.meta.env.VITE_USER_API+`/external_entities/${id}/banks`;
@@ -105,7 +109,7 @@ function CreateRecetteForm(
         const response = await fetchData(url);
         if(response.length > 0) {
             setBeneficiairyBanks(response);
-            setBeneficiaryBankAccountNumbers(response[0]?.bankAccounts);
+            setExternalEntityBankAccountNumbers(response[0]?.bankAccounts);
         }
         } catch (error) {
             openNotification("ECHEC", "Impossible dóbtenir les informations des bank\n du bénéficiaire");
@@ -117,7 +121,7 @@ function CreateRecetteForm(
           title: 'Type d\'opération',
           dataIndex: 'label',
           key: '1',
-          render:(text, record)=>(<>{products.find(product => product.id === text)?.name}</>)
+        //   render:(text, record)=>(<>{products.find(product => product.id === text)?.displayName}</>)
         },
         {
           title: 'P.U',
@@ -143,7 +147,7 @@ function CreateRecetteForm(
           title: 'Action',
           render: (text, record)=>(
             <div className='flex items-start space-x-2 text-xs'>
-              <span className='text-green-500 cursor-pointer'>Éditer</span>
+              {/* <span className='text-green-500 cursor-pointer'>Éditer</span> */}
               <span className='text-red-500 cursor-pointer' onClick={()=>handleDelete(record)}>Supprimer</span>
             </div>
           )
@@ -152,7 +156,7 @@ function CreateRecetteForm(
 
     const handleClearRecipeForm = () => {
         setEmployeeController(employeesControllers[0]?.User.id);
-        setPaymentMethod("");
+        setPaymentMethod("ESPECES");
         setTotalAmount("");
         setDescriptionValue("");
         setShiftValue("6h-15h");
@@ -170,7 +174,7 @@ function CreateRecetteForm(
     const [selectedOperationType, setSelectedOperationType] = useState("");
     const [currentStep, setCurrentStep] = useState(0);
     const [entityBank, setEntityBank ] = useState("");
-
+    
     const [confirmModalText, setConfirmModalText] = useState("");
     const [confirmModalIcon, setConfirmModalIcon] = useState(undefined);
     const [openConfirmModal, setOpenConfirmModal] = useState(false);
@@ -179,9 +183,47 @@ function CreateRecetteForm(
     const [externalEntity, setExternalEntity] = useState("");
     const [accountNumbers, setAccountNumbers] = useState([]);
     const [destinationAccount, setDestinationAccount ] = useState("");
+        
+    const [mobileAccounts, setMobileAccounts] = useState([]);
+    const [mobileAccount, setMobileAccount] = useState("");
+    const [showMobileSuggestions, setShowMobileSuggestions] = useState(false);
+    const [mobileAccountsSuggestions, setMobileAccountsSuggestions] = useState([]);
 
-    const [operators, setOperators] = useState("MTN");
-    const [operatorNumber, setOperatorNumber] = useState();
+    const handleSuggestions = (e) =>{
+        setExternalEntityBankAccountNumber(e.target.value);
+        let suggestions = mobileAccounts?.filter(account=>account?.name?.includes(e.target.value))
+        setMobileAccountsSuggestions(suggestions);
+        if(suggestions.length > 0){
+            setShowMobileSuggestions(true);
+            return;
+        }
+        setShowMobileSuggestions(false);
+    }
+    
+    const handleCardSuggestions = (e) =>{
+        setExternalEntityBankAccountNumber(e.target.value);
+        let suggestions = externalEntityBankAccountNumbers?.filter(account=>account?.cardNumber?.includes(e.target.value));
+        setMobileAccountsSuggestions(suggestions);
+        if(suggestions?.length > 0){
+            setShowMobileSuggestions(true);
+            return;
+        }
+        setShowMobileSuggestions(false);
+    }
+
+    const handleGetMobileAccounts= async () => {
+        try {
+            const response = await fetchData(import.meta.env.VITE_USER_API+"/account?type=mobile");
+            console.log(response);
+            if(!requestError){
+                setMobileAccounts(response);
+                return;
+            }
+        } catch (error) {
+            openNotification("ECHEC", "Une erreur ")
+        }
+    }
+
     const handleExternalEntity = async()=>{
         try {
             const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
@@ -204,10 +246,10 @@ function CreateRecetteForm(
     }
 
     const handleGetExternalBank= async()=>{
-    const banks = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
-    if(!requestError){
-        setBankExternalEntity(banks);
-    }
+        const banks = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
+        if(!requestError){
+            setBankExternalEntity(banks);
+        }
     }
 
     const handleNextStep =() =>{
@@ -223,25 +265,28 @@ function CreateRecetteForm(
     const {requestError, postData, requestLoading, fetchData} = useFetch();
     
     const clearOperationsForm=()=>{
-        setSelectedOperationType("");
+        // setSelectedOperationType(products[0]?.id);
         setOperationQuantity("");
-        setUnitPrice(0);
+        setUnitPrice(products[0]?.unit);
+        setSelectedOperationType(products[0]?.id);
     }
 
     const handleCreateOperation = async (e)=>{
         e.preventDefault();
         if(selectedOperationType !== "" && operationQuantity !== "" && unitPrice !== ""){
             const total = +operationQuantity * +unitPrice;
+            const label = products?.find(product=>product?.id == selectedOperationType)?.displayName;
+            console.log(label);
             const data = {
                 id: uuid(),
-                "label": selectedOperationType,
+                "label": label,
                 "unit_price": unitPrice,
                 "quantity": operationQuantity,
                 "total_price": total
             };
-            setOperations([...operations, data]);
-            setOperationDataSrc([...operations, data]);
-            setAllOperationsTotal(operationsTotal([...operations, data]));
+            setOperations([data, ...operations]);
+            setOperationDataSrc([data, ...operations]);
+            setAllOperationsTotal(operationsTotal([data, ...operations]));
             clearOperationsForm();
             setIsAddingOperation(false);
             return;
@@ -271,8 +316,12 @@ function CreateRecetteForm(
 
     useEffect(()=>{
         const selectedBank = bankEntity.find(bank=> bank.bank.id === entityBank);
-        setEntityBankAccountNumbers(selectedBank?.bankAccounts);
-        setEntityBankAccountNumber(selectedBank?.bankAccounts[0].id);
+        if(paymentMethod == "VIREMENT"){
+            setEntityBankAccountNumbers(selectedBank?.bankAccounts);
+            setExternalEntityBankAccountNumber(selectedBank?.bankAccounts[0].id);
+            return
+        }
+        setEntityBankAccountNumber("");
     }, [entityBank]);
 
     const handleCancelOperationCreation= (e) =>{
@@ -305,7 +354,7 @@ function CreateRecetteForm(
         const data = {
             "recipe_type": recipeType,
             "employee_controller": employeeController,
-            "payment_method": paymentMethod,
+            "payment_method": [paymentMethod],
             "total_amount": totalAmount,
             "provenance": provenanceValue,
             "description": descriptionValue,
@@ -339,12 +388,55 @@ function CreateRecetteForm(
             console.error("Error creating recipe:", error);
         }
     }
+    
+    const handleCreateRecettesAndContinue = async (e) =>{
+        e.preventDefault();
+        const url = import.meta.env.VITE_DAF_API+"/recipesheet/?entity_id="+entityValue;
+        const data = {
+            "recipe_type": recipeType,
+            "employee_controller": employeeController,
+            "payment_method": [paymentMethod],
+            "total_amount": totalAmount,
+            "provenance": provenanceValue,
+            "description": descriptionValue,
+            "shift": shiftValue,
+            "file_number": fileNumber,
+            "corporate_name": corporateName,
+            "uin_client": uinClient,
+            "bank_account_number": entityBankAccountNumber,
+            "client_bank_account_number": externalEntityBankAccountNumber,
+            "it_is_a_cash_desk_movement": false,
+            "transaction_number": transactionNumber,
+            "cash_desk_number": cashDeskNumber,
+            "site": siteValue,
+            "entity": entityValue,
+            "operation_types" : operations
+        };
+
+        try {
+            const response = await postData(url, data, true);
+            onSubmit();
+            setCurrentStep(0);
+            // setIsOpen(false);
+            handleClearRecipeForm();
+            openNotification("SUCCESS", "Recette créer avec success.");
+            return;
+            
+            // handleOpenModal("Recette créer avec success.", (<CheckCircleIcon className='text-green-500 h-8 w-8'/>))
+        } catch (error) {
+            openNotification("ECHEC", "Echec de creation de la recette.");
+            // handleOpenModal("Echec de creation de la recette.",(<XMarkIcon className='text-red-500 h-8 w-8'/>))
+            console.error("Error creating recipe:", error);
+        }
+    }
 
     const handleGetallProducts = async ()=>{
         try {
             const url = import.meta.env.VITE_USER_API+"/products";
             let response = await fetchData(url);
             setUnitPrice(response[0]?.unit)
+            setSelectedOperationType(response[0]?.id);
+            
             setProducts(response);
         } catch (error) {
             alert("Echedc de chargement des produits")
@@ -360,6 +452,24 @@ function CreateRecetteForm(
         }
     }
 
+    // Cancel recipe creation
+    const handleCancelRecipeCreation = async () => {
+        handleClearRecipeForm();
+        handleCreateOperation();
+        setOperationDataSrc([]);
+        setOperations([]);
+        setIsOpen(false);
+    };
+
+    useEffect(()=>{
+        if(paymentMethod != "VIREMENT"){
+            setExternalEntityBankAccountNumber("");
+            return;
+        }
+        setExternalEntityBankAccountNumbers(bankEntity[0]?.bankAccounts);
+        setExternalEntityBankAccountNumber(bankEntity[0]?.bankAccounts[0].id);
+    }, [paymentMethod]);
+
     useEffect(()=>{
         handleGetController();
         handleGetSites();
@@ -368,6 +478,8 @@ function CreateRecetteForm(
         handleGetBank();
         handleGetExternalBank();
         handleGetAllEntities();
+        handleGetMobileAccounts();
+        handleBeneficiaryBankAccount();
         setShiftValue("6h-15h")
         const functions = JSON.parse(localStorage.getItem("user"))?.Function?.name;
 
@@ -411,7 +523,9 @@ function CreateRecetteForm(
                     </VerifyPermissions>
                     <div className='flex flex-col'>
                         <label htmlFor="" className='text-xs'>Mode de paiement :</label>
-                        <select name="" id="" value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value)}>
+                        <select name="" id="" value={paymentMethod} onChange={e=>{
+                            setPaymentMethod(e.target.value)
+                            }}>
                             <option value="ESPECES">Espèces</option>
                             <VerifyPermissions 
                                 expected={["accountant"]}
@@ -430,36 +544,29 @@ function CreateRecetteForm(
                     {
                         paymentMethod==="PAIMENT MOBILE" &&
                         <div className='w-full flex space-x-2'>
-                            <div className='w-1/2 flex flex-col'>
-                                <label className='text-xs'>Opérateur :</label>
-                                <select value={operators} onChange={e=>setOperators(e.target.value)}>
-                                    {
-                                        <>
-                                            <option value="MTN">MTN</option>
-                                            <option value="ORANGE">Orange</option>
-                                        </>
+                            <div className='w-full flex flex-col'>
+                                <div className='w-full relative flex flex-col'>
+                                    <input type="text" value={externalEntityBankAccountNumber} onChange={handleSuggestions} />
+                                    {externalEntityBankAccountNumber &&
+                                        <ul className={`absolute top-10 bg-white shadow-sm rounded-lg w-full z-100 overflow-y-scroll max-h-[60px]`}>
+                                            {
+                                                (showMobileSuggestions) &&
+                                                mobileAccountsSuggestions.map(account=><li className='text-xs hover:bg-gray-100 p-2 w-full' 
+                                                onClick={()=>{
+                                                    setExternalEntityBankAccountNumber(account?.name);
+                                                    setShowMobileSuggestions(false);
+                                                }}>
+                                                    {`${account?.name} (${account?.displayName})`}
+                                                </li>)
+                                            }
+                                        </ul>
                                     }
-                                </select>
-                            </div>
-                            <div className='w-1/2 flex flex-col'>
-                                <label className='text-xs'>Compte marchand :</label>
-                                <select >
-                                    {
-                                        operators === "MTN" ?
-                                        <>
-                                            <option value="67477778596">67477778596</option>
-                                        </>:
-                                        <>
-                                            <option value="69536698">69536698</option>
-                                        </>
-                                    }
-                                </select>
+                                </div>
                             </div>
                         </div>
-
                     }
                     {
-                        (paymentMethod === "CHEQUE" || paymentMethod === "CARTE" || paymentMethod === "PAIMENT MOBILE") &&
+                        (paymentMethod === "CHEQUE" || paymentMethod === "PAIMENT MOBILE") &&
                         <input type="text" value={transactionNumber} onChange={e=>setTransactionNumber(e.target.value)} placeholder='Numéro de transaction'/>
                     }
 
@@ -491,29 +598,76 @@ function CreateRecetteForm(
                         </div>
                     }
 
-                    <VerifyPermissions
-                        expected={["accountant"]}
-                        // received={userInfo?.role.name || userInfo?.Function.name}
-                        roles={userInfo?.role?.name}
-                        functions={userInfo?.Function?.name}
-                    >
-                        {/* Entite extern */}
-                        <label htmlFor="" className='text-xs'>Entitées externe</label>
-                        <select name="" id="" value={externalEntity} onChange={e=>setExternalEntity(e.target.value)}>
-                            {
-                                externalEntities.map(entity =>
-                                    <option value={entity?.external_entity.id}>{entity?.external_entity.name}</option>
-                                )
-                            }
-                        </select>
-                    </VerifyPermissions>
+                    {
+                        (paymentMethod === "VIREMENT" || paymentMethod === "CARTE")&&
+                        <VerifyPermissions
+                            expected={["accountant"]}
+                            // received={userInfo?.role.name || userInfo?.Function.name}
+                            roles={userInfo?.role?.name}
+                            functions={userInfo?.Function?.name}
+                        >
+                            {/* Entite extern */}
+                            <label htmlFor="" className='text-xs'>Entitées externe</label>
+                            <select name="" id="" value={externalEntity} onChange={e=>setExternalEntity(e.target.value)}>
+                                {
+                                    externalEntities.map(entity =>
+                                        <option value={entity?.external_entity.id}>{entity?.external_entity.name}</option>
+                                    )
+                                }
+                            </select>
+                        </VerifyPermissions>
+                    }
+                    {
+                        (paymentMethod === "CARTE") &&
+                        <div className='w-full flex space-x-2'>
+                            <div className='flex flex-col w-1/2'>
+                                <label htmlFor="" className='text-xs'>Choisir la banque du client</label>
+                                <select className='w-full' value={externalEntityBankAccountNumber} onChange={e=>{
+                                    let cardNumbers = beneficiairyBanks?.find(bank=>bank?.bank?.id === e.target.value);
+                                    setExternalEntityBankAccountNumbers(cardNumbers)
+                                    setBeneficiaryBankAccount(e.target.value);
+                                }}>
+                                {
+                                    beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank.id} value={beneficiairy?.bank.id}>
+                                    {
+                                        beneficiairy.bank.sigle
+                                    }
+                                    </option>)
+                                }
+                                </select>
+                            </div>
+                            <div className='w-1/2 flex flex-col'>
+                                <div className='w-full relative flex flex-col'>
+                                    <label htmlFor="" className='text-xs'>Numéro de la carte :</label>
+                                    <input type="text" value={externalEntityBankAccountNumber} onChange={handleCardSuggestions}/>
+                                    {   externalEntityBankAccountNumber &&
+                                        <ul className={`absolute top-10 bg-white shadow-sm rounded-lg w-full z-100 overflow-y-scroll max-h-[60px]`}>
+                                            {
+                                                (showMobileSuggestions) &&
+                                                mobileAccountsSuggestions.map(card=>
+                                                <li 
+                                                    className='text-xs  hover:bg-gray-100 p-2 w-full' 
+                                                    onClick={()=>{
+                                                        setExternalEntityBankAccountNumber(card?.cardNumber);
+                                                        setShowMobileSuggestions(false);
+                                                    }}
+                                                >
+                                                    {`${card?.cardNumber}`}
+                                                </li>)
+                                            }
+                                        </ul>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
 
-                        {/*  */}
+                        
                         {
                             paymentMethod === "VIREMENT" &&
                             <div className='w-full flex flex-col md:flex-row items-center space-x-3 justify-center'>
                             <div className='flex flex-col w-1/2'>
-                                <label htmlFor="" className='text-xs'>Choisir la banque du bénéficiaire</label>
+                                <label htmlFor="" className='text-xs'>Choisir la banque du client</label>
                                 <select className='w-full' value={beneficiaryBankAccount} onChange={e=>setBeneficiaryBankAccount(e.target.value)}>
                                 {
                                     beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank.id} value={beneficiairy?.bank.id}>
@@ -525,15 +679,15 @@ function CreateRecetteForm(
                                 </select>
                             </div>
                             <div className='flex flex-col w-full md:w-1/2'>
-                                <label htmlFor="" className='text-xs'>Bank de l'entité externe</label>
-                                <select className="w-full" name="" id="" value={entityBankAccountNumber} onChange={e=>{
-                                    setEntityBankAccountNumber(e.target.value);
+                                <label htmlFor="" className='text-xs'>Numéro de compte</label>
+                                <select className="w-full" name="" id="" value={externalEntityBankAccountNumber} onChange={e=>{
+                                    setExternalEntityBankAccountNumber(e.target.value);
                                     // const account = bankEntity.filter(account => account?.bank.id === e.target.value);
                                     //     setAccountNumbers(account[0]?.bank.bank_account);
                                     //     setDestinationAccount("");
                                     }}>
                                     {
-                                        beneficiaryBankAccountNumbers.map(bank=><option key={bank?.id} value={bank?.id}>{bank?.account_number}</option>)
+                                        externalEntityBankAccountNumbers.map(bank=><option key={bank?.id} value={bank?.id}>{bank?.account_number}</option>)
                                     }
                               </select>
                             </div>
@@ -607,7 +761,7 @@ function CreateRecetteForm(
                     <textarea name="" id="" className='' placeholder='Description' value={descriptionValue} onChange={e=>setDescriptionValue(e.target.value)}></textarea>
                 </form>
                 <div className="flex justify-end">
-                <VerifyPermissions
+                    <VerifyPermissions
                         expected={["accountant"]}
                         roles={userInfo?.role?.name}
                         functions={userInfo?.Function?.name}
@@ -690,7 +844,7 @@ function CreateRecetteForm(
                     <div>
                         <Table 
                             columns={operationCol}
-                            dataSource={operationDataSrc.reverse()}
+                            dataSource={operationDataSrc}
                             scroll={{
                                 y: "130px"
                             }}
@@ -705,14 +859,25 @@ function CreateRecetteForm(
                     <div className='flex justify-between items-center'>
                         {
                             !requestLoading &&
-                            <button className='btn btn-ptimary bg-green-500 text-white text-sm shadow flex items-center' onClick={handlePrevStep}>
-                                <ChevronDoubleLeftIcon className='text-white h-4 w-4'/> 
-                                <span>Precédent</span>
-                            </button>
+                                <button className='btn btn-ptimary bg-green-500 text-white text-sm shadow flex items-center' onClick={handlePrevStep}>
+                                    <ChevronDoubleLeftIcon className='text-white h-4 w-4'/> 
+                                    <span>Precédent</span>
+                                </button>
                         }
-                        <button className={`${requestLoading ? "bg-green-300" : "bg-green-500" } btn text-white text-sm shadow flex items-center`} onClick={handleCreateRecettes}> 
-                            <span>{requestLoading ? "En cours..." : "Initier la recette"}</span>
-                        </button>
+                        <div className='flex items-center space-x-2'>
+                            {
+                                !requestLoading &&
+                                <button className='btn text-red-500' onClick={handleCancelRecipeCreation}>
+                                    Annuler
+                                </button>
+                            }
+                            <button className={`${requestLoading ? "text-gray-500" : "text-green-500" } btn text-sm flex items-center`} onClick={handleCreateRecettesAndContinue}> 
+                                <span>{requestLoading ? "En cours..." : "Initier et continue"}</span>
+                            </button>
+                            <button className={`${requestLoading ? "bg-green-300" : "bg-green-500" } btn text-white text-sm shadow flex items-center`} onClick={handleCreateRecettes}> 
+                                <span>{requestLoading ? "En cours..." : "Initier la recette"}</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             }

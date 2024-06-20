@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react'
 import LoginLayout from '../../Layout/LoginLayout'
+import ReportingSheetFilter from './ReportingSheetFilter';
 import PageHeader from '../../components/PageHeader/PageHeader'
 import TabsComponent from '../../components/TabsComponents/TabsComponent'
 import Tab from '../../components/TabsComponents/Tab'
@@ -29,7 +30,9 @@ function ReportingPage() {
   const [recetteData, setRecetteData] = useState([]);
   const [expensesDataSource, setExpensesDataSource] = useState([]);
   const [recipesDataSource, setRecipesDataSource] = useState([]);
-  const [expensesData, setExpensesData] = useState([]);
+  const [expensesData, setExpensesData] = useState([]);  
+  const  [recipeDataSrc, setRecetteDataSrc] = useState([]);
+  const [expenseDataSrc, setExpenseDataSrc] = useState([]);
 
   const [beneficiaires, setBeneficiaires] = useState([]);
   const [sites, setSites] = useState([]);
@@ -175,16 +178,6 @@ function ReportingPage() {
     setPath(selectedPath);
   }
 
-  // const content = (
-  //   <div>
-  //     <select name="" id=""className='w-full'>
-  //       <option value="">Date </option>
-  //       <option value="">Shift </option>
-  //       <option value="">Provenance </option>
-  //     </select>
-  //   </div>
-  // );
-
   const recetteCol = [
     {
       title: 'Numéro de références',
@@ -255,6 +248,7 @@ function ReportingPage() {
       width:  "200px",
     },
   ]
+
 
   const expensesCol = [
     {
@@ -346,19 +340,27 @@ function ReportingPage() {
             <input type="date" className='text-xs w-full md:w-auto'/>
             <input type="search" placeholder='Recherche' className='text-xs w-full md:w-auto'/>
           </div> */}
-          <div className='mt-2 md:mt-0'>
-            <h3 className='text-sm'>
-              Solde trésorerie : <b className={`btn bg-yellow-300`}>{numberWithCommas(cashBalance)} XAF</b>
+          <div className='mt-2 md:mt-0 flex space-x-5'>
+            <h3 className='text-xs'>
+              Solde trésorerie : <b className={`bg-yellow-300 p-2 rounded-lg`}>{numberWithCommas(cashBalance)} XAF</b>
             </h3>
-          </div>
+            <h3 className="text-xs">
+              Dépense total : <b className='bg-yellow-300 p-2 rounded-lg'>{numberWithCommas(expenseTotal)} XAF</b>
+            </h3>
+            <h3 className="text-xs">
+              Recette total : <b className='bg-yellow-300 p-2 rounded-lg'>{numberWithCommas(recipeTotal )} XAF</b>
+            </h3>
+            
+          </div>   
         </PageHeader>
         <div className='border-[1px] border-gray-100 w-full p-3 rounded-md mt-3'>
+          
           <TabsComponent >
             <Tab 
               title={"Toutes les dépenses"}
               icon={<></>}
               isActive={path === "expenses"}
-              onClick={()=>handleTabClick("expenses")}
+              onClick={()=>handleTabClick("expenses")}             
             />
             <Tab 
               title={"Toutes les recettes"}
@@ -379,7 +381,7 @@ function ReportingPage() {
             }}
             footer={()=>(
               <div>
-                <p>Total : <b className='bg-yellow-300 p-2 rounded-lg'>{numberWithCommas(path === "recettes" ? recipeTotal : expenseTotal)} XAF</b></p>
+                
               </div>
             )}
             scroll={{

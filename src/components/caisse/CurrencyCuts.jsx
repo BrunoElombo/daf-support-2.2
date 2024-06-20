@@ -18,7 +18,6 @@ function CurrencyCuts({data, setCashDeskCuts}) {
         e.preventDefault();
         const selectedCut = data.filter(item => item.id != id);
         setCashDeskCuts([...selectedCut])
-
     }
 
     // Events triggers
@@ -27,7 +26,7 @@ function CurrencyCuts({data, setCashDeskCuts}) {
 
   return (
     <div>
-        <div className='flex flex-col w-full p-2 space-y-2 overflow-y-auto h-[100px]'>
+        <div className='flex flex-col w-full p-1 space-y-2 overflow-y-auto max-h-[100px]'>
         {
             data?.map(item=><div className='flex justify-between p-2 rounded-lg bg-white shadow-md'>
                 <p>{item.currency}</p>

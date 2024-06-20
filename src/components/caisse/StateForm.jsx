@@ -163,6 +163,7 @@ function StateForm({onSubmit}) {
       openNotification("ECHEC", "Une erreur est survenue");
     }
   }
+  
   const numberWithCommas=(x)=>{
     return x?.toString()?.replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
   }

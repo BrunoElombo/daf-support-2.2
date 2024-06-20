@@ -78,7 +78,6 @@ function Caisse() {
       try {
           const url = import.meta.env.VITE_DAF_API+"/cash_desk_state/?entity_id="+entityId
           const response = await fetchData(url);
-          console.log(response?.results)
           setCashDeskStateData(response?.results);
           setCashDeskState(response?.results);
       } catch (error) {
