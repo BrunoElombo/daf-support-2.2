@@ -58,6 +58,7 @@ function ValidationRecette({
             const response = await updateData(url, data, true)
             if(!requestError){
               openNotification("SUCCESS", "Validé avec success");
+              setObservation("");
             }
             // handleOpenModal("Validé avec success",(<CheckCircleIcon className='text-green-500 h-8 w-8'/>))
             onSubmit();

@@ -70,9 +70,14 @@ function ExpensePage() {
   const [paymentMode, setPaymentMode] = useState("ESPECES");
   const [description, setDescription] = useState('');
   const [files, setFiles] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState("");
+  const [fileNumber, setFileNumber] = useState("");
   const[recipientType, setRecipientType] = useState("PERSONNEPHYSIQUE");
   const[recipient, setRecipient] = useState("");
 
+  const [operators, setOperators] = useState([]);
+  const [operatorAccounts, setOperatorAccounts] = useState([]);
+  const [operator, setOperator] = useState("");
   
   const [cut, setCut] = useState("");
   const [qty, setQty] = useState(0);
@@ -134,6 +139,8 @@ function ExpensePage() {
   const [beneficiaryBankAccountNumber, setBeneficiaryBankAccountNumber] = useState("");
   const [beneficiaryBankAccountNumbers, setBeneficiaryBankAccountNumbers] = useState([]);
   const [beneficiaryBankAccount, setBeneficiaryBankAccount] = useState("");
+  const [showMobileSuggestions, setShowMobileSuggestions] = useState(false);
+  const [mobileAccountsSuggestions, setMobileAccountsSuggestions] = useState([]);
 
   const [file, setFile] = useState(null);
   const [fileUrl, setFileUrl] = useState(null);
@@ -675,10 +682,23 @@ function ExpensePage() {
   }
 
   useEffect(()=>{
-    const selectedBank = bankEntity.find(bank => bank.bank.id === originAccount);
-    setBankAccountNumber(selectedBank?.bankAccounts[0]?.id);
-    setBankAccountNumbers(selectedBank?.bankAccounts);
+    if(paymentMode != "CHEQUE"){
+      // setExternalEntityBankAccountNumbers(beneficiairyBanks[0]?.bankAccounts);
+      const selectedBank = bankEntity.find(bank => bank.bank.id === originAccount);
+      setBankAccountNumber(selectedBank?.bankAccounts[0]?.id);
+      setBankAccountNumbers(selectedBank?.bankAccounts);
+      return;
+  }
   }, [originAccount])
+
+  useEffect(()=>{
+    if(paymentMode == "VIREMENT"){
+        // setExternalEntityBankAccountNumbers(beneficiairyBanks[0]?.bankAccounts);
+        return;
+    }
+    setBankAccountNumber("");
+    setTransactionNumber("");
+}, [paymentMode]);
 
   const handleGetExternalBank= async()=>{
     const banks = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
@@ -746,10 +766,14 @@ function ExpensePage() {
             'Content-Type': 'multipart/form-data'
           }
         });
+        if(response.ok){
+          const fileData = await response?.data?.map(file => file.url);
+          fileList = fileData;
+          setUploadedFiles(fileData);
+          setFiles([]);
+          setSelectedFiles("")
+        }
         
-        const fileData = await response?.data?.map(file => file.url);
-        fileList = fileData;
-        setUploadedFiles(fileData);
       } catch (error) {
         console.log(error);
         openNotification("ECHEC", "Echec lors de la sauvegarde du fichier");
@@ -780,7 +804,9 @@ function ExpensePage() {
     formData.append("beneficiary_bank_account_number", beneficiaryBankAccountNumber);
     formData.append("bank_account_number", bankAccountNumber);
     formData.append("description", description);
+    formData.append("file_number", fileNumber);
     formData.append("entity", entityId);
+    formData.append("transaction_number", transactionNumber);
     formData.append("denomination_cash_cut_expenses", JSON.stringify(updatedCurrencyCuts));
     formData.append("image_list", `["${[fileList]}"]`);
   
@@ -990,7 +1016,61 @@ function ExpensePage() {
         setIsLoading(false);
       }
   }
+  const handleMobileSuggestions = (e) =>{
+    setBeneficiaryBankAccountNumber(e.target.value);
+    let suggestions = operatorAccounts?.filter(account => account?.name?.toLowerCase()?.includes(e.target.value.toLowerCase()));
+    setMobileAccountsSuggestions(suggestions);
+    if(suggestions.length > 0){
+        setShowMobileSuggestions(true);
+        return;
+    }
+    setShowMobileSuggestions(false);
+}
 
+  /**
+     * Handle operator onChange
+     */
+
+  const handleSelectOperator = async (e) => {
+    setOperator(e.target.value);
+    setBeneficiaryBankAccountNumber("");
+    getOperatorAccounts(e.target.value);
+  };
+
+
+  /**
+     * Get all operators
+     */
+  const getOperators = async () =>{
+    let url = import.meta.env.VITE_USER_API+"/operators";
+    try {
+        let response = await fetchData(url);
+        if(!requestError){
+            setOperators(response);
+            setOperator(response[0]?.id);
+            return
+        }
+    } catch (error) {
+        console.warn(error.message);
+    }
+}
+
+/**
+ * Get Operator accounts
+ */
+const getOperatorAccounts = async (operator) =>{
+    let id = operator;
+    let url = `${import.meta.env.VITE_USER_API}/operators/${id}/accounts`;
+    try {
+        let response = await fetchData(url);
+        if(!requestError){
+            setOperatorAccounts(response);
+            return
+        }
+    } catch (error) {
+        console.warn(error.message);
+    }
+}
   
 
   useEffect(()=>{
@@ -1005,6 +1085,7 @@ function ExpensePage() {
     handleGetDepartments();
     handleGetCashDesks();
     handleGetCurrencies();
+    getOperators();
   } , []);
 
       return (
@@ -1100,7 +1181,14 @@ function ExpensePage() {
                   <form onSubmit={()=>{}} className='flex flex-col space-y-3'>
                     <div className='flex flex-col'>
                       <label htmlFor="" className='text-xs'>Mode de paiement</label>
-                      <select name="" id="" value={paymentMode} onChange={e=>setPaymentMode(e.target.value)}>
+                      <select name="" id="" value={paymentMode} onChange={e=>{
+                        if(paymentMode != "VIREMENT"){
+                          setBankAccountNumber("")
+                        }
+                        setFiles([]);
+                        setSelectedFiles("");
+                        setPaymentMode(e.target.value)
+                        }}>
                         <option value="ESPECES">Espèces</option>
                         <option value="CARTE">Carte</option>
                         <option value="VIREMENT">Virement</option>
@@ -1108,11 +1196,8 @@ function ExpensePage() {
                         <option value="PAIMENT MOBILE">Paiment mobile</option>
                       </select>
                     </div>
-                    {/* {
-                      (paymentMode === "CARTE" || paymentMode === "CHEQUE" || paymentMode === "PAIMENT MOBILE") &&
-                      <input type="text" name="" id="" className='' value={transactionNumber} onChange={e=>setTransactionNumber(e.target.value)} placeholder='Numéro de transaction'/>
-                    } */}
-                    { paymentMode === "VIREMENT" &&
+                    { 
+                    paymentMode === "VIREMENT" &&
                       <>
                         <div className='w-full flex flex-col md:flex-row items-center space-x-3'>
                           <div className='flex flex-col w-1/2'>
@@ -1139,8 +1224,111 @@ function ExpensePage() {
                         </div>
                       </>
                     }
+                    {
+                        (paymentMode === "CARTE") &&
+                        <div className='w-full flex space-x-2'>
+                          <div className='w-full flex flex-col md:flex-row items-center space-x-3'>
+                            <div className='flex flex-col w-1/2'>
+                              <label htmlFor="" className='text-xs'>Choisir la banque opérateur</label>
+                              <select className="w-full" name="" id="" value={originAccount} onChange={e=>{
+                                  setOriginAccount(e.target.value);
+                                  const account = bankEntity.filter(account => account?.bank.id === e.target.value);
+                                  setBankAccountNumbers(account[0]?.bank.bank_account);
+                                  setDestinationAccount("");
+                                }}>
+                                {
+                                  bankEntity.map(bank=><option key={bank?.bank.id} value={bank?.bank.id}>{bank?.bank.sigle}</option>)
+                                }
+                              </select>
+                            </div>
+                            <div className='w-full md:w-1/2'>
+                              <label htmlFor="" className='text-xs'>Numéro de la carte :</label>
+                              <select value={bankAccountNumber} onChange={e=>setBankAccountNumber(e.target.value)} className='w-full'>
+                                {
+                                  bankAccountNumbers?.map(accountNumber => <option key={accountNumber?.cardNumber} value={accountNumber?.cardNumber}>{accountNumber?.cardNumber}</option>)
+                                }
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                    }
+                    {
+                        (paymentMode === "CHEQUE") &&
+                        <div className='w-full flex space-x-2'>
+                          <div className='w-full flex flex-col md:flex-row items-center space-x-3'>
+                            <div className='flex flex-col w-1/2'>
+                              <label htmlFor="" className='text-xs'>Choisir la banque opérateur</label>
+                              <select className="w-full" name="" id="" value={originAccount} onChange={e=>{
+                                  setOriginAccount(e.target.value);
+                                  const account = bankEntity.filter(account => account?.bank.id === e.target.value);
+                                  setBankAccountNumbers(account[0]?.bank.bank_account);
+                                  setDestinationAccount("");
+                                }}>
+                                {
+                                  bankEntity.map(bank=><option key={bank?.bank.id} value={bank?.bank.id}>{bank?.bank.sigle}</option>)
+                                }
+                              </select>
+                            </div>
+                            <div className='w-full md:w-1/2'>
+                              <label htmlFor="" className='text-xs'>Numéro du cheque :</label>
+                              <input type="text"value={bankAccountNumber} onChange={e=>setBankAccountNumber(e.target.value)} className='w-full'/>
+                            </div>
+                          </div>
+                        </div>
+                    }
+                    {
+                      (paymentMode === "PAIMENT MOBILE") &&
+                      <div className='w-full flex flex-col md:flex-row space-x-2 items-end'>
+                        <div className='w-full md:w-1/2 flex flex-col'>
+                            <label htmlFor="" className='text-xs'>Choisir l'opérateur :</label>
+                            <select value={operator} onChange={handleSelectOperator}>
+                                {
+                                    operators.map(operator => <option value={operator?.id}>{operator?.displayName}</option>)
+                                }
+                            </select>
+                        </div>
+                        <div className='w-full md:w-1/2 relative'>
+                          <label htmlFor="" className="text-xs">Numéro du compte :</label>
+                          <input type="text" className='w-full' value={beneficiaryBankAccountNumber} onChange={handleMobileSuggestions}/>
+                          {   
+                            beneficiaryBankAccountNumber &&
+                            <ul className={`absolute top-15 bg-white shadow-sm rounded-lg w-full z-100 overflow-y-scroll max-h-[60px]`}>
+                                {
+                                    (showMobileSuggestions) &&
+                                    mobileAccountsSuggestions.map(account=>
+                                    <li 
+                                        className='text-xs  hover:bg-gray-100 p-2 w-full' 
+                                        onClick={()=>{
+                                            setBeneficiaryBankAccountNumber(account?.name);
+                                            setShowMobileSuggestions(false);
+                                        }}
+                                    >
+                                        {`${account?.name}`}
+                                    </li>)
+                                }
+                            </ul>
+                          }
+                        </div>
+                      </div>
+                    }
+                    {
+                      (paymentMode === "CARTE" || paymentMode === "PAIMENT MOBILE") &&
+                      <input type="text" name="" id="" className='' value={transactionNumber} onChange={e=>setTransactionNumber(e.target.value)} placeholder='Numéro de transaction'/>
+                    }
+
+                    <div className='flex flex-col'>
+                      <label htmlFor="" className='text-xs'>Ligne budgetaire :</label>
+                      <select className='w-full' value={fileNumber} onChange={e=>setFileNumber(e.target.value)}>
+                        <option value="Ligne 1 (reparation clim.)">Ligne 1 (reparation clim.)</option>
+                        <option value="Ligne 2 (reparation clim.)">Ligne 2 (reparation clim.)</option>
+                        <option value="Ligne 3 (reparation clim.)">Ligne 3 (reparation clim.)</option>
+                        <option value="Ligne 4 (reparation clim.)">Ligne 4 (reparation clim.)</option>
+                      </select>
+                    </div>
+
+                    {/* Files selected */}
                     <div className='w-full flex flex-col'>
-                      <input type="file" multiple onChange={handleFileChange}/>
+                      <input type="file" multiple onChange={handleFileChange} value={selectedFiles}/>
                       <p className="text-xs">Selected Files</p>
                       <ul className="flex flex-wrap space-x-2 space-y-2">
                         {
@@ -1153,6 +1341,7 @@ function ExpensePage() {
                         }
                       </ul>
                     </div>
+
                     <div className='w-full flex flex-col'>
                       <label htmlFor="" className='text-xs'>Choisir le site</label>
                       <select name="" id="" value={site} onChange={e=>setSite(e.target.value)}>

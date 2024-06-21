@@ -48,7 +48,7 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
                 "department":department,
                 "grt_total_amount":amountGreaterThan,
                 "lst_total_amount":amountLessThan,
-                "total_amount":amount,
+                "amount":amount,
                 "payment_method":paymentMethod,
                 "start_date":startDate,
                 "end_date":endDate,

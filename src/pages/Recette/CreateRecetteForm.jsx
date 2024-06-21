@@ -102,6 +102,10 @@ function CreateRecetteForm(
     const [beneficiairyBanks, setBeneficiairyBanks] = useState([]);
     const [beneficiaryBankAccountNumbers, setBeneficiaryBankAccountNumbers] = useState([]);
     const [beneficiaryBankAccountNumber, setBeneficiaryBankAccountNumber] = useState("");
+
+    const [operators, setOperators] = useState([]);
+    const [operatorAccounts, setOperatorAccounts] = useState([]);
+    const [operator, setOperator] = useState("");
       
     const handleBeneficiaryBankAccount= async (id)=>{
         let url = import.meta.env.VITE_USER_API+`/external_entities/${id}/banks`;
@@ -189,9 +193,10 @@ function CreateRecetteForm(
     const [showMobileSuggestions, setShowMobileSuggestions] = useState(false);
     const [mobileAccountsSuggestions, setMobileAccountsSuggestions] = useState([]);
 
-    const handleSuggestions = (e) =>{
+    const handleMobileSuggestions = (e) =>{
         setExternalEntityBankAccountNumber(e.target.value);
-        let suggestions = mobileAccounts?.filter(account=>account?.name?.includes(e.target.value))
+        let suggestions = operatorAccounts?.filter(account => account?.name?.toLowerCase()?.includes(e.target.value.toLowerCase()))
+        console.log(suggestions);
         setMobileAccountsSuggestions(suggestions);
         if(suggestions.length > 0){
             setShowMobileSuggestions(true);
@@ -228,7 +233,6 @@ function CreateRecetteForm(
         try {
             const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
             let result = external;
-            console.log(result)
             setExternalEntities(result);
             setExternalEntity(result[0]?.external_entity.id);
             handleBeneficiaryBankAccount(result[0]?.external_entity.id)
@@ -461,13 +465,61 @@ function CreateRecetteForm(
         setIsOpen(false);
     };
 
+    /**
+     * Handle operator onChange
+     */
+
+    const handleSelectOperator = async (e) => {
+        setOperator(e.target.value);
+        setBeneficiaryBankAccountNumber("");
+        getOperatorAccounts(e.target.value);
+    };
+
+    /**
+     * Get all operators
+     */
+    const getOperators = async () =>{
+        let url = import.meta.env.VITE_USER_API+"/operators";
+        try {
+            let response = await fetchData(url);
+            if(!requestError){
+                setOperators(response);
+                setOperator(response[0]?.id);
+                return
+            }
+        } catch (error) {
+            console.warn(error.message);
+        }
+    }
+
+    /**
+     * Get Operator accounts
+     */
+    const getOperatorAccounts = async (operator) =>{
+        let id = operator;
+        let url = `${import.meta.env.VITE_USER_API}/operators/${id}/accounts`;
+        try {
+            let response = await fetchData(url);
+            if(!requestError){
+                setOperatorAccounts(response);
+                return
+            }
+        } catch (error) {
+            console.warn(error.message);
+        }
+    }
+
+    
+
     useEffect(()=>{
-        if(paymentMethod != "VIREMENT"){
-            setExternalEntityBankAccountNumber("");
+        if(paymentMethod == "VIREMENT"){
+            console.log(beneficiairyBanks[0])
+            // setExternalEntityBankAccountNumbers(beneficiairyBanks[0]?.bankAccounts);
+            setExternalEntityBankAccountNumber(beneficiairyBanks[0]?.bankAccounts[0]?.account_number);
             return;
         }
-        setExternalEntityBankAccountNumbers(bankEntity[0]?.bankAccounts);
-        setExternalEntityBankAccountNumber(bankEntity[0]?.bankAccounts[0].id);
+        setExternalEntityBankAccountNumber("");
+        setTransactionNumber("");
     }, [paymentMethod]);
 
     useEffect(()=>{
@@ -480,6 +532,7 @@ function CreateRecetteForm(
         handleGetAllEntities();
         handleGetMobileAccounts();
         handleBeneficiaryBankAccount();
+        getOperators();
         setShiftValue("6h-15h")
         const functions = JSON.parse(localStorage.getItem("user"))?.Function?.name;
 
@@ -543,33 +596,39 @@ function CreateRecetteForm(
                     </div>
                     {
                         paymentMethod==="PAIMENT MOBILE" &&
-                        <div className='w-full flex space-x-2'>
-                            <div className='w-full flex flex-col'>
-                                <div className='w-full relative flex flex-col'>
-                                    <input type="text" value={externalEntityBankAccountNumber} onChange={handleSuggestions} />
-                                    {externalEntityBankAccountNumber &&
-                                        <ul className={`absolute top-10 bg-white shadow-sm rounded-lg w-full z-100 overflow-y-scroll max-h-[60px]`}>
+                        <div className='w-full flex flex-col md:flex-row space-x-2 items-end'>
+                            <div className='w-full md:w-1/2 flex flex-col'>
+                                <label htmlFor="" className='text-xs'>Choisir l'opérateur :</label>
+                                <select value={operator} onChange={handleSelectOperator}>
+                                    {
+                                        operators.map(operator => <option value={operator?.id}>{operator?.displayName}</option>)
+                                    }
+                                </select>
+                            </div>
+                            <div className='w-full md:w-1/2 relative'>
+                                <label htmlFor="" className="text-xs">Numéro du compte :</label>
+                                <input type="text" className='w-full' value={externalEntityBankAccountNumber} onChange={handleMobileSuggestions}/>
+                                {   
+                                    externalEntityBankAccountNumber &&
+                                        <ul className={`absolute top-15 bg-white shadow-sm rounded-lg w-full z-100 overflow-y-scroll max-h-[60px]`}>
                                             {
                                                 (showMobileSuggestions) &&
-                                                mobileAccountsSuggestions.map(account=><li className='text-xs hover:bg-gray-100 p-2 w-full' 
-                                                onClick={()=>{
-                                                    setExternalEntityBankAccountNumber(account?.name);
-                                                    setShowMobileSuggestions(false);
-                                                }}>
-                                                    {`${account?.name} (${account?.displayName})`}
+                                                mobileAccountsSuggestions.map(account=>
+                                                <li 
+                                                    className='text-xs  hover:bg-gray-100 p-2 w-full' 
+                                                    onClick={()=>{
+                                                        setExternalEntityBankAccountNumber(account?.name);
+                                                        setShowMobileSuggestions(false);
+                                                    }}
+                                                >
+                                                    {`${account?.name}`}
                                                 </li>)
                                             }
                                         </ul>
-                                    }
-                                </div>
+                                }
                             </div>
                         </div>
                     }
-                    {
-                        (paymentMethod === "CHEQUE" || paymentMethod === "PAIMENT MOBILE") &&
-                        <input type="text" value={transactionNumber} onChange={e=>setTransactionNumber(e.target.value)} placeholder='Numéro de transaction'/>
-                    }
-
                     <>
                     { paymentMethod === "VIREMENT" &&
                         <div className='w-full flex flex-col md:flex-row items-center space-x-3 justify-center'>
@@ -599,23 +658,50 @@ function CreateRecetteForm(
                     }
 
                     {
-                        (paymentMethod === "VIREMENT" || paymentMethod === "CARTE")&&
+                        (paymentMethod === "VIREMENT" || paymentMethod === "CARTE" || paymentMethod === "CHEQUE")&&
                         <VerifyPermissions
                             expected={["accountant"]}
                             // received={userInfo?.role.name || userInfo?.Function.name}
                             roles={userInfo?.role?.name}
                             functions={userInfo?.Function?.name}
                         >
-                            {/* Entite extern */}
-                            <label htmlFor="" className='text-xs'>Entitées externe</label>
-                            <select name="" id="" value={externalEntity} onChange={e=>setExternalEntity(e.target.value)}>
-                                {
-                                    externalEntities.map(entity =>
-                                        <option value={entity?.external_entity.id}>{entity?.external_entity.name}</option>
-                                    )
-                                }
-                            </select>
+                            <div className='w-full flex-col flex'>
+                                {/* Entite extern */}
+                                <label htmlFor="" className='text-xs'>Entitées externe :</label>
+                                <select name="" id="" value={externalEntity} onChange={e=>setExternalEntity(e.target.value)}>
+                                    {
+                                        externalEntities.map(entity =>
+                                            <option value={entity?.external_entity.id}>{entity?.external_entity.name}</option>
+                                        )
+                                    }
+                                </select>
+                            </div>
                         </VerifyPermissions>
+                    }
+                    {
+                        (paymentMethod === "CHEQUE") &&
+                        <div className='w-full flex flex-col md:flex-row items-center space-x-3 justify-center'>
+                            <div className='flex flex-col w-full'>
+                                <label htmlFor="" className='text-xs'>Choisir la banque du client</label>
+                                <select className='w-full' value={beneficiaryBankAccount} onChange={e=>setBeneficiaryBankAccount(e.target.value)}>
+                                {
+                                    beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank.id} value={beneficiairy?.bank.id}>
+                                    {
+                                        beneficiairy.bank.sigle
+                                    }
+                                    </option>)
+                                }
+                                </select>
+                            </div>
+                        </div>
+                    }
+                    {
+                        (paymentMethod === "CHEQUE" || paymentMethod === "PAIMENT MOBILE") &&
+                        <input 
+                            type="text" 
+                            value={transactionNumber} 
+                            onChange={e=>setTransactionNumber(e.target.value)} 
+                            placeholder={paymentMethod=="CHEQUE"?"Numéro de cheque":'Numéro de transaction'}/>
                     }
                     {
                         (paymentMethod === "CARTE") &&
@@ -666,31 +752,31 @@ function CreateRecetteForm(
                         {
                             paymentMethod === "VIREMENT" &&
                             <div className='w-full flex flex-col md:flex-row items-center space-x-3 justify-center'>
-                            <div className='flex flex-col w-1/2'>
-                                <label htmlFor="" className='text-xs'>Choisir la banque du client</label>
-                                <select className='w-full' value={beneficiaryBankAccount} onChange={e=>setBeneficiaryBankAccount(e.target.value)}>
-                                {
-                                    beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank.id} value={beneficiairy?.bank.id}>
+                                <div className='flex flex-col w-1/2'>
+                                    <label htmlFor="" className='text-xs'>Choisir la banque du client</label>
+                                    <select className='w-full' value={beneficiaryBankAccount} onChange={e=>setBeneficiaryBankAccount(e.target.value)}>
                                     {
-                                        beneficiairy.bank.sigle
+                                        beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank.id} value={beneficiairy?.bank.id}>
+                                        {
+                                            beneficiairy.bank.sigle
+                                        }
+                                        </option>)
                                     }
-                                    </option>)
-                                }
+                                    </select>
+                                </div>
+                                <div className='flex flex-col w-full md:w-1/2'>
+                                    <label htmlFor="" className='text-xs'>Numéro de compte</label>
+                                    <select className="w-full" name="" id="" value={externalEntityBankAccountNumber} onChange={e=>{
+                                        setExternalEntityBankAccountNumber(e.target.value);
+                                        // const account = bankEntity.filter(account => account?.bank.id === e.target.value);
+                                        //     setAccountNumbers(account[0]?.bank.bank_account);
+                                        //     setDestinationAccount("");
+                                        }}>
+                                        {
+                                            externalEntityBankAccountNumbers.map(bank=><option key={bank?.id} value={bank?.account_number}>{bank?.account_number}</option>)
+                                        }
                                 </select>
-                            </div>
-                            <div className='flex flex-col w-full md:w-1/2'>
-                                <label htmlFor="" className='text-xs'>Numéro de compte</label>
-                                <select className="w-full" name="" id="" value={externalEntityBankAccountNumber} onChange={e=>{
-                                    setExternalEntityBankAccountNumber(e.target.value);
-                                    // const account = bankEntity.filter(account => account?.bank.id === e.target.value);
-                                    //     setAccountNumbers(account[0]?.bank.bank_account);
-                                    //     setDestinationAccount("");
-                                    }}>
-                                    {
-                                        externalEntityBankAccountNumbers.map(bank=><option key={bank?.id} value={bank?.id}>{bank?.account_number}</option>)
-                                    }
-                              </select>
-                            </div>
+                                </div>
                             </div>
                         }
                       </>
