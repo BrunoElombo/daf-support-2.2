@@ -42,7 +42,7 @@ function ReportingPage() {
   const [entitySites, setEntitySites] = useState([]);
   const [sites, setSites] = useState([]);
   const [departments, setDepartements] = useState([]);
-
+  const [externalEntities, setExternalEntities] = useState([]);
   const [selectedMonth, setSelectedMonth] =useState("");
   const [to, setTo] =useState("");
 
@@ -85,7 +85,7 @@ function ReportingPage() {
   };
 
   const numberWithCommas=(x)=>{
-    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
+    return x?.toString()?.replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
   }
 
   const handleGetSite=async()=>{
@@ -167,7 +167,6 @@ function ReportingPage() {
     try {
       const url = import.meta.env.VITE_DAF_API+"/expensesheet/?entity_id="+entityId;
       const response = await fetchData(url);
-      console.log(response)
       setExpensesData(response?.results);
       setExpensesDataSource(response?.results);
     } catch (error) {
@@ -175,6 +174,74 @@ function ReportingPage() {
     }
   }
 
+  const [searchValue, setSearchValue] = useState("");
+  
+  useEffect(()=>{
+    if(path === "expenses"){
+      if(searchValue.length > 0){
+        const search = expensesDataSource?.filter(item =>{
+          const searchTextLower = searchValue.toLowerCase();
+          return(
+            item?.reference_number?.toString().toLowerCase().includes(searchTextLower) ||
+            item?.statut?.toString().toLowerCase().includes(searchTextLower) ||
+            item?.payment_method?.toString().toLowerCase().includes(searchTextLower) ||
+            item?.amount?.toString().toLowerCase().includes(searchTextLower) ||
+            item?.transaction_number?.toString().toLowerCase().includes(searchTextLower) ||
+            item?.uin_beneficiary?.toString().toLowerCase().includes(searchTextLower) ||
+            (beneficiaires?.find(employee => employee?.User.id == item?.employee_controller)?.User?.name?.toLowerCase().includes(searchTextLower) ? 
+            beneficiaires?.find(employee => employee?.User.id == item?.employee_beneficiary)?.User?.name?.toLowerCase().includes(searchTextLower)
+            :externalEntities.find(externalEntity=> externalEntity?.external_entity.id === item?.employee_controller)?.external_entity.name.toUpperCase()) ||
+            entitySites?.find(site => site?.id == item?.site)?.name.toLowerCase().includes(searchTextLower)
+          )
+        })
+        setExpensesData(search);
+      }
+      else{
+        setExpensesData(expensesDataSource);
+      }
+    }else{
+      if(searchValue.length > 0){
+        const search = recipesDataSource?.filter((item) => {
+          const searchTextLower = searchValue.toLowerCase();
+          return(
+            item?.reference_number.toString().toLowerCase().includes(searchTextLower) ||
+            item?.recipe_type.toString().toLowerCase().includes(searchTextLower) ||
+            item?.total_amount.toString().toLowerCase().includes(searchTextLower) ||
+            item?.provenance.toString().toLowerCase().includes(searchTextLower) ||
+            item?.shift.toString().toLowerCase().includes(searchTextLower) ||
+            item?.payment_method.toString().toLowerCase().includes(searchTextLower)||
+            beneficiaires?.find(employee => employee?.User.id == item?.employee_initiator)?.User?.name?.toLowerCase().includes(searchTextLower) ||
+            beneficiaires?.find(employee => employee?.User.id == item?.employee_controller)?.User?.name?.toLowerCase().includes(searchTextLower) ||
+            entitySites?.find(site => site?.id == item?.site)?.name.toLowerCase().includes(searchTextLower) 
+            )
+          }
+        )
+        setRecetteData(search)
+      }else{
+        setRecetteData(recipesDataSource);
+      }
+    }
+  }, [searchValue]);
+
+  const highlightText = (text) => {
+    if (!searchValue) return text;
+
+    const regex = new RegExp(searchValue, 'gi');
+    return <span dangerouslySetInnerHTML={{ __html: text?.replace(
+      new RegExp(searchValue, 'gi'),
+      (match) => `<mark style="background-color: yellow;">${match}</mark>`
+    )}} />
+  }
+
+  const handleExternalEntity = async()=>{
+    const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
+    if(!requestError){
+      let result = external;
+      setExternalEntities(result);
+    }
+  }
+
+  
 /**
 *
 */
@@ -463,6 +530,7 @@ function ReportingPage() {
     handleGetSite();
     handleSoldeTresorerie();
     handleBenef();
+    handleExternalEntity();
     handleGetExpenseSummary();
     handleGetRecipeSummary();
     handleGetEntitySite();
@@ -484,21 +552,21 @@ function ReportingPage() {
       dataIndex: 'reference_number',
       key: 'reference_number',
       width: "200px",
+      render: (text)=>highlightText(text)
     },
     {
       title: 'Controleur',
       dataIndex: 'employee_controller',
       key: 'employee_controller',
       width:  "200px",
-      render:(text, record)=>(
-        <>{beneficiaires.find(employee=>employee?.User?.id === text)?.User?.name?.toUpperCase()}</>
-      )
+      render: (text, record)=>highlightText(beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase())
     },
     {
       title: 'Provenance',
       dataIndex: 'provenance',
       key: 'provenance',
       width:  "200px",
+      render: (text)=>highlightText(text)
     },
     {
       title: 'Pont',
@@ -506,7 +574,7 @@ function ReportingPage() {
       key: 'site',
       width:  "200px",
       render: (text, record)=>(
-        <>{sites.find(site=>site.id === text)?.name}</>
+        <>{highlightText(sites.find(site=>site.id === text)?.name)}</>
       )
     },
     {
@@ -515,20 +583,8 @@ function ReportingPage() {
       key: 'total_amount',
       width:  "200px",
       render:(text, record)=>(
-        <>{numberWithCommas(record.total_amount)+" XAF"}</>
+        <>{highlightText(numberWithCommas(record.total_amount))} XAF</>
       )
-    },
-    {
-      title: 'Type de pesées',
-      dataIndex: 'shift',
-      key: 'shift',
-      width:"200px",
-    },
-    {
-      title: 'Montant',
-      dataIndex: 'shift',
-      key: 'shift',
-      width:"200px",
     },
     {
       title: 'Status',
@@ -546,9 +602,9 @@ function ReportingPage() {
       dataIndex: 'shift',
       key: 'shift',
       width:  "200px",
+      render: (text)=>highlightText(text)
     },
   ]
-
 
   const expensesCol = [
     {
@@ -556,6 +612,7 @@ function ReportingPage() {
       dataIndex: 'reference_number',
       key: 'reference_number',
       width:  "200px",
+      render:(text)=>highlightText(text)
     },
     {
       title: 'Site',
@@ -564,7 +621,7 @@ function ReportingPage() {
       width:  "200px",
       render: (text, record)=>{
         const site = sites?.find(site=>site.id === record.site)
-        return <>{site?.name != undefined? site?.name :text }</>
+        return <>{site?.name != undefined? highlightText(site?.name) :highlightText(text) }</>
       }
     },
     {
@@ -572,14 +629,16 @@ function ReportingPage() {
       dataIndex: 'employee_beneficiary',
       key: 'employee_beneficiary',
       width:  "200px",
-      render: (text, record)=>beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase()
+      render: (text, record)=>highlightText(beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase())
     },
     {
       title: 'Montant',
       dataIndex: 'amount',
       key: 'amount',
       width:  "200px",
-      render: (text)=><>{numberWithCommas(text)} XAF</>
+      render:(text, record)=>(
+        <>{highlightText(numberWithCommas(record.total_amount))} XAF</>
+      )
     },
     {
       title: 'Status',
@@ -612,9 +671,7 @@ function ReportingPage() {
 
   const handleFilter=(e)=>{
     setSelectedMonth(e.target.value);
-    console.log(selectedMonth)
     const filteredExpenses = expensesData.filter(expense=>expense?.reference_number.split('/')[1] == selectedMonth);
-    console.log(filteredExpenses)
     if(selectedMonth.length === 0){
       setExpensesData(expensesDataSource);
     }else{
@@ -686,6 +743,9 @@ function ReportingPage() {
                     isLoading ?"En cours...":"Export to excel"
                   }
                 </button>
+              </div>
+              <div>
+                <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une recette' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/>
               </div>
             </div>   
           </div>

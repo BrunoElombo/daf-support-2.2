@@ -298,12 +298,7 @@ function ExpensePage() {
           setOpenValidateModal(false);
           handleGetAllExpenses();
           openNotification("SUCCESS", "Fiche de dépense validé");
-          return
-          // if(!requestError){
-          //     return;
-          // }
-          // openNotification("ECHEC", "Echec de validation")
-          
+          return;
         } catch (error) {
           openNotification("ECHEC", "Echec de validation");      
         }
@@ -417,10 +412,6 @@ function ExpensePage() {
       handleGetAllExpenses();
       openNotification("SUCCESS", "Fiche de dépense rejeté");
       return;
-      // if(!requestError){
-      // }
-      // openNotification("ECHEC", "Echec du rejet de la fiche");
-      
     } catch (error) {
       openNotification("ECHEC", "Echec du rejet de la fiche"); 
     }
@@ -1028,8 +1019,8 @@ function ExpensePage() {
 }
 
   /**
-     * Handle operator onChange
-     */
+   * Handle operator onChange
+   */
 
   const handleSelectOperator = async (e) => {
     setOperator(e.target.value);
@@ -1039,8 +1030,8 @@ function ExpensePage() {
 
 
   /**
-     * Get all operators
-     */
+   * Get all operators
+   */
   const getOperators = async () =>{
     let url = import.meta.env.VITE_USER_API+"/operators";
     try {
@@ -1130,11 +1121,13 @@ const getOperatorAccounts = async (operator) =>{
                   </select>
                 </>
               }
-              <button className={`${isLoading?"bg-green-300 cursor-not-allowed":"bg-green-500"}  btn p-2 text-white rounded-lg shadow-sm text-sm`} onClick={handleDataExport}>
+              { expenseDataSrc.length > 0 &&
+                <button className={`${isLoading?"bg-green-300 cursor-not-allowed":"bg-green-500"}  btn p-2 text-white rounded-lg shadow-sm text-sm`} onClick={handleDataExport}>
                 {
                   isLoading ?"En cours...":"Export to excel"
                 }
               </button>
+              }
               <VerifyPermissions
                 expected={["coordinator","chief_financial_officer","operations_manager", "paymaster_general", "accountant"]}
                 roles={userInfo?.role?.name}
@@ -1559,7 +1552,7 @@ const getOperatorAccounts = async (operator) =>{
                   roles={userInfo?.role?.name}
                   functions={userInfo?.Function?.name}
                 >
-                  <input type="text" placeholder='Numéro de la transaction' value={transactionNumber} onChange={e=>setTransactionNumber(e.target.value)}/>
+                  {/* <input type="text" placeholder='Numéro de la transaction' value={transactionNumber} onChange={e=>setTransactionNumber(e.target.value)}/> */}
                     </VerifyPermissions>
                 }
 

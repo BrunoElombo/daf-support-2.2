@@ -98,11 +98,8 @@ function RecettePage() {
   const [searchValue, setSearchValue] = useState("");
   useEffect(()=>{
     if(searchValue.length > 0){
-      console.log("Search value :",searchValue);
       const search = filteredData?.filter((item) => {
         const searchTextLower = searchValue.toLowerCase();
-        // return Object.values(item)?.some((fieldValue) => fieldValue?.toString().toLowerCase().includes(searchTextLower)
-      // );
       return(
         item?.reference_number.toString().toLowerCase().includes(searchTextLower) ||
         item?.recipe_type.toString().toLowerCase().includes(searchTextLower) ||
@@ -670,11 +667,14 @@ function RecettePage() {
               </div>
             } */}
           <div className='w-full md:w-auto space-x-2'>
-            <button className={`${isLoading?"bg-green-300 cursor-not-allowed":"bg-green-500"}  btn p-2 text-white rounded-lg shadow-sm`} onClick={handleDataExport}>
+            {
+              recipeDataSrc.length > 0 &&
+              <button className={`${isLoading?"bg-green-300 cursor-not-allowed":"bg-green-500"}  btn p-2 text-white rounded-lg shadow-sm`} onClick={handleDataExport}>
               {
                 isLoading ?"En cours...":"Export to excel"
               }
             </button>
+            }
             <VerifyPermissions 
               expected={["gueritte_chef", "accountant"]}
               // received={userInfo?.role.name || userInfo?.Function.name}

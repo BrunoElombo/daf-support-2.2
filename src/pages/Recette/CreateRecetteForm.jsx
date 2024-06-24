@@ -196,7 +196,6 @@ function CreateRecetteForm(
     const handleMobileSuggestions = (e) =>{
         setExternalEntityBankAccountNumber(e.target.value);
         let suggestions = operatorAccounts?.filter(account => account?.name?.toLowerCase()?.includes(e.target.value.toLowerCase()))
-        console.log(suggestions);
         setMobileAccountsSuggestions(suggestions);
         if(suggestions.length > 0){
             setShowMobileSuggestions(true);
@@ -485,6 +484,7 @@ function CreateRecetteForm(
             if(!requestError){
                 setOperators(response);
                 setOperator(response[0]?.id);
+                await getOperatorAccounts(response[0]?.id);
                 return
             }
         } catch (error) {
@@ -502,6 +502,7 @@ function CreateRecetteForm(
             let response = await fetchData(url);
             if(!requestError){
                 setOperatorAccounts(response);
+                setMobileAccountsSuggestions(response);
                 return
             }
         } catch (error) {
@@ -595,7 +596,7 @@ function CreateRecetteForm(
                         </select>
                     </div>
                     {
-                        paymentMethod==="PAIMENT MOBILE" &&
+                        paymentMethod === "PAIMENT MOBILE" &&
                         <div className='w-full flex flex-col md:flex-row space-x-2 items-end'>
                             <div className='w-full md:w-1/2 flex flex-col'>
                                 <label htmlFor="" className='text-xs'>Choisir l'opérateur :</label>

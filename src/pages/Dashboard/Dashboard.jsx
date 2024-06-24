@@ -8,6 +8,7 @@ import Tab from '../../components/TabsComponents/Tab';
 import useFetch from '../../hooks/useFetch';
 import Chart from '../../components/Chart';
 import Topfilter from './Topfilter';
+import moment from 'moment';
 // ChartJS.register(LineElement, ArcElement, Title, Tooltip);
 
 
@@ -34,11 +35,16 @@ function Dashboard() {
 
   const  [expenseDataSrc, setExpenseDataSrc] = useState([]);
   const [expenseData, setExpenseData] = useState([]);
+  
+  const  [treasuryDataSrc, setTreasuryDataSrc] = useState([]);
+  const [treasuryData, setTreasuryData] = useState([]);
 
   const [recipePredictions, setRecipePredictions] = useState({});
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  const [step, setStep] = useState("");
 
   let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
 
@@ -102,9 +108,6 @@ function Dashboard() {
         // setChartDataSrc(response);
 
         let expenseTotal = response?.annual_sums?.find(sum => sum.year?.split("-")[0] == new Date().getFullYear())?.total_amount
-        // let expenseTotal = response?.daily_sums?.reduce((total, item)=>{
-        //   return total + item.total_amount
-        // }, 0)
 
         setExpenseTotal(expenseTotal);
         setTempExpenseTotal(expenseTotal);
@@ -126,6 +129,44 @@ function Dashboard() {
     }
   }
 
+  const groupByWeek = (dailySums) => {
+    const weeklySums = {};
+    
+    dailySums.forEach(item => {
+        const week = moment(item.day).startOf('isoWeek').format('YYYY-MM-DD');
+        
+        if (!weeklySums[week]) {
+            weeklySums[week] = 0;
+        }
+        
+        weeklySums[week] += item.total_amount;
+    });
+    
+    return Object.keys(weeklySums).map(week => ({
+        day: week,
+        total_amount: weeklySums[week]
+    }));
+  };
+
+  const groupByMonth = (dailySums) => {
+      const monthlySums = {};
+      
+      dailySums.forEach(item => {
+          const month = moment(item.day).startOf('month').format('YYYY-MM');
+          
+          if (!monthlySums[month]) {
+              monthlySums[month] = 0;
+          }
+          
+          monthlySums[month] += item.total_amount;
+      });
+      
+      return Object.keys(monthlySums).map(month => ({
+          day: month,
+          total_amount: monthlySums[month]
+      }));
+  };
+
   function sumMontants(response) {
     if (response == ""|| response === 0 || response?.length === 0) {
       return 0; // Return 0 if response or daily_sums array is empty
@@ -143,6 +184,90 @@ function Dashboard() {
     return x?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
   }
 
+  const handleCompare=(listA, listB)=>{
+    // if(listA?.length != listB?.length) throw new Error("Both objects must have the same length");
+    const formatedList = [];
+
+    if(listA.length === listB.length){
+      for(let i=0; i<listA.length; i++){
+        let date1 = listA[i]?.day;
+        let date2 = listB[i]?.day;
+  
+        if(date1[0] === date2[0]){
+          let value1 = listA[i]?.total_amount;
+          let value2 = listB[i]?.total_amount;
+  
+          let actualDate = date1;
+          let difference = +value1 - +value2;
+
+          let data ={
+            "day": actualDate,
+            "total_amount": difference
+          }
+          formatedList[i] = data;
+          console.log(1)
+        }
+      }
+
+      return formatedList;
+    }
+
+    if(listA.length > listB.length){
+      listB.forEach(itemB =>{
+        let correspondingDate = listA.find(itemA=>itemA?.day === itemB?.day);
+        let actualDate = correspondingDate?.day;
+        let difference = correspondingDate?.total_amount - itemB?.total_amount
+
+        let data = {
+          "day": actualDate,
+          "total_amount": difference
+        }
+        formatedList.push(data);
+        console.log(2)
+      })
+
+      return formatedList;
+    }
+    
+    if(listA.length < listB.length){
+      listA.forEach(itemA =>{
+        let correspondingDate = listB.find(itemB=>itemB?.day === itemA?.day);
+        let actualDate = correspondingDate?.day;
+        let difference = correspondingDate?.total_amount - itemA?.total_amount
+
+        let data = {
+          "day": actualDate,
+          "total_amount": difference
+        }
+        formatedList.push(data);
+        console.log(3)
+      })
+
+      return formatedList;
+    }
+    else{
+      let data = {
+        "day": new Date().getDay(),
+        "total_amount": 0
+      }
+      formatedList.push(data);
+      console.log(4)
+      return formatedList;
+    }
+
+  }
+
+  useEffect(()=>{
+    let comparisons = handleCompare(recipeData, expenseData);
+    console.log(comparisons)
+    console.log(recipeData)
+    console.log(expenseData)
+
+    setTreasuryData(comparisons);
+    setTreasuryDataSrc(comparisons);
+
+  }, [recipeData, expenseData]);
+
   useEffect(()=>{
     // handleGellAllExpenses();
 
@@ -152,6 +277,36 @@ function Dashboard() {
     handleGetExpenseSummary();
     // handleGetExpenseSummaryPrediction();
   }, []);
+
+  useEffect(()=>{
+    switch(step){
+      case "WEEK" :
+        
+        let weeklyRecipes = groupByWeek(recipeDataSrc);
+        let weeklyExpenses = groupByWeek(expenseDataSrc);
+        let weeklyTreasury = handleCompare(weeklyRecipes, weeklyExpenses);
+        
+        setExpenseData(weeklyExpenses);
+        setRecipeData(weeklyRecipes);
+        setTreasuryData(weeklyTreasury);
+
+        return
+      case "MONTH":
+        let monthlyRecipes = groupByMonth(recipeDataSrc);
+        let monthlyExpenses = groupByMonth(expenseDataSrc);
+        let monthlyTreasury = handleCompare(monthlyRecipes, monthlyExpenses);
+
+        setExpenseData(monthlyExpenses);
+        setRecipeData(monthlyRecipes);
+        setTreasuryData(monthlyTreasury);
+        return
+      default :
+        setExpenseData(expenseDataSrc);
+        setRecipeData(recipeDataSrc);
+        setTreasuryData(treasuryDataSrc);
+      return
+    }
+  }, [step]);
 
   // Function to filter objects by date range
   function filterObjectsByDateRange(objects, startDate, endDate) {
@@ -171,8 +326,6 @@ function Dashboard() {
       setRecipeData(filteredData);
       setExpenseData(expenseFilteredData);
 
-      // 
-
       const expense = expenseFilteredData?.reduce((total, item)=>{
         return total + item.total_amount
       }, 0);
@@ -184,7 +337,8 @@ function Dashboard() {
       setRecipeTotal(recipe);
       setExpenseTotal(expense);
       
-    }else{
+    }
+    else{
       setExpenseTotal(tempExpenseTotal);
       setRecipeTotal(tempRecipeTotal);
       
@@ -227,7 +381,8 @@ function Dashboard() {
 
         </div>
         <div className='h-3/4 flex flex-col space-y-3'>
-          <TabsComponent >
+        <div className=''>
+          <TabsComponent>
             <Tab 
               title={<p className='text-md'>Recettes</p>}
               isActive={path === "recipes"}
@@ -238,12 +393,33 @@ function Dashboard() {
               isActive={path === "expenses"}
               onClick={()=>handleTabClick("expenses")}
             />
+            <Tab 
+              title={<p className='text-md'>Trésoreries</p>}
+              isActive={path === "treasury"}
+              onClick={()=>handleTabClick("treasury")}
+            />
           </TabsComponent>
+          <div className='flex w-auto justify-end items-center space-x-2 mt-2'>
+            <label htmlFor="" className='text-xs'>Choisir le pas :</label>
+            <select className='text-xs' value={step} onChange={e=>setStep(e.target.value)}>
+              <option value="">Normal</option>
+              <option value="WEEK">Semain</option>
+              <option value="MONTH">Mois</option>
+            </select>
+          </div>
+        </div>
           <div className=''>
             {/* Graph body */}
             <div className='max-h-[250px] h-[250px] w-full overflow-y-auto md:p-2'>
               {/* <LineChart chartData={userData} /> */}
-              <Chart data={path === "recipes" ? recipeData : expenseData} predictions={recipePredictions}/>
+              <Chart 
+                data={
+                  path === "recipes" ? recipeData : 
+                  path === "expenses"? expenseData : 
+                  treasuryData
+                } 
+                predictions={recipePredictions}
+              />
             </div>
 
           </div>

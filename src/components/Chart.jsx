@@ -7,34 +7,22 @@ const { RangePicker } = DatePicker;
 function Chart({ data, legendBorderColor, legendBgColor, predictions }) {
   const [selectedDateRange, setSelectedDateRange] = useState([]);
 
-  const handleDateChange = (dates) => {
-    setSelectedDateRange(dates);
-  };
-
-  const handleFilter = () => {
-    onFilter(selectedDateRange);
-  };
-
   const chartData = {
     labels: data?.map(item => new Date(item?.day?.split("T")[0])?.toLocaleDateString()),
     datasets: [
       {
-        // label: 'Recette (CFA)',
+        label: '',
         data: data?.map(item => item?.total_amount),
-        // borderColor: legendBorderColor,
-        // backgroundColor: legendBgColor,
+        borderColor: "",
+        backgroundColor: "",
       },
-      // {
-      //   label:"Prédictions de recette (CFA)",
-      //   data: Object?.values(predictions) || 0
-      // }
     ],
   };
 
   const chartOptions = {
     plugins: {
       legend: {
-        display: true,
+        display: false,
         labels: {
           color: '#000',
         },
