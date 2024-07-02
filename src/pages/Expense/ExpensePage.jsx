@@ -279,7 +279,12 @@ function ExpensePage() {
   const handleSubmitValidation = async (e)=>{
     e.preventDefault();
     if(isMultipleSelect){
+      let updatedCurrencyCuts = cashDeskCuts.map((item) => {
+        let { id, ...rest } = item;
+        return { ...rest };
+      });
       selectedRowKeys?.forEach(async (rowKey)=>{
+
         let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
         let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+rowKey+"/?entity_id="+entityId;
         let data ={
@@ -287,7 +292,8 @@ function ExpensePage() {
           is_urgent:false,
           description:validationDescription,
           transaction_number: transactionNumber,
-          employee_initiator: beneficiaire
+          employee_initiator: beneficiaire,
+          denomination_cash_cut_expenses: updatedCurrencyCuts
         }
         try {
           const response = await updateData(url, data, true);
@@ -297,6 +303,7 @@ function ExpensePage() {
           setTypeValidation(false);
           setOpenValidateModal(false);
           handleGetAllExpenses();
+          setCashDeskCuts([]);
           openNotification("SUCCESS", "Fiche de dépense validé");
           return;
         } catch (error) {
@@ -311,7 +318,8 @@ function ExpensePage() {
           is_urgent:false,
           description:validationDescription,
           transaction_number: transactionNumber,
-          employee_initiator: beneficiaire
+          employee_initiator: beneficiaire,
+          denomination_cash_cut_expenses: updatedCurrencyCuts
         }
         try {
           const response = await updateData(url, data, true);
@@ -322,6 +330,7 @@ function ExpensePage() {
             setTypeValidation(false);
             setOpenValidateModal(false);  
             handleGetAllExpenses();
+            setCashDeskCuts([]);
             openNotification("SUCCESS", "Fiche de dépense validé");
             return;
           }
@@ -459,14 +468,32 @@ function ExpensePage() {
       dataIndex: 'employee_initiator',
       key: 'employee_initiator',
       width:  "200px",
-      render: (text, record)=> beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase() ?  highlightText(beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase()) : highlightText(externalEntities.find(externalEntity=> externalEntity?.external_entity.id === text)?.external_entity.name.toUpperCase())
+      render: (text, record)=> {
+        return beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase() ?  
+        highlightText(beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase()) : 
+        highlightText(externalEntities.find(externalEntity=> externalEntity?.external_entity.id === text)?.external_entity.name.toUpperCase());
+      }
     },
     {
       title: 'Beneficiaire',
       dataIndex: 'employee_beneficiary',
       key: 'employee_beneficiary',
       width:  "200px",
-      render: (text, record)=> beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase() ?  highlightText(beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase()) : highlightText(externalEntities.find(externalEntity=> externalEntity?.external_entity.id === text)?.external_entity.name.toUpperCase())
+      render: (text, record)=> 
+        {
+          let entityName = JSON.parse(localStorage.getItem("user"))?.entity?.Sigle;
+            if (beneficiaires.find(benef=> benef?.User.id === text) != undefined){
+              return highlightText(beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase())
+            }
+            if(entityId == text) {
+              return highlightText(entityName)
+            };
+
+            if (externalEntities.find(externalEntity=> externalEntity?.external_entity.id === text)!= undefined) {
+              return highlightText(externalEntities.find(externalEntity=> externalEntity?.external_entity.id === text)?.external_entity.name.toUpperCase());
+            }
+            return highlightText("N/A")
+        }
     },
     {
       title: 'Département',
@@ -1121,7 +1148,7 @@ const getOperatorAccounts = async (operator) =>{
                   </select>
                 </>
               }
-              { expenseDataSrc.length > 0 &&
+              { expenseDataSrc?.length > 0 &&
                 <button className={`${isLoading?"bg-green-300 cursor-not-allowed":"bg-green-500"}  btn p-2 text-white rounded-lg shadow-sm text-sm`} onClick={handleDataExport}>
                 {
                   isLoading ?"En cours...":"Export to excel"
@@ -1546,13 +1573,66 @@ const getOperatorAccounts = async (operator) =>{
                   } */}
                 </VerifyPermissions>
                 {
-                  selectedExpense?.payment_method !== "ESPECES" &&
+                  (selectedExpense?.it_is_a_cash_desk_movement && selectedExpense.payment_method == "ESPECES") &&
                     <VerifyPermissions
-                  expected={["paymaster_general"]}
-                  roles={userInfo?.role?.name}
-                  functions={userInfo?.Function?.name}
-                >
-                  {/* <input type="text" placeholder='Numéro de la transaction' value={transactionNumber} onChange={e=>setTransactionNumber(e.target.value)}/> */}
+                      expected={["paymaster_general"]}
+                      roles={userInfo?.role?.name}
+                      functions={userInfo?.Function?.name}
+                    >
+                    <div className=''>
+                       {/* Currency selection */}
+                        <div className='flex flex-col w-full'>
+                          <label htmlFor="" className='text-xs'>Choisir la monnaie</label>
+                          <select 
+                            className='w-full' 
+                            name="" 
+                            id="" 
+                            value={currency} 
+                            onChange={e=>{
+                              setCurrency(e.target.value);
+                              let selectedCurrency = currencies?.find(obj=>obj?.code == e.target.value);
+                              setCurrencyCuts(selectedCurrency?.currencyCuts)
+                            }}
+                          >
+                            {
+                              currencies?.map(item=><option value={item?.code} key={item?.id}>{`${item?.name} (${item?.code})`}</option>)
+                            }
+                          </select>
+                        </div>
+                        {/* Cash desk cuts */}
+                        <div>
+                          <div className='flex flex-col md:flex-col w-full'>
+                            <div className='flex flex-col md:flex-row space-x-2 items-end'>
+                              <div className='flex flex-col w-full md:w-1/4'>
+                                  <label htmlFor="" className='text-xs'>Coupure :</label>
+                                  <select value={cut} onChange={e=>setCut(e.target.value)}>
+                                      {
+                                          // currencyCuts?.map(cut=><option value={cut?.value}>{`${cut?.value}`}</option>)
+                                          currencyCuts?.map(cut=><option value={cut?.value}>{`${numberWithCommas(cut?.value)}`}</option>)
+                                      }
+                                  </select>
+                              </div>
+                              <div className='w-1/4'>
+                                  <input type="number" placeholder='Qté' className='w-full' value={qty} onChange={e=>setQty(e.target.value)}/>
+                              </div>
+                              <div className='py-2 px-1 border-b-2 border-b-green-500 bg-gray-50 w-full md:w-1/5 md:max-w-1/2 overflow-x-auto'>
+                                {
+                                  numberWithCommas(+cut * +qty)
+                                }
+                              </div>
+                              <div className='space-x-2 w-1/4'>
+                                  <button className='btn bg-green-500 text-xs text-white shadow-md w-full' onClick={handleAddCashDeskCut}>Ajouter</button>
+                              </div>
+                          </div>
+                          </div>
+                          <CurrencyCuts 
+                            data={cashDeskCuts}
+                            setCashDeskCuts={setCashDeskCuts}
+                            // currencyCuts={currencyCuts}
+                            // currencies={currencies}
+                          />
+                        </div>
+                      </div>
                     </VerifyPermissions>
                 }
 

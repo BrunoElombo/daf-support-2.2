@@ -12,8 +12,14 @@ import { ArrowsRightLeftIcon } from '@heroicons/react/24/outline'
 import StateForm from '../../components/caisse/StateForm'
 
 function Caisse() {
-  const [path, setPath] = useState("billeterie");
+  const [path, setPath] = useState("appro");
   const {userInfo} = useContext(AUTHCONTEXT);
+  /**
+   * Commas to numbers
+   */
+  const numberWithCommas=(x)=>{
+    return x?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
+}
 
   let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
   const {requestLoading, fetchData, postData, requestError, updateData} = useFetch();
@@ -29,111 +35,192 @@ function Caisse() {
     setPath(selectedPath);
   }
 
-  const APPRO_COLUMNS = [
-    { title: "#", dataIndex: "id", key: "id", width: "200px" },
-    { title: "Numéro ref", dataIndex: "ref_number", key: "ref_number", width: "200px" },
-    { title: "Initiateur", dataIndex: "initiator", key: "initiator", width: "200px" },
-    { title: "Provenance", dataIndex: "origin", key: "origin", width: "200px" },
-    { title: "Destination", dataIndex: "destination", key: "destination", width: "200px" },
-    { title: "Montant", dataIndex: "amount", key: "amount", width: "200px" },
-    { title: "Site", dataIndex: "site", key: "site", width: "200px" },
-    { title: "Entite", dataIndex: "entity", key: "entity", width: "200px" },
-    { title: "Actions", dataIndex: "", key: "actions", width: "200px", render: () => <p></p> }
-  ];
 
-  const CASH_DESK_COLUMNS = [
-    { title: "Numéro de référence", dataIndex: "reference_number", key: "reference_number" },
-    { title: "Caisse enregistreuse", dataIndex: "cash_register", key: "cash_register" },
-    { title: "Monnaie", dataIndex: "currency", key: "currency" },
-    {
-      title: "Employer initiateur",
-      dataIndex: "employee_initiator",
-      key: "employee_initiator",
-      render: (text) => employees.find(emp => emp?.User.id === text)?.User.name.toUpperCase()
-    },
-    { title: "Montant Total", dataIndex: "total_amount", key: "total_amount" },
-    { title: "État des caisses actuel", dataIndex: "current_step_cash_state", key: "current_step_cash_state" },
-    {
-      title: "Site",
-      dataIndex: "site",
-      key: "site",
-      render: (text, record) => {
-        const site = sites?.find(site => site.id === record.site);
-        return site?.name || text;
-      }
-    },
-    {
-      title: "Entites",
-      dataIndex: "entity",
-      key: "entity",
-      render: (text) => entities.find(entity => entity?.id === text)?.Sigle.toUpperCase()
-    }
-  ];
-
-  const [cashDeskStateData, setCashDeskStateData] = useState([]);
-  const [cashDeskState, setCashDeskState] = useState([]);
+  const [banks, setBanks] = useState([]);
+  const [sites, setSites] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [entities, setEntities] = useState([]);
+  const [cashDesks, setCashDesks] = useState([]);
 
   //   Get the cashdsk state data
-  const handleGetCashDeskState= async ()=>{
-      try {
-          const url = import.meta.env.VITE_DAF_API+"/cash_desk_state/?entity_id="+entityId
-          const response = await fetchData(url);
-          setCashDeskStateData(response?.results);
-          setCashDeskState(response?.results);
-      } catch (error) {
-          console.log(error)
-      }
-  }
-
-  // Get the sites
-  const [sites, setSites] = useState([]);
-  const handleGetSite=async()=>{
-    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
-    if(!requestError){
-      setSites(response);
-    }
-  }
-
-  // Get the employees
-  const [employees, setEmployees] = useState([]);
-  const handleGetEmployees = async()=>{
-      try {
-        const benef = await fetchData(import.meta.env.VITE_USER_API+"/employees");
-        setEmployees(benef);
-      } catch (error) {
-        console.log(error.message);
-      }
-  }
-
-  // Get the entities
-  const [entities, setEntities] = useState([]);
-  const handleGetAllEntities = async ()=>{
+  const handleGetSupply= async ()=>{
     try {
-      const benef = await fetchData(import.meta.env.VITE_USER_API+"/entities/all");
-      setEntities(benef);
+        const url = import.meta.env.VITE_DAF_API+"/cash_desk_movement/?entity_id="+entityId
+        const response = await fetchData(url);
+        setSupplyDataSrc(response);
+        setSupplyData(response);
+    } catch (error) {
+        console.log(error)
+    }
+  } 
+
+  const handleGetCashDeskMovement= async ()=>{
+    try {
+        const url = import.meta.env.VITE_DAF_API+"/cash_desk_state/?entity_id="+entityId
+        const response = await fetchData(url);
+        setCashDeskState(response?.results);
+        setCashDeskStateSrc(response?.results);
+    } catch (error) {
+        console.log(error)
+    }
+  } 
+
+// Get the sites
+const handleGetSite=async()=>{
+  let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
+  if(!requestError){
+    setSites(response);
+  }
+}
+
+// Get the employees
+const handleGetEmployees = async()=>{
+    try {
+      const benef = await fetchData(import.meta.env.VITE_USER_API+"/employees");
+      setEmployees(benef);
     } catch (error) {
       console.log(error.message);
     }
+}
+
+// Get the entities
+const handleGetAllEntities = async ()=>{
+  try {
+    const benef = await fetchData(import.meta.env.VITE_USER_API+"/entities/all");
+    setEntities(benef);
+  } catch (error) {
+    console.log(error.message);
   }
+}
+
+/**
+ * Get entity banks
+ */
+const handleGetBank= async()=>{
+  try {
+      const response = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity_banks");
+      setBanks(response);
+  } catch (error) {
+      console.error("Get banks:", error);
+  }
+}
+
+/**
+ * Get all the cash desk
+ */
+const handleGetCashDesk= async()=>{
+  const response = await fetchData(import.meta.env.VITE_USER_API+"/cash-desk");
+  if(!requestError){
+      setCashDesks(response);
+  }
+}
+
+
+
+  const SUPPLY_COLUMNS = [
+    { title: "#", key: "1", width: "50px", render: (text, record)=><>{supplyData.indexOf(record)+1}</>},
+    { title: "Numéro ref", dataIndex: "reference_number", key: "2", width: "200px" },
+    { 
+      title: "Provenance", 
+      dataIndex: "bank_account_listing", 
+      key: "3", 
+      width: "200px",
+      onCell: (_, index)=>{
+        console.log("129", index, _)
+      },
+      render:(text, record)=>{
+        //Convert each item to corresponding bank
+        let convertedBanksIds = record.bank_account_listing.map(bank=>{
+          let bankAcronyme = banks.find(item=>item?.bank.id == bank)?.bank?.Acronyme
+          return bankAcronyme;
+        }
+        )
+        return <>{convertedBanksIds.join(", ")}</>
+      }
+    },
+    { 
+      title: "Destination", 
+      dataIndex: "cash_registers_listing", 
+      key: "4", 
+      width: "200px",
+      render:(text, record)=>{
+        let convertedCashDesk = record.cash_registers_listing.map(regDesk=>{
+          let deskName = cashDesks.find(desk=> desk.id === regDesk)?.name;
+          console.log(deskName);
+          return deskName;
+        });
+        console.log(convertedCashDesk)
+        return <>{convertedCashDesk?.join(", ")}</>
+      } 
+    },
+    { 
+      title: "Montant", 
+      dataIndex: "amount_brakdown", 
+      key: "amount_brakdown", 
+      width: "200px",
+      render: (text, record)=>{
+        let convertData = record?.amount_brakdown.map(amount=>numberWithCommas(amount))
+        return <p>{convertData.join("; ")}</p>
+      } 
+    },
+    { title: "Montant total", dataIndex: "total_amount", key: "amount", width: "200px", render:(text)=><>{numberWithCommas(text)}</>},
+    { 
+      title: "Site", 
+      dataIndex: "site", 
+      key: "site", 
+      width: "200px",
+      render:(text)=>{
+        let siteName = sites.find(site=>site.id  == text)?.name;
+        return <>{siteName}</>
+      } 
+    }
+  ];
+
+  const CASH_DESK_COLUMNS = [
+    { title: "Numéro de référence", dataIndex: "reference_number", key: "1" },
+    { title: "Caisse enregistreuse", dataIndex: "cash_register", key: "2" },
+    { title: "Monnaie", dataIndex: "currency", key: "3" },
+    { title: "Montant", dataIndex: "total_amount", key: "4",
+      render:(text, record)=>{
+        return <p className={`${+text < 0 && "p-1 bg-red-100 border-[1px] border-red-500 rounded-lg" }`}>{numberWithCommas(text)}</p>
+      }
+    },
+    { title: "État de caisse", dataIndex: "current_step_cash_state", key: "5"},
+    { title: "Entité", dataIndex: "entity", key: "7",
+      render:(text, record)=>{
+        let entityName = entities.find(entity => entity.id === text)?.Sigle;
+        return <>{entityName}</>
+      }
+    },
+  ];
+
+  const [supplyDataSrc, setSupplyDataSrc] = useState([]);
+  const [supplyData, setSupplyData] = useState([]);
+  const [cashDeskState, setCashDeskState] = useState([]);
+  const [cashDeskStateSrc, setCashDeskStateSrc] = useState([]);
+
 
   useEffect(()=>{
-    handleGetCashDeskState();
+    handleGetSupply();
+    handleGetCashDeskMovement();
     handleGetSite();
     handleGetEmployees();
     handleGetAllEntities();
+    handleGetBank();
+    handleGetCashDesk();
   }, [])
 
   
   return (
     <LoginLayout>
         <TabsComponent>
-          {/* <Tab
+          <Tab
             title={<p>Appro caisse</p>}
             isActive={path === "appro"}
             onClick={()=>handleTabClick("appro")}
-          /> */}
+          />
           <Tab
-            title={<p>Billeterie</p>}
+            title={<p>État de caisse</p>}
             isActive={path === "billeterie"}
             onClick={()=>handleTabClick("billeterie")}
           />
@@ -156,12 +243,7 @@ function Caisse() {
                   >
                     {
                       path == "billeterie"?
-                      <button 
-                        className='btn bg-green-500 text-white text-sm'
-                        onClick={()=>setBilleterieFormIsOpen(true)}
-                      >
-                        Enregistrer l'etat
-                      </button>
+                      <></>
                       :
                       <button 
                         className='btn bg-green-500 text-white text-sm'
@@ -175,8 +257,8 @@ function Caisse() {
               </PageHeader>
               <div className='border-[1px] border-gray-100 p-3 rounded-lg mt-3'>
                 <Table 
-                  columns={path === "appro" ? APPRO_COLUMNS : path === "billeterie" ? CASH_DESK_COLUMNS:[]}
-                  dataSource={path === "appro" ? [] : path === "billeterie" ? cashDeskState:[]}
+                  dataSource={path == "appro" ?supplyData : path == "billeterie" ? cashDeskState : path == "tresorerie" && []}
+                  columns = {path == "appro" ? SUPPLY_COLUMNS : path == "billeterie" ? CASH_DESK_COLUMNS :path == "tresorerie" && []}
                   footer={()=>(
                     <div></div>
                   )}
@@ -186,7 +268,7 @@ function Caisse() {
                   }}
                   scroll={{
                     x: 500,
-                    y: "80vh"
+                    y: "50vh"
                   }}
                 />
               </div>
@@ -204,7 +286,14 @@ function Caisse() {
           footer={()=>{}}
         >
           <div className='pt-5'>
-            <ApproForm /> 
+            <ApproForm 
+              onSubmit={
+                ()=>{
+                  setOpenApproModal(false);
+                  handleGetSupply();
+                }
+              }
+            /> 
           </div>
         </Modal>
         
@@ -221,7 +310,7 @@ function Caisse() {
         >
           <div className='pt-5'>
             <StateForm onSubmit={()=>{
-              handleGetCashDeskState();
+              handleGetSupply();
               setBilleterieFormIsOpen(false);
             }}/>
           </div>

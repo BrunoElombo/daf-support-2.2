@@ -587,7 +587,7 @@ function RecettePage() {
 
   const handleDataExport = async ()=>{
     try {
-       if(recipeDataSrc.length < 1) {
+       if(recipeDataSrc?.length < 1) {
          setIsLoading(true);
          let url = `${import.meta.env.VITE_DAF_API}/recipesheet/multi_criteria_search/`;
          let headersList = {
@@ -668,7 +668,7 @@ function RecettePage() {
             } */}
           <div className='w-full md:w-auto space-x-2'>
             {
-              recipeDataSrc.length > 0 &&
+              recipeDataSrc?.length > 0 &&
               <button className={`${isLoading?"bg-green-300 cursor-not-allowed":"bg-green-500"}  btn p-2 text-white rounded-lg shadow-sm`} onClick={handleDataExport}>
               {
                 isLoading ?"En cours...":"Export to excel"

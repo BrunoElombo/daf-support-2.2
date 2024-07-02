@@ -45,7 +45,7 @@ function CreateRecetteForm(
           description: message,
           duration: 1,
         })
-      };
+    };
       
     const [employeesControllers, setEmployeesControllers] = useState([]);
     const [sites, setSites] = useState([]);

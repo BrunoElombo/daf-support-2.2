@@ -121,7 +121,16 @@ const handleChangedEntity=async (id)=>{
                 </VerifyPermissions> */}
 
                 <VerifyPermissions
-                    expected={["accountant", "department_manager", "general_manager", "president", "operations_manager", "paymaster_general", "coordinator", "chief_financial_officer"]}
+                    expected={["accountant", 
+                        "department_manager", 
+                        "general_manager", 
+                        "president", 
+                        "operations_manager", 
+                        "paymaster_general", 
+                        "coordinator", 
+                        "chief_financial_officer",
+                        "cashier",
+                    ]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
@@ -146,7 +155,7 @@ const handleChangedEntity=async (id)=>{
                     </li>
                 </VerifyPermissions>
                 
-                {/* <VerifyPermissions
+                <VerifyPermissions
                     expected={["chief_financial_officer", "general_manager", "president", "cashier"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
@@ -157,7 +166,7 @@ const handleChangedEntity=async (id)=>{
                             <span>Caisse</span>
                         </Link>
                     </li>
-                </VerifyPermissions> */}
+                </VerifyPermissions>
 
 
                 {/* <VerifyPermissions

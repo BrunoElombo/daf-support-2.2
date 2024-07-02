@@ -22,7 +22,7 @@ function StateForm({onSubmit}) {
   const [description, setDescription] = useState("");
   const [site, setSite] = useState("");
   const [shift, setShift] = useState("6h-15h");
-  const [cashDeskCuts, setCashDeskCuts] = useState([]);
+  const [cashDeskCuts, setCashDeskCuts] = useState(undefined);
   const [cut, setCut] = useState("");
   const [qty, setQty] = useState(0);
   let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
