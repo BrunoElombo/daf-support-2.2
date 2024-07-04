@@ -546,7 +546,7 @@ function ExpensePage() {
                   <div className={`${((record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_budgetary_department != null && record.statut != "REJECT FINANCIAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF</div>
                   <div className={`${((record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_general_director != null && record.statut != "REJECT GENERAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DG</div>
                   <div className={`${((record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_president != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>PRE</div>
-                  <div className={`${((record.statut == "EXECUTED") || (record.date_valid_paymaster_general != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>TPG</div>
+                  <div className={`${((record.statut == "EXECUTED") || (record.date_valid_rop != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>TPG</div>
                 </>:
                 <div 
                 className={`${((record.statut === "VALIDATION FINANCIAL MANAGEMENT"|| record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_manager_department != null && record.statut != "REJECT DEPARTMENT MANAGER")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF
@@ -564,7 +564,7 @@ function ExpensePage() {
                     <div className={`${((record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_budgetary_department != null && record.statut != "REJECT FINANCIAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF</div>
                     <div className={`${((record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_general_director != null && record.statut != "REJECT GENERAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DG</div>
                     <div className={`${((record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_president != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>PRE</div>
-                    <div className={`${((record.statut == "EXECUTED") || (record.date_valid_paymaster_general != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>TPG</div>
+                    <div className={`${((record.statut == "EXECUTED") || (record.date_valid_rop != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>TPG</div>
                   </>
                 }
               </>
@@ -614,7 +614,7 @@ function ExpensePage() {
                   <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/>
                 </>
               :
-              ((userRole == "paymaster_general" && record.date_valid_president ) && record.date_valid_paymaster_general == null && record.statut == "IN_DISBURSEMENT") ?
+              ((userRole == "rop" && record.date_valid_president ) && record.date_valid_rop == null && record.statut == "IN_DISBURSEMENT") ?
               <>
                 <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
                 {/* <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/> */}
@@ -928,7 +928,7 @@ function ExpensePage() {
           budgetary_department,
           general_director,
           president,
-          paymaster_general,
+          rop,
           description,
           amount, 
           payment_method, 
@@ -945,7 +945,7 @@ function ExpensePage() {
           date_valid_budgetary_department,
           date_valid_general_director,
           date_valid_president,
-          date_valid_paymaster_general,
+          date_valid_rop,
           department, 
           statut,
           time_created
@@ -960,7 +960,7 @@ function ExpensePage() {
         budgetary_department: beneficiaires?.find(employee=>employee?.User.id === budgetary_department)?.User.name || "N/A",
         general_director: beneficiaires?.find(employee=>employee?.User.id === general_director)?.User.name || "N/A",
         president: beneficiaires?.find(employee=>employee?.User.id === president)?.User.name || "N/A",
-        paymaster_general:beneficiaires?.find(employee=>employee?.User.id === paymaster_general)?.User.name || "N/A",
+        rop:beneficiaires?.find(employee=>employee?.User.id === rop)?.User.name || "N/A",
         description: description || "N/A",
         amount: amount || 0,
         payment_method: payment_method || "N/A",
@@ -977,7 +977,7 @@ function ExpensePage() {
         date_valid_budgetary_department:date_valid_budgetary_department?.split("T")[0] ||"N/A",
         date_valid_general_director:date_valid_general_director?.split("T")[0] ||"N/A",
         date_valid_president:date_valid_president?.split("T")[0] ||"N/A",
-        date_valid_paymaster_general:date_valid_paymaster_general?.split("T")[0] ||"N/A",
+        date_valid_rop:date_valid_rop?.split("T")[0] ||"N/A",
         department: departments.find(dept=>dept?.dept?.id === department)?.displayName || "N/A",
         statut:statut || "N/A",
         time_created: time_created
@@ -1174,7 +1174,7 @@ const getOperatorAccounts = async (operator) =>{
               </button>
               }
               <VerifyPermissions
-                expected={["coordinator","chief_financial_officer","operations_manager", "paymaster_general", "accountant", "rop"]}
+                expected={["coordinator","chief_financial_officer","operations_manager", "rop", "accountant"]}
                 roles={userInfo?.role?.name}
                 functions={userInfo?.Function?.name}
               >
@@ -1593,7 +1593,7 @@ const getOperatorAccounts = async (operator) =>{
                 {
                   (selectedExpense?.it_is_a_cash_desk_movement == false && selectedExpense.payment_method == "ESPECES") &&
                     <VerifyPermissions
-                      expected={["paymaster_general"]}
+                      expected={["rop"]}
                       roles={userInfo?.role?.name}
                       functions={userInfo?.Function?.name}
                     >
@@ -1612,7 +1612,7 @@ const getOperatorAccounts = async (operator) =>{
                 {
                   (selectedExpense?.it_is_a_cash_desk_movement && selectedExpense.payment_method == "ESPECES") &&
                     <VerifyPermissions
-                      expected={["paymaster_general"]}
+                      expected={["rop"]}
                       roles={userInfo?.role?.name}
                       functions={userInfo?.Function?.name}
                     >
