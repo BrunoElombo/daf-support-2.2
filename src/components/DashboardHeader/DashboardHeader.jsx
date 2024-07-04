@@ -84,7 +84,7 @@ const handleChangedEntity=async (id)=>{
                     <div className='bg-red-500 w-3 h-3 rounded-full absolute right-0 -top-1'>{}</div>
                     <BellIcon className="text-white h-6 w-6" />
                 </div>
-                <p onClick={()=>{setIsOpen(true)}} className='text-white text-sm bold cursor-pointer p-2 hover:bg-green-700'>Hi, {userInfo?.User.name}</p>
+                <p onClick={()=>{setIsOpen(true)}} className='text-white text-sm bold cursor-pointer p-2 hover:bg-green-700'>Hi, <span className='capitalize'>{userInfo?.User.name}</span></p>
             </div>
         </div>
         <div className='md:pt-5 md:px-5 flex items-center'>
@@ -130,6 +130,7 @@ const handleChangedEntity=async (id)=>{
                         "coordinator", 
                         "chief_financial_officer",
                         "cashier",
+                        "rop",
                     ]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}

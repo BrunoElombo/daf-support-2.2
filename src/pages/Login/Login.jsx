@@ -20,7 +20,6 @@ function Login() {
     const handleGetUserInfo =async ()=>{
       try {
         let userData = await fetchData(import.meta.env.VITE_USER_API+"/users/account");
-        console.log(userData);
         await localStorage.setItem("user", JSON.stringify(userData));
         await setUserInfo(userData);
         await setIsLoggedIn(true);

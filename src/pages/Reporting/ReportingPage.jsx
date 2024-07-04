@@ -736,13 +736,15 @@ function ReportingPage() {
                 </Popover>
               </div>
               <div>
-                <button 
+                {
+                  <button 
                   className={`${isLoading?"bg-green-300 cursor-not-allowed":"bg-green-500"}  btn p-2 text-white rounded-lg shadow-sm text-sm`} 
                   onClick={path === "expenses" ? handleExpenseDataExport : handleRecipeDataExport}>
-                  {
-                    isLoading ?"En cours...":"Export to excel"
-                  }
-                </button>
+                    { (recetteData || expensesData) &&
+                      isLoading ?"En cours...":"Export to excel"
+                    }
+                  </button>
+                }
               </div>
               <div>
                 <input type="search" className='text-sm w-full md:w-auto' placeholder='Rechercher une recette' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/>

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "my-start": "vite",
-    "dev": "vite --host 192.168.95.191",
+    "dev": "vite --host 172.19.120.187",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"

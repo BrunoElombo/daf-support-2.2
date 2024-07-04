@@ -85,6 +85,7 @@ function ExpensePage() {
   const [currencies, setCurrencies] = useState([]);
   const [currencyCuts, setCurrencyCuts] = useState([]);
   const [cashDesks, setCashDesks] = useState([]);
+  const [cashDesksId, setCashDesksId] = useState("");
 
   const handleGetCashDesks= async ()=>{
     let url = import.meta.env.VITE_USER_API+"/cash-desk";
@@ -278,11 +279,16 @@ function ExpensePage() {
 
   const handleSubmitValidation = async (e)=>{
     e.preventDefault();
+    let updatedCurrencyCuts = await cashDeskCuts.map((item) => {
+      let { id, ...rest } = item;
+      return { ...rest };
+    });
+
+    let totalSum = updatedCurrencyCuts.reduce((totalSum, item)=>{
+      return totalSum + item.total_amount
+    }, 0);
+
     if(isMultipleSelect){
-      let updatedCurrencyCuts = cashDeskCuts.map((item) => {
-        let { id, ...rest } = item;
-        return { ...rest };
-      });
       selectedRowKeys?.forEach(async (rowKey)=>{
 
         let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
@@ -293,13 +299,14 @@ function ExpensePage() {
           description:validationDescription,
           transaction_number: transactionNumber,
           employee_initiator: beneficiaire,
-          denomination_cash_cut_expenses: updatedCurrencyCuts
+          denomination_cash_cut_expenses: cashDeskCuts? updatedCurrencyCuts : []
         }
         try {
           const response = await updateData(url, data, true);
           setValidationDescription("");
           setTransactionNumber("");
           setPaymentMode("ESPECES");
+          setCashDesksId("");
           setTypeValidation(false);
           setOpenValidateModal(false);
           handleGetAllExpenses();
@@ -310,22 +317,29 @@ function ExpensePage() {
           openNotification("ECHEC", "Echec de validation");      
         }
       })
-    }else{
+    }
+    else{
       let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
         let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/?entity_id="+entityId;
+        if(totalSum != selectedExpense.amount && selectedExpense.it_is_a_cash_desk_movement){
+          openNotification("ECHEC", "Montant doit être égale au montant total");
+          return;
+        }
         let data ={
           // is_urgent:typeValidation,
           is_urgent:false,
           description:validationDescription,
           transaction_number: transactionNumber,
           employee_initiator: beneficiaire,
-          denomination_cash_cut_expenses: updatedCurrencyCuts
+          denomination_cash_cut_expenses: cashDeskCuts? updatedCurrencyCuts : [],
+          cash_desk_number: cashDesksId
         }
         try {
           const response = await updateData(url, data, true);
           if(!requestError){
             setValidationDescription("");
             setTransactionNumber("");
+            setCashDesksId("");
             setPaymentMode("ESPECES");
             setTypeValidation(false);
             setOpenValidateModal(false);  
@@ -344,7 +358,7 @@ function ExpensePage() {
     try {
       let response = await fetchData(import.meta.env.VITE_USER_API+"/currencies");
       if(!requestError){
-        setCurrency(response[0]?.id);
+        setCurrency(response[0]?.code);
         setCut(response[0]?.currencyCuts[0]?.value)
         setCurrencyCuts(response[0]?.currencyCuts)
         setCurrencies(response);
@@ -367,7 +381,7 @@ function ExpensePage() {
       // New cut
       let newData = {
         "id": uuid(),
-        "currency": currencies?.find(obj=>obj?.id == currency)?.code,
+        "currency": currencies?.find(obj=>obj?.code == currency)?.code,
         "value": cut,
         "quantity": qty,
         "total_amount": +cut*+qty
@@ -714,6 +728,10 @@ function ExpensePage() {
         // setExternalEntityBankAccountNumbers(beneficiairyBanks[0]?.bankAccounts);
         return;
     }
+    if(paymentMode == "PAIMENT MOBILE"){
+      setBeneficiaryBankAccountNumber("");
+      return;
+  }
     setBankAccountNumber("");
     setTransactionNumber("");
 }, [paymentMode]);
@@ -1156,7 +1174,7 @@ const getOperatorAccounts = async (operator) =>{
               </button>
               }
               <VerifyPermissions
-                expected={["coordinator","chief_financial_officer","operations_manager", "paymaster_general", "accountant"]}
+                expected={["coordinator","chief_financial_officer","operations_manager", "paymaster_general", "accountant", "rop"]}
                 roles={userInfo?.role?.name}
                 functions={userInfo?.Function?.name}
               >
@@ -1573,12 +1591,34 @@ const getOperatorAccounts = async (operator) =>{
                   } */}
                 </VerifyPermissions>
                 {
+                  (selectedExpense?.it_is_a_cash_desk_movement == false && selectedExpense.payment_method == "ESPECES") &&
+                    <VerifyPermissions
+                      expected={["paymaster_general"]}
+                      roles={userInfo?.role?.name}
+                      functions={userInfo?.Function?.name}
+                    >
+                      <div className=''>
+                        <p>Choisir la caisse : </p>
+                      </div>
+                    <div className=''>
+                      <select name="" id="" className='w-full' value={cashDesksId} onChange={e=>setCashDesksId(e.target.value)}>
+                        { 
+                          cashDesks.map((desk) =><option value={desk?.id} key={desk?.id}>{desk?.name}</option>)
+                        }
+                      </select>
+                    </div>
+                    </VerifyPermissions>
+                }
+                {
                   (selectedExpense?.it_is_a_cash_desk_movement && selectedExpense.payment_method == "ESPECES") &&
                     <VerifyPermissions
                       expected={["paymaster_general"]}
                       roles={userInfo?.role?.name}
                       functions={userInfo?.Function?.name}
                     >
+                      <div className=''>
+                        <p>Montant total: <b>{numberWithCommas(selectedExpense.amount)}</b></p>
+                      </div>
                     <div className=''>
                        {/* Currency selection */}
                         <div className='flex flex-col w-full'>
@@ -1632,7 +1672,7 @@ const getOperatorAccounts = async (operator) =>{
                             // currencies={currencies}
                           />
                         </div>
-                      </div>
+                    </div>
                     </VerifyPermissions>
                 }
 

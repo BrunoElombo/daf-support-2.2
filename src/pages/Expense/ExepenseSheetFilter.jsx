@@ -2,7 +2,7 @@ import React, {useState, useEffect} from 'react'
 import useFetch from '../../hooks/useFetch';
 import $ from 'jquery';
 
-
+// let beneficiairyList = [];
 function ExepenseSheetFilter({setExpenseDataSrc}) {
     const entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
 
@@ -25,8 +25,9 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
 
     const [sites, setSites] = useState([]);
     const [employees, setEmployees] = useState([]);
+    const [externalEntities, setExternalEntities] = useState([]);
+    const [beneficiairyList, setBeneficiairyList] = useState([]);
     const [departements, setDepartements] = useState([]);
-
     const [isLoading, setIsLoading] = useState(false);
 
     // Handlers
@@ -106,30 +107,50 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
         }
     }
 
+    // --Handle Get external entities
+    const handleExternalEntity = async()=>{
+        const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
+        let formated = external.forEach(benef=>{
+            // beneficiairyList.push({id: benef?.external_entity.id, name: benef?.external_entity.name});
+            return{id: benef?.external_entity.id, name: benef?.external_entity.name}
+        });
+        let updatedValue = [...beneficiairyList, ...formated]
+        setBeneficiairyList(updatedValue);
+    }
+
     // --Handle Get Employees
     const handleGetEmployees = async()=>{
         const controller = await fetchData(import.meta.env.VITE_USER_API+"/employees");
         try {
-            let result = controller ;
-            setEmployees(result);
+            let foramtedController = controller?.forEach(benef=>{
+                // let updatedValue = [...beneficiairyList, {id: benef?.User.id, name: benef?.User.name}]
+                // setBeneficiairyList(updatedValue);
+                // // beneficiairyList.push({id: benef?.User.id, name: benef?.User.name});
+                return {id: benef?.User.id, name: benef?.User.name}
+                
+            });
+            let updatedValue = [...beneficiairyList, ...foramtedController]
+            setBeneficiairyList(updatedValue);
+            setEmployees(controller);
         } catch (error) {
             console.error("Error creating recipe:", error);
         }
     }
 
     // --Handle Get Departments
-    const handkeGetDepartments = async() => {
+    const handleGetDepartments = async() => {
         let response = await fetchData(import.meta.env.VITE_USER_API+"/departments");
         if(!requestError){
         setDepartements(response);
         }
     }
 
-    // UseEfffects
+    // UseEffects
     useEffect(()=>{
         handleGetEntitySite();
         handleGetEmployees();
-        handkeGetDepartments();
+        handleExternalEntity();
+        handleGetDepartments();
     }, []);
 
   return (
@@ -184,7 +205,7 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
                     <select className='text-xs' value={beneficiary} onChange={e=>setBeneficiary(e.target.value)}>
                         <option value=""></option>
                         {
-                            employees.map(employee => <option key={employee?.User.id} value={employee?.User.id}>{employee?.User.name}</option>)
+                            employees.map(benef => <option className='capitalize' key={benef?.id} value={benef?.id}>{benef?.name}</option>)
                         }
                     </select>
                 </div>
