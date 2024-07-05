@@ -402,7 +402,7 @@ function Dashboard() {
           <div className='flex w-auto justify-end items-center space-x-2 mt-2'>
             <label htmlFor="" className='text-xs'>Choisir le pas :</label>
             <select className='text-xs' value={step} onChange={e=>setStep(e.target.value)}>
-              <option value="">Normal</option>
+              <option value="">Jour</option>
               <option value="WEEK">Semain</option>
               <option value="MONTH">Mois</option>
             </select>

@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react'
 import LoginLayout from '../../Layout/LoginLayout'
-import ReportingSheetFilter from './ReportingSheetFilter';
+import ReportingSheetFilter from './TreasurySheetFilter';
 import PageHeader from '../../components/PageHeader/PageHeader'
 import TabsComponent from '../../components/TabsComponents/TabsComponent'
 import Tab from '../../components/TabsComponents/Tab'
@@ -12,7 +12,7 @@ import ExepenseSheetFilter from '../Expense/ExepenseSheetFilter';
 import $ from 'jquery';
 import axios from 'axios';
 
-function ReportingPage() {
+function TreasuryPage() {
   let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
   const months = [
     'January',
@@ -820,4 +820,4 @@ function ReportingPage() {
   )
 }
 
-export default ReportingPage
+export default TreasuryPage

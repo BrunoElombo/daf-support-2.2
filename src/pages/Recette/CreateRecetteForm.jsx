@@ -71,6 +71,7 @@ function CreateRecetteForm(
     const [corporateName, setCorporateName] = useState("");
     const [uinClient, setUinClient] = useState("");
     const [siteValue, setSiteValue] = useState("");
+    const [invoiceNumber, setInvoiceNumber] = useState("");
     const [recipeErrMsg, setRecipeErrMsg] = useState("");
     const [enableNext, setEnableNext] = useState(false);
     
@@ -163,6 +164,7 @@ function CreateRecetteForm(
         setPaymentMethod("ESPECES");
         setTotalAmount("");
         setDescriptionValue("");
+        setInvoiceNumber("");
         setShiftValue("6h-15h");
         setFileNumber("");
         setCorporateName("");
@@ -357,6 +359,7 @@ function CreateRecetteForm(
         const data = {
             "recipe_type": recipeType,
             "employee_controller": employeeController,
+            "invoice_number": invoiceNumber,
             "payment_method": [paymentMethod],
             "total_amount": totalAmount,
             "provenance": provenanceValue,
@@ -398,6 +401,7 @@ function CreateRecetteForm(
         const data = {
             "recipe_type": recipeType,
             "employee_controller": employeeController,
+            "invoice_number": invoiceNumber,
             "payment_method": [paymentMethod],
             "total_amount": totalAmount,
             "provenance": provenanceValue,
@@ -666,9 +670,12 @@ function CreateRecetteForm(
                             roles={userInfo?.role?.name}
                             functions={userInfo?.Function?.name}
                         >
+                            <div className='w-full flex flex-col'>
+                                <input type="text" placeholder='Numéro de facture' className='text-sm w-full' value={invoiceNumber} onChange={e=>setInvoiceNumber(e.target.value)}/>
+                            </div>
                             <div className='w-full flex-col flex'>
                                 {/* Entite extern */}
-                                <label htmlFor="" className='text-xs'>Entitées externe :</label>
+                                <label htmlFor="" className='text-xs'>Créditeur :</label>
                                 <select name="" id="" value={externalEntity} onChange={e=>setExternalEntity(e.target.value)}>
                                     {
                                         externalEntities.map(entity =>
@@ -854,7 +861,7 @@ function CreateRecetteForm(
                         functions={userInfo?.Function?.name}
                     >
                         <button className={`${requestLoading ? "bg-green-300" : "bg-green-500" } btn text-white text-sm shadow flex items-center`} onClick={handleCreateRecettes}> 
-                            <span>{requestLoading ? "En cours..." : "Initier la recette"}</span>
+                            <span>{requestLoading ? "En cours..." : "Enregistrer une opération"}</span>
                         </button>
                     </VerifyPermissions>
                     <VerifyPermissions
@@ -962,7 +969,7 @@ function CreateRecetteForm(
                                 <span>{requestLoading ? "En cours..." : "Initier et continue"}</span>
                             </button>
                             <button className={`${requestLoading ? "bg-green-300" : "bg-green-500" } btn text-white text-sm shadow flex items-center`} onClick={handleCreateRecettes}> 
-                                <span>{requestLoading ? "En cours..." : "Initier la recette"}</span>
+                                <span>{requestLoading ? "En cours..." : "Enregistrer une opération"}</span>
                             </button>
                         </div>
                     </div>

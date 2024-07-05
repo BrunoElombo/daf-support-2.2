@@ -8,7 +8,7 @@ import Entity from './pages/Entities/Entity';
 import Dashboard from './pages/Dashboard/Dashboard';
 import RecettePage from './pages/Recette/RecettePage';
 import ExpensePage from './pages/Expense/ExpensePage';
-import ReportingPage from './pages/Reporting/ReportingPage';
+import TreasuryPage from './pages/Treasury/TreasuryPage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import Caisse from './pages/Caisse/Caisse';
 import VerifyPermissions from './components/Permissions/VerifyPermissions';
@@ -64,7 +64,8 @@ function App() {
             <Route path={'/recette'} element={<RecettePage />} />
             <Route path={'/expense'} element={<ExpensePage />} />
             <Route path={'/caisse'} element={<Caisse />} />
-            <Route path={'/reporting'} element={<ReportingPage />} />
+            <Route path={'/treasury'} element={<TreasuryPage />} />
+            <Route path={'/reporting'} element={<TreasuryPage />} />
             <Route path={'/settings'} element={<SettingsPage />} />
           </Routes>
         )

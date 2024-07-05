@@ -379,9 +379,16 @@ function RecettePage() {
       render: (text) => highlightText(text),
     },
     {
+      title: 'Numéro de Factures',
+      dataIndex: 'invoice_number',
+      key: '6',
+      width:  "200px",
+      render: (text, record) => record.invoice_number ? highlightText(text) : highlightText("N/A"),
+    },
+    {
       title: 'Site',
       dataIndex: 'site',
-      key: '6',
+      key: '7',
       width:  "200px",
       render: (text, record)=>(
         <>{highlightText(entitySites.find(site=>site.id === text)?.name)}</>
@@ -390,7 +397,7 @@ function RecettePage() {
     {
       title: 'Montant Total',
       dataIndex: 'total_amount',
-      key: '7',
+      key: '8',
       width:  "200px",
       render:(text, record)=>{
         let formatedAmount = numberWithCommas(text)
@@ -400,7 +407,7 @@ function RecettePage() {
     {
       title: 'Status',
       width:  "200px",
-      key: '8',	
+      key: '9',	
       render:(text, record)=>(
         record.statut !== "RECEIVED" ?
           <div className='flex space-x-2'>
@@ -414,7 +421,7 @@ function RecettePage() {
     {
       title: 'Shift',
       dataIndex: 'shift',
-      key: '9',
+      key: '10',
       width:  "200px",
       render:(text, record)=>(
         <>
@@ -430,7 +437,7 @@ function RecettePage() {
       data:"id",
       width:  "200px",
       fixed: 'right',
-      key: "10",
+      key: "11",
       render: (text, record)=>(
         <div className='flex items-center space-x-2'>
           {
@@ -631,7 +638,7 @@ function RecettePage() {
   return (
     <LoginLayout classNam="space-y-3">
         <div className='flex justify-between'>
-        <h3 className='py-2 bold'>FICHE DE RECETTE</h3>
+        <h3 className='py-2 bold'>RECETTES</h3>
           <div className='flex items-center text-sm'>
             <p className='text-sm'>
               Total : <b className='bg-yellow-300 p-2 rounded-lg'>{numberWithCommas(recipeTotal)} XAF</b>
@@ -684,7 +691,7 @@ function RecettePage() {
               <button 
                 className='text-white bg-green-500 p-2 rounded-lg shadow text-sm w-full md:w-auto'
                 onClick={handleToggleOpenForm}
-              >Initier une opération</button>
+              >Enregistrer une opération</button>
             </VerifyPermissions>
             {
               selectedRowKeys.length > 0 &&
@@ -721,7 +728,7 @@ function RecettePage() {
 
         {/* New recette detail */}
         <CreateRecetteForm 
-          title={<p>Initier une opération</p>}
+          title={<p>Enregistrer une opération</p>}
           centered
           open={isOpen}
           footer={<></>}

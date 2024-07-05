@@ -95,7 +95,7 @@ const handleChangedEntity=async (id)=>{
             </div>
             <ul className='space-x-4 text-sm text-white overflow-x-auto hidden md:flex'>
                 <VerifyPermissions
-                    expected={["accountant", "department_manager", "general_manager", "president", "operations_manager"]}
+                    expected={["chief_financial_officer", "accountant", "department_manager", "general_manager", "president", "operations_manager"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
@@ -109,7 +109,7 @@ const handleChangedEntity=async (id)=>{
                 <li>
                     <Link to={"/recette"} className={`${pathname.includes("recette") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`}>
                         <DocumentArrowDownIcon className="text-white h-6 w-6" />
-                        <span>Fiche de recette</span>
+                        <span>Recettes</span>
                     </Link>
                 </li>
 
@@ -138,18 +138,18 @@ const handleChangedEntity=async (id)=>{
                     <li>
                         <Link className={`${pathname.includes("expense") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/expense"}>
                             <DocumentArrowUpIcon className="text-white h-6 w-6" />
-                            <span>Fiche de dépense</span>
+                            <span>Dépenses</span>
                         </Link>
                     </li>
                 </VerifyPermissions>
 
                 <VerifyPermissions
-                    expected={["chief_financial_officer", "general_manager", "president"]}
+                    expected={["chief_financial_officer", "general_manager", "president", "operations_manager"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
                     <li>
-                        <Link className={`${pathname.includes("reporting") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/reporting"}>
+                        <Link className={`${pathname.includes("treasury") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/treasury"}>
                             <CurrencyDollarIcon className="text-white h-6 w-6" />
                             <span>Trésorerie</span>
                         </Link>
@@ -157,7 +157,7 @@ const handleChangedEntity=async (id)=>{
                 </VerifyPermissions>
                 
                 <VerifyPermissions
-                    expected={["chief_financial_officer", "general_manager", "president", "cashier"]}
+                    expected={["chief_financial_officer", "general_manager", "president", "cashier", "operations_manager"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
@@ -165,6 +165,18 @@ const handleChangedEntity=async (id)=>{
                         <Link className={`${pathname.includes("caisse") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/caisse"}>
                             <BanknotesIcon className="text-white h-6 w-6" />
                             <span>Caisse</span>
+                        </Link>
+                    </li>
+                </VerifyPermissions>
+                <VerifyPermissions
+                    expected={["chief_financial_officer", "general_manager", "president", "operations_manager"]}
+                    roles={userInfo?.role?.name}
+                    functions={userInfo?.Function?.name}
+                >
+                    <li>
+                        <Link className={`${pathname.includes("reporting") && 'border-b-[3px] border-white'} cursor-pointer flex items-center space-x-2 py-2`} to={"/reporting"}>
+                            <ChartBarIcon className="text-white h-6 w-6" />
+                            <span>Reporting</span>
                         </Link>
                     </li>
                 </VerifyPermissions>
@@ -207,7 +219,7 @@ const handleChangedEntity=async (id)=>{
             <div>
                 <p><b>Nom d'utilisateur :</b></p>
                 <div className='p-2 bg-gray-200 border-gray-300 border-[1px] rounded-lg'>
-                   <p className='text-md'>{userInfo?.User?.name}</p> 
+                   <p className='text-md capitalize'>{userInfo?.User?.name}</p> 
                 </div>
             </div>
             <div>
@@ -220,7 +232,7 @@ const handleChangedEntity=async (id)=>{
                 <p><b>Entité :</b></p>
                 {/* <hr /><br /> */}
                 <div className='p-2 bg-gray-200 border-gray-300 border-[1px] rounded-lg'>
-                    <p>{userInfo?.entity.raison_social}</p>
+                    <p className='capitalize'>{userInfo?.entity.raison_social}</p>
                 </div>
                 {/* <select name="" id="" className='w-full mt-2' onChange={(e)=>handleChangedEntity(e.target.value)}>
                     {
@@ -282,7 +294,7 @@ const handleChangedEntity=async (id)=>{
                     </li>
                 </VerifyPermissions>
                 <VerifyPermissions
-                    expected={["chief_financial_officer", "general_manager", "president"]}
+                    expected={["chief_financial_officer", "general_manager", "president", "operations_manager"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
@@ -294,7 +306,7 @@ const handleChangedEntity=async (id)=>{
                     </li>
                 </VerifyPermissions>
                 <VerifyPermissions
-                    expected={["chief_financial_officer", "general_manager", "president", "cashier"]}
+                    expected={["chief_financial_officer", "general_manager", "president", "cashier", "operations_manager"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
@@ -305,7 +317,7 @@ const handleChangedEntity=async (id)=>{
                         </Link>
                     </li>
                 </VerifyPermissions>
-                <VerifyPermissions
+                {/* <VerifyPermissions
                     expected={["chief_financial_officer", "general_manager", "president", "operations_manager"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
@@ -316,7 +328,7 @@ const handleChangedEntity=async (id)=>{
                             <span>Parametres</span>
                         </Link>
                     </li>
-                </VerifyPermissions>
+                </VerifyPermissions> */}
             </ul>
         </Drawer>
     </div>

@@ -12,7 +12,7 @@ const filterOptions = [
 
 
 
-function RecetteSheetFilter({setRecetteDataSrc, onSubmit}) {
+function TreasurySheetFilter({setRecetteDataSrc, onSubmit}) {
 
     const {fetchData, requestError, requestLoading} = useFetch();
     const entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
@@ -227,4 +227,4 @@ function RecetteSheetFilter({setRecetteDataSrc, onSubmit}) {
     );
 }
 
-export default RecetteSheetFilter
+export default TreasurySheetFilter

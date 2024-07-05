@@ -1128,7 +1128,7 @@ const getOperatorAccounts = async (operator) =>{
         <LoginLayout classNam="space-y-3">
             <a id="file-link"></a>
             <div className='flex justify-between'>
-              <h3 className='py-2 bold'>FICHE DE DÉPENSE</h3>
+              <h3 className='py-2 bold'>DÉPENSES</h3>
               <div className='flex items-center text-sm'>
                 <p> Total : <b className='bg-yellow-300 p-2 rounded-lg'>{expenseDataSrc?.length > 0 ? numberWithCommas(expenseTotal):"0"} XAF</b></p>
               </div>
@@ -1174,7 +1174,7 @@ const getOperatorAccounts = async (operator) =>{
               </button>
               }
               <VerifyPermissions
-                expected={["coordinator","chief_financial_officer","operations_manager", "rop", "accountant"]}
+                expected={["coordinator", "rop", "accountant"]}
                 roles={userInfo?.role?.name}
                 functions={userInfo?.Function?.name}
               >

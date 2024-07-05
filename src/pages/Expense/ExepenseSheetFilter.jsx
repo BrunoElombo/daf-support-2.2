@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react'
 import useFetch from '../../hooks/useFetch';
 import $ from 'jquery';
+import { formatCountdown } from 'antd/es/statistic/utils';
 
 // let beneficiairyList = [];
 function ExepenseSheetFilter({setExpenseDataSrc}) {
@@ -114,6 +115,7 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
             // beneficiairyList.push({id: benef?.external_entity.id, name: benef?.external_entity.name});
             return{id: benef?.external_entity.id, name: benef?.external_entity.name}
         });
+        console.log(formated)
         let updatedValue = [...beneficiairyList, ...formated]
         setBeneficiairyList(updatedValue);
     }
@@ -129,8 +131,9 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
                 return {id: benef?.User.id, name: benef?.User.name}
                 
             });
-            let updatedValue = [...beneficiairyList, ...foramtedController]
-            setBeneficiairyList(updatedValue);
+            console.log(formatCountdown)
+            // let updatedValue = [...beneficiairyList, ...foramtedController]
+            // setBeneficiairyList(updatedValue);
             setEmployees(controller);
         } catch (error) {
             console.error("Error creating recipe:", error);
@@ -196,7 +199,7 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
                     <select className='text-xs' value={initiator} onChange={e=>setInitiator(e.target.value)}>
                         <option value=""></option>
                         {
-                            employees.map(employee => <option key={employee?.User.id} value={employee?.User.id}>{employee?.User.name}</option>)
+                            employees.map(employee => <option className='capitalize' key={employee?.User.id} value={employee?.User.id}>{employee?.User.name}</option>)
                         }
                     </select>
                 </div>
@@ -205,7 +208,7 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
                     <select className='text-xs' value={beneficiary} onChange={e=>setBeneficiary(e.target.value)}>
                         <option value=""></option>
                         {
-                            employees.map(benef => <option className='capitalize' key={benef?.id} value={benef?.id}>{benef?.name}</option>)
+                            employees.map(benef => <option className='capitalize' key={benef?.User.id} value={benef?.User.id}>{benef?.User.name}</option>)
                         }
                     </select>
                 </div>

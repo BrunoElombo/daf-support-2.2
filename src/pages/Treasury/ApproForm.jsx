@@ -3,6 +3,7 @@ import { notification } from 'antd';
 import useFetch from '../../hooks/useFetch';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { v4 as uuid } from 'uuid'
+import CurrencyCuts from '../../components/caisse/CurrencyCuts';
 
 function ApproForm({onSubmit}) {
     let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
@@ -23,6 +24,12 @@ function ApproForm({onSubmit}) {
     const [displaySuggestions, setDisplaySuggestions] = useState(false);
     const [banks, setBanks] = useState([]);
     const [cashDesks, setCashDesks] = useState([]);
+    const [cut, setCut] = useState("");
+    const [qty, setQty] = useState(0);
+    const [currency, setCurrency] = useState("");
+    const [currencies, setCurrencies] = useState([]);
+    const [currencyCuts, setCurrencyCuts] = useState([]);
+    const [cashDeskCuts, setCashDeskCuts] = useState([]);
     const [operations, setOperations] = useState([]);
 
     /**
@@ -30,12 +37,14 @@ function ApproForm({onSubmit}) {
      */
     const [site, setSite] = useState("");
     const [bank, setBank] = useState("");
+    const [employee, setEmployee] = useState("");
     const [bankAccount, setBankAccount] = useState("");
     const [cashDesk, setCashDesk] = useState("");
     const [amount, setAmount] = useState("");
     const [description, setDescription] = useState("");
 
     const [selectedBank, setSelectedBank] = useState([]);
+    const [employees, setEmployees] = useState([]);
     const [selectedCashDesks, setSelectedCashDesks] = useState([]);
     const [accounts, setAccounts] = useState([]);
     const [suggestions, setSuggestions] = useState([]);
@@ -45,6 +54,9 @@ function ApproForm({onSubmit}) {
         handleGetBank();
         handleGetCashDesk();
         handleGetSites();
+        handleGetEmployees();
+        handleGetCashDesks();
+        handleGetCurrencies();
     }, []);
 
     useEffect(()=>{
@@ -73,6 +85,15 @@ function ApproForm({onSubmit}) {
         setDisplaySuggestions(false);
     }, [bankAccount]);
 
+
+    /**
+     * Detect cashdesk cuts
+     */
+    useEffect(()=>{
+        let newAmount = cashDeskCuts.reduce((total, item)=>total + item?.total_amount, 0);
+        setAmount(newAmount);
+        setQty(0);      
+    }, [cashDeskCuts]);
 
     // Methods
     /**
@@ -133,6 +154,7 @@ function ApproForm({onSubmit}) {
         )return false
         return true;
     }
+
     /**
      * Handle clear operation Form
      */
@@ -175,9 +197,20 @@ function ApproForm({onSubmit}) {
     const handleDeleteOperation=(id)=>{
         let updatedOperations = operations?.filter(operation=>operation.id != id);
         setOperations(updatedOperations);
-
     }
 
+    /**
+     * Handle get employees
+     */
+    const handleGetEmployees = async()=>{
+        try {
+          const benef = await fetchData(import.meta.env.VITE_USER_API+"/employees");
+          setEmployees(benef);
+          setEmployee(benef[0]?.User.id);
+        } catch (error) {
+          console.log(error.message);
+        }
+    }
 
     /**
      * Handle get all sites
@@ -190,50 +223,92 @@ function ApproForm({onSubmit}) {
         } catch (error) {
           console.error(error)
         }
+    }
+
+
+    const handleGetCashDesks= async ()=>{
+        let url = import.meta.env.VITE_USER_API+"/cash-desk";
+        try {
+          const response = await fetchData(url);
+          setCashDesks(response);
+          setCashDesk(response[0]?.id);
+        } catch (error) {
+          
+        }
       }
+    const handleGetCurrencies=async()=>{
+        try {
+          let response = await fetchData(import.meta.env.VITE_USER_API+"/currencies");
+          if(!requestError){
+            setCurrency(response[0]?.code);
+            setCut(response[0]?.currencyCuts[0]?.value)
+            setCurrencyCuts(response[0]?.currencyCuts)
+            setCurrencies(response);
+          }
+        } catch (error) {
+          console.log(error)
+        }
+      }
+    
+      
+      const handleClearCutsForm =()=>{
+        setCut(currency?.currencyCuts[0]?.value);
+        setQty(0);
+      }
+    
+    const handleAddCashDeskCut= async (e) =>{
+        e.preventDefault();
+        if(cut && qty != 0){
+
+            // New cut
+            let newData = {
+                "id": uuid(),
+                "currency": currencies?.find(obj=>obj?.code == currency)?.code,
+                "value": cut,
+                "quantity": qty,
+                "total_amount": +cut*+qty
+            }
+
+            // Update the cuts list
+            let updatedValues = [newData, ...cashDeskCuts];
+            setCashDeskCuts(updatedValues);
+            
+            // 
+            let cutsTotal = updatedValues?.reduce((accumulator, item)=>{
+                return accumulator + item?.total_amount;
+            }, 0);
+
+            // Set the total amount
+            setAmount(cutsTotal);
+            
+            handleClearCutsForm();
+        }else{
+            // openNotification("Echec", "Choisir la coupure et la qté");
+        }
+    }
 
     const handleSubmit=async(e)=>{
         e.preventDefault();
-        let cashDeskList = [];
-        let bankList = [];
-        let amountBreackDown = [];
-        let totalAmount = operations.reduce((total, operation)=>{
-            let amount = +(operation.amount);
-            return total + amount
-        }, 0);
-
-        operations.forEach(operation=>{
-            let cashDeskId = cashDesks.find(desk=> desk.name === operation.cash_desk)?.id;
-            cashDeskList.push(cashDeskId);
-            
-            let bankId = banks.find(desk=> desk.bank.Acronyme === operation.bank)?.bank?.id;
-            bankList.push(bankId);
-
-            amountBreackDown.push(operation.amount);
-
-        })
 
         let url = `${import.meta.env.VITE_DAF_API}/cash_desk_movement/?entity_id=${entityId}`
+        // let formatedCuts = cashDeskCuts.map(desk=> )
         let data = {
-            bank_account_listing: bankList,
-            cash_registers_listing: cashDeskList,
-            amount_brakdown: amountBreackDown,
+            bank_account: bankAccount,
+            cash_register: cashDesk,
+            // amount_brakdown: amount,
             description,
-            total_amount: totalAmount,
-            currency : CURRENCY,
+            bank_mandate: employee,
+            amount: amount,
+            currency : currency,
             cash_desk_movement_type: "CASH SUPPLY",
-            site: site
+            site: site,
+            denomination_cash_cut_cash_desk_movements: cashDeskCuts
         }
-
-        console.log(data);
-
         try{
             const response = await postData(url, data, true);
-            console.log(response);
             onSubmit();
         }
         catch(error) {
-            console.log(error)
             openNotification("ECHEC", "Echec de creation de l'appro.")
         }
     }
@@ -308,6 +383,16 @@ function ApproForm({onSubmit}) {
             </select>
         </div>
 
+        {/* Choisir le mandataire */}
+        <div className={`flex flex-col`}>
+            <label htmlFor="" className="text-xs">Choisir le mandataire <span className='text-xs text-red-500'>*</span> :</label>
+            <select className='capitalize' value={employee} onChange={e=>setEmployee(e.target.value)}>
+                {
+                    employees.map(benef=><option value={benef?.User.id} key={benef?.User.id}>{benef?.User.name}</option>)
+                }
+            </select>
+        </div>
+
         {/* Choisir le montant */}
         <div className='flex'>
             <input 
@@ -315,6 +400,7 @@ function ApproForm({onSubmit}) {
                 className='text-sm w-full' 
                 placeholder='Montant *'
                 value={amount}
+                disabled={true}
                 onChange={e=>{
                     if(!isNaN(e.target.value)){
                         setAmount(e.target.value);
@@ -322,8 +408,59 @@ function ApproForm({onSubmit}) {
                 }}
             />
         </div>
-
-        <div className='flex justify-end'>
+        <div className=''>
+            {/* Currency selection */}
+            <div className='flex flex-col w-full'>
+                <label htmlFor="" className='text-xs'>Choisir la monnaie</label>
+                <select 
+                className='w-full' 
+                name="" 
+                id="" 
+                value={currency} 
+                onChange={e=>{
+                    setCurrency(e.target.value);
+                    let selectedCurrency = currencies?.find(obj=>obj?.code == e.target.value);
+                    setCurrencyCuts(selectedCurrency?.currencyCuts)
+                }}
+                >
+                {
+                    currencies?.map(item=><option value={item?.code} key={item?.id}>{`${item?.name} (${item?.code})`}</option>)
+                }
+                </select>
+            </div>
+            {/* Cash desk cuts */}
+            <div>
+                <div className='flex flex-col md:flex-col w-full'>
+                <div className='flex flex-col md:flex-row space-x-2 items-end'>
+                    <div className='flex flex-col w-full md:w-1/4'>
+                        <label htmlFor="" className='text-xs'>Coupure :</label>
+                        <select value={cut} onChange={e=>setCut(e.target.value)}>
+                            {
+                                // currencyCuts?.map(cut=><option value={cut?.value}>{`${cut?.value}`}</option>)
+                                currencyCuts?.map(cut=><option value={cut?.value}>{`${numberWithCommas(cut?.value)}`}</option>)
+                            }
+                        </select>
+                    </div>
+                    <div className='w-1/4'>
+                        <input type="number" placeholder='Qté' className='w-full' value={qty} onChange={e=>{
+                            if(e.target.value >= 0){
+                                setQty(e.target.value);
+                            }
+                        }}/>
+                    </div>
+                    <div className='py-2 px-1 border-b-2 border-b-green-500 bg-gray-50 w-full md:w-1/5 md:max-w-1/2 overflow-x-auto'>
+                    {
+                        numberWithCommas(+cut * +qty)
+                    }
+                    </div>
+                    <div className='space-x-2 w-1/4'>
+                        <button className='btn bg-green-500 text-xs text-white shadow-md w-full' onClick={handleAddCashDeskCut}>Ajouter</button>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+        {/* <div className='flex justify-end'>
             {!requestLoading &&
                 <button 
                     className='flex items-center btn btn-primary text-xs'
@@ -333,27 +470,12 @@ function ApproForm({onSubmit}) {
                     Ajouter
                 </button>
             }
-        </div>
+        </div> */}
         <div className='bg-gray-500 h-[1px]'></div>
-        <div className='w-full h-[50px] max-h-[100px] flex flex-col space-y-3 overflow-y-scroll p-2'>
-            {
-                operations.length > 0 ?
-                operations.map(operation => 
-                    <div className='flex justify-evenly items-center p-2 rounded-lg shadow-sm border-b-[1px]'>
-                        <span className='text-xs italic w-1/4 max-w-1/4'>{operation.bank}</span>
-                        <span className='text-xs italic w-1/4 max-w-1/4'>{operation.bank_account}</span>
-                        <span className='text-xs italic w-1/4 max-w-1/4'>{numberWithCommas(operation.amount)} XAF</span>
-                        <span className='text-xs italic w-1/4 max-w-1/4'>{operation.cash_desk}</span>
-                        <button className='hover:bg-gray-200 rounded-lg p-2' onClick={()=>handleDeleteOperation(operation.id)}>
-                            <TrashIcon className='w-3 h-3 text-red-500'/>
-                        </button>
-                    </div>
-                ):
-                <div className='flex justify-center items-center'>
-                    <span className='text-xs italic'>Aucune operation</span>
-                </div>
-            }
-        </div>
+            <CurrencyCuts 
+                data={cashDeskCuts}
+                setCashDeskCuts={setCashDeskCuts}
+            />
         <div className='bg-gray-500 h-[1px]'></div>
         <textarea className="" placeholder='Description' value={description} onChange={e=>setDescription(e.target.value)}></textarea>
         <div className='flex justify-end'>

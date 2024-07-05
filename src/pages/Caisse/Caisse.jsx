@@ -7,9 +7,10 @@ import Tab from '../../components/TabsComponents/Tab'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import useFetch from '../../hooks/useFetch'
 import { Drawer, Modal, Table } from 'antd'
-import ApproForm from '../Reporting/ApproForm'
+import ApproForm from '../Treasury/ApproForm'
 import { ArrowsRightLeftIcon } from '@heroicons/react/24/outline'
 import StateForm from '../../components/caisse/StateForm'
+import CaissePageHeader from './CaissePageHeader'
 
 function Caisse() {
   const [path, setPath] = useState("appro");
@@ -19,7 +20,7 @@ function Caisse() {
    */
   const numberWithCommas=(x)=>{
     return x?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
-}
+  }
 
   let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
   const {requestLoading, fetchData, postData, requestError, updateData} = useFetch();
@@ -121,49 +122,54 @@ const handleGetCashDesk= async()=>{
     { title: "#", key: "1", width: "50px", render: (text, record)=><>{supplyData.indexOf(record)+1}</>},
     { title: "Numéro ref", dataIndex: "reference_number", key: "2", width: "200px" },
     { 
-      title: "Provenance", 
-      dataIndex: "bank_account_listing", 
+      title: "Compte bancaire", 
+      dataIndex: "bank_account", 
       key: "3", 
       width: "200px",
-      onCell: (_, index)=>{
-        console.log("129", index, _)
-      },
-      render:(text, record)=>{
-        //Convert each item to corresponding bank
-        let convertedBanksIds = record.bank_account_listing.map(bank=>{
-          let bankAcronyme = banks.find(item=>item?.bank.id == bank)?.bank?.Acronyme
-          return bankAcronyme;
-        }
-        )
-        return <>{convertedBanksIds.join(", ")}</>
-      }
     },
     { 
-      title: "Destination", 
-      dataIndex: "cash_registers_listing", 
+      title: "Caisse", 
+      dataIndex: "cash_register", 
       key: "4", 
       width: "200px",
       render:(text, record)=>{
-        let convertedCashDesk = record.cash_registers_listing.map(regDesk=>{
-          let deskName = cashDesks.find(desk=> desk.id === regDesk)?.name;
-          console.log(deskName);
-          return deskName;
-        });
-        console.log(convertedCashDesk)
-        return <>{convertedCashDesk?.join(", ")}</>
+        let deskName = cashDesks.find(desk=> desk?.id === text)?.name;
+        return <>{deskName}</>
       } 
     },
     { 
-      title: "Montant", 
-      dataIndex: "amount_brakdown", 
-      key: "amount_brakdown", 
+      title: "Mandataire", 
+      dataIndex: "bank_mandate", 
+      key: "3", 
       width: "200px",
-      render: (text, record)=>{
-        let convertData = record?.amount_brakdown.map(amount=>numberWithCommas(amount))
-        return <p>{convertData.join("; ")}</p>
-      } 
+      // onCell: (_, index)=>{
+      //   // console.log("129", index, _)
+      // },
+      render:(text, record)=>{
+        //Convert each item to corresponding bank
+        let convertedEmployeeIds = employees?.find
+        (employee=>employee?.User?.id == text)
+        return <p className='capitalize'>{convertedEmployeeIds?.User?.name}</p>
+      }
     },
-    { title: "Montant total", dataIndex: "total_amount", key: "amount", width: "200px", render:(text)=><>{numberWithCommas(text)}</>},
+    { 
+      title: "Montant", 
+      dataIndex: "amount", 
+      key: "amount", 
+      width: "200px",
+      // render: (text, record)=>{
+      //   let convertData = record?.amount_brakdown.map(amount=>numberWithCommas(amount))
+      //   return <p>{convertData.join("; ")}</p>
+      // } 
+    },
+    // { title: "Montant total", dataIndex: "total_amount", key: "amount", width: "200px", render:(text)=><>{numberWithCommas(text)}</>},
+    { title: "Entité", dataIndex: "entity", 
+      width: "200px",
+      render:(text, record)=>{
+        let entityName = entities.find(entity => entity.id === text)?.Sigle;
+        return <>{entityName}</>
+      }
+    },
     { 
       title: "Site", 
       dataIndex: "site", 
@@ -171,9 +177,9 @@ const handleGetCashDesk= async()=>{
       width: "200px",
       render:(text)=>{
         let siteName = sites.find(site=>site.id  == text)?.name;
-        return <>{siteName}</>
+        return <p className='capitalize'>{siteName}</p>
       } 
-    }
+    },
   ];
 
   const CASH_DESK_COLUMNS = [
@@ -213,6 +219,7 @@ const handleGetCashDesk= async()=>{
   
   return (
     <LoginLayout>
+        <CaissePageHeader />
         <TabsComponent>
           <Tab
             title={<p>Appro caisse</p>}
