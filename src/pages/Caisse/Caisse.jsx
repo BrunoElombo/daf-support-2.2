@@ -8,7 +8,7 @@ import PageHeader from '../../components/PageHeader/PageHeader'
 import useFetch from '../../hooks/useFetch'
 import { Drawer, Modal, Table } from 'antd'
 import ApproForm from '../Treasury/ApproForm'
-import { ArrowsRightLeftIcon } from '@heroicons/react/24/outline'
+import { ArrowsRightLeftIcon, CheckIcon, XMarkIcon, EyeIcon } from '@heroicons/react/24/outline'
 import StateForm from '../../components/caisse/StateForm'
 import CaissePageHeader from './CaissePageHeader'
 
@@ -142,11 +142,7 @@ const handleGetCashDesk= async()=>{
       dataIndex: "bank_mandate", 
       key: "3", 
       width: "200px",
-      // onCell: (_, index)=>{
-      //   // console.log("129", index, _)
-      // },
       render:(text, record)=>{
-        //Convert each item to corresponding bank
         let convertedEmployeeIds = employees?.find
         (employee=>employee?.User?.id == text)
         return <p className='capitalize'>{convertedEmployeeIds?.User?.name}</p>
@@ -156,11 +152,33 @@ const handleGetCashDesk= async()=>{
       title: "Montant", 
       dataIndex: "amount", 
       key: "amount", 
+      width: "200px"
+    },
+    { 
+      title: "Statut", 
+      dataIndex: "status", 
+      key: "status", 
       width: "200px",
-      // render: (text, record)=>{
-      //   let convertData = record?.amount_brakdown.map(amount=>numberWithCommas(amount))
-      //   return <p>{convertData.join("; ")}</p>
-      // } 
+      render:()=><span className={`p-1 bg-red-500 text-center text-white text-xs rounded-full px-3`}>Mand.</span>
+    },
+    { 
+      title: "Action", 
+      dataIndex: "status", 
+      key: "status", 
+      width: "200px",
+      render:()=>(
+        <div className='flex space-x-2'>
+          <div>
+            <CheckIcon className="h-4 w-4 text-gray-500 cursor-pointer p-2 hover:rounded-sm"/>
+          </div>
+          <div>
+            <XMarkIcon className="h-4 w-4 text-gray-500 cursor-pointer p-2 hover:rounded-sm"/>
+          </div>
+          <div>
+            <EyeIcon className="h-4 w-4 text-gray-500 cursor-pointer p-2 hover:rounded-sm"/>
+          </div>
+        </div>
+      )
     },
     // { title: "Montant total", dataIndex: "total_amount", key: "amount", width: "200px", render:(text)=><>{numberWithCommas(text)}</>},
     { title: "Entité", dataIndex: "entity", 

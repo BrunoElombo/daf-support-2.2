@@ -111,30 +111,20 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
     // --Handle Get external entities
     const handleExternalEntity = async()=>{
         const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
-        let formated = external.forEach(benef=>{
-            // beneficiairyList.push({id: benef?.external_entity.id, name: benef?.external_entity.name});
+        let formated = external.map(benef=>{
             return{id: benef?.external_entity.id, name: benef?.external_entity.name}
         });
-        console.log(formated)
-        let updatedValue = [...beneficiairyList, ...formated]
-        setBeneficiairyList(updatedValue);
+        setBeneficiairyList(formated);
     }
 
     // --Handle Get Employees
     const handleGetEmployees = async()=>{
-        const controller = await fetchData(import.meta.env.VITE_USER_API+"/employees");
         try {
-            let foramtedController = controller?.forEach(benef=>{
-                // let updatedValue = [...beneficiairyList, {id: benef?.User.id, name: benef?.User.name}]
-                // setBeneficiairyList(updatedValue);
-                // // beneficiairyList.push({id: benef?.User.id, name: benef?.User.name});
+            const controller = await fetchData(import.meta.env.VITE_USER_API+"/employees");
+            let foramtedController = await controller?.map(benef=>{
                 return {id: benef?.User.id, name: benef?.User.name}
-                
             });
-            console.log(formatCountdown)
-            // let updatedValue = [...beneficiairyList, ...foramtedController]
-            // setBeneficiairyList(updatedValue);
-            setEmployees(controller);
+            setEmployees(foramtedController);
         } catch (error) {
             console.error("Error creating recipe:", error);
         }
@@ -149,6 +139,11 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
     }
 
     // UseEffects
+
+    useEffect(()=>{
+
+    }, [beneficiairyList]);
+
     useEffect(()=>{
         handleGetEntitySite();
         handleGetEmployees();
@@ -199,7 +194,7 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
                     <select className='text-xs' value={initiator} onChange={e=>setInitiator(e.target.value)}>
                         <option value=""></option>
                         {
-                            employees.map(employee => <option className='capitalize' key={employee?.User.id} value={employee?.User.id}>{employee?.User.name}</option>)
+                            employees.map(employee => <option className='capitalize' key={employee?.id} value={employee?.id}>{employee?.name}</option>)
                         }
                     </select>
                 </div>
@@ -208,7 +203,10 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
                     <select className='text-xs' value={beneficiary} onChange={e=>setBeneficiary(e.target.value)}>
                         <option value=""></option>
                         {
-                            employees.map(benef => <option className='capitalize' key={benef?.User.id} value={benef?.User.id}>{benef?.User.name}</option>)
+                            employees.map(benef => <option className='capitalize' key={benef?.id} value={benef?.id}>{benef?.name}</option>)
+                        }
+                        {
+                            beneficiairyList.map(entity => <option className='capitalize' key={entity?.id} value={entity?.id}>{entity?.name}</option>)
                         }
                     </select>
                 </div>
