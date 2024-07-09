@@ -157,7 +157,7 @@ const handleChangedEntity=async (id)=>{
                 </VerifyPermissions>
                 
                 <VerifyPermissions
-                    expected={["chief_financial_officer", "general_manager", "president", "cashier", "operations_manager"]}
+                    expected={["chief_financial_officer", "general_manager", "president", "cashier", "operations_manager", "bank_mandate"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >

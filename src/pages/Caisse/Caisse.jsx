@@ -1,16 +1,17 @@
-import React, { useState, useContext, useEffect } from 'react'
-import LoginLayout from '../../Layout/LoginLayout'
-import { AUTHCONTEXT } from '../../context/AuthProvider'
-import TabsComponent from '../../components/TabsComponents/TabsComponent'
-import VerifyPermissions from '../../components/Permissions/VerifyPermissions'
-import Tab from '../../components/TabsComponents/Tab'
-import PageHeader from '../../components/PageHeader/PageHeader'
-import useFetch from '../../hooks/useFetch'
-import { Drawer, Modal, Table } from 'antd'
-import ApproForm from '../Treasury/ApproForm'
-import { ArrowsRightLeftIcon, CheckIcon, XMarkIcon, EyeIcon } from '@heroicons/react/24/outline'
-import StateForm from '../../components/caisse/StateForm'
-import CaissePageHeader from './CaissePageHeader'
+import React, { useState, useContext, useEffect } from 'react';
+import LoginLayout from '../../Layout/LoginLayout';
+import { AUTHCONTEXT } from '../../context/AuthProvider';
+import TabsComponent from '../../components/TabsComponents/TabsComponent';
+import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
+import Tab from '../../components/TabsComponents/Tab';
+import PageHeader from '../../components/PageHeader/PageHeader';
+import useFetch from '../../hooks/useFetch';
+import { Drawer, Modal, Table } from 'antd';
+import ApproForm from '../Treasury/ApproForm';
+import { ArrowsRightLeftIcon, CheckIcon, XMarkIcon, EyeIcon, PencilIcon } from '@heroicons/react/24/outline'
+import StateForm from '../../components/caisse/StateForm';
+import CaissePageHeader from './CaissePageHeader';
+import MandatoryForm from './MandatoryForm';
 
 function Caisse() {
   const [path, setPath] = useState("appro");
@@ -26,7 +27,9 @@ function Caisse() {
   const {requestLoading, fetchData, postData, requestError, updateData} = useFetch();
 
   // UseState
-  const [] = useState()
+  const [mandateFormIsOpen, setMandateFormIsOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState("");
+
   // Approvisionement
   const [openApproModal, setOpenApproModal] = useState(false);
 
@@ -152,31 +155,36 @@ const handleGetCashDesk= async()=>{
       title: "Montant", 
       dataIndex: "amount", 
       key: "amount", 
-      width: "200px"
+      width: "200px",
+      render:(text, record)=><>{numberWithCommas(text)}</>
     },
     { 
       title: "Statut", 
       dataIndex: "status", 
       key: "status", 
       width: "200px",
-      render:()=><span className={`p-1 bg-red-500 text-center text-white text-xs rounded-full px-3`}>Mand.</span>
+      render:(text, record)=><span className={`p-1 ${record.statut !== "EXECUTED" ? "bg-red-500": "bg-green-500"} text-center text-white text-xs rounded-full px-3`}>Mandataire</span>
     },
     { 
       title: "Action", 
       dataIndex: "status", 
       key: "status", 
       width: "200px",
-      render:()=>(
-        <div className='flex space-x-2'>
-          <div>
-            <CheckIcon className="h-4 w-4 text-gray-500 cursor-pointer p-2 hover:rounded-sm"/>
-          </div>
-          <div>
-            <XMarkIcon className="h-4 w-4 text-gray-500 cursor-pointer p-2 hover:rounded-sm"/>
-          </div>
-          <div>
-            <EyeIcon className="h-4 w-4 text-gray-500 cursor-pointer p-2 hover:rounded-sm"/>
-          </div>
+      render:(text, record)=>(
+        <div className='flex space-x-2 items-center'>
+          {
+            record.statut != "EXECUTED" &&
+            <div className='hover:bg-gray-200 p-2 rounded-md cursor-pointer'>
+              <PencilIcon 
+                className='text-gray-500 h-4 w-4' 
+                onClick={()=>{
+                  setSelectedRow(record);
+                  setMandateFormIsOpen(true);
+                }}
+              />
+            </div>
+          }
+          <EyeIcon className='text-gray-500 h-4 w-4'/>
         </div>
       )
     },
@@ -341,6 +349,23 @@ const handleGetCashDesk= async()=>{
           </div>
         </Modal>
 
+        {/* Madate form */}
+        <Modal
+          title="Observation du mandataire"
+          onClose={()=>setMandateFormIsOpen(false)}
+          onCancel={()=>setMandateFormIsOpen(false)}
+          open={mandateFormIsOpen}
+          footer={()=>{}}
+        >
+          <MandatoryForm 
+            selected={selectedRow}
+            onSubmit={()=>{
+              setMandateFormIsOpen(false);
+              handleGetSupply();
+            }}
+          />
+        </Modal>
+
         <Drawer
           title={<p>Détails de la billeterie</p>}
           placement={"bottom"}
@@ -356,6 +381,7 @@ const handleGetCashDesk= async()=>{
         >
 
         </Drawer>
+
     </LoginLayout>
   )
 }
