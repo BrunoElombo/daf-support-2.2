@@ -50,7 +50,7 @@ function MandatoryForm({onSubmit, onCancel, onClose, selected}) {
         setObservation("");
         onSubmit();
       } catch (error) {
-        openNotification("ECHEC", "Une erreur est survenu", 5, <XCircleIcon className="text-red-500 h-8 w-8"/>)
+        openNotification("ECHEC", "Une erreur est survenue", 5, <XCircleIcon className="text-red-500 h-8 w-8"/>)
       }finally{
         setSubmitIsLoading(false);
       }

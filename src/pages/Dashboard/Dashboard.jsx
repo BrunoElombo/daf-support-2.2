@@ -39,6 +39,9 @@ function Dashboard() {
   const  [treasuryDataSrc, setTreasuryDataSrc] = useState([]);
   const [treasuryData, setTreasuryData] = useState([]);
 
+  const [cummulativeSrc, setCummulativeSrc] = useState([]);
+  const [cummulative, setCummulative] = useState([]);
+
   const [recipePredictions, setRecipePredictions] = useState({});
 
   const [startDate, setStartDate] = useState("");
@@ -146,13 +149,14 @@ function Dashboard() {
         day: week,
         total_amount: weeklySums[week]
     }));
+
   };
 
   const groupByMonth = (dailySums) => {
       const monthlySums = {};
       
       dailySums.forEach(item => {
-          const month = moment(item.day).startOf('month').format('YYYY-MM');
+          const month = moment(item?.day).startOf('month').format('YYYY-MM');
           
           if (!monthlySums[month]) {
               monthlySums[month] = 0;
@@ -178,11 +182,11 @@ function Dashboard() {
       0
     );  
     return totalSum;
-  }
+  };
 
   const numberWithCommas=(x)=>{
     return x?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
-  }
+  };
 
   const handleCompare=(listA, listB)=>{
     // if(listA?.length != listB?.length) throw new Error("Both objects must have the same length");
@@ -205,7 +209,6 @@ function Dashboard() {
             "total_amount": difference
           }
           formatedList[i] = data;
-          console.log(1)
         }
       }
 
@@ -240,7 +243,6 @@ function Dashboard() {
           "total_amount": difference
         }
         formatedList.push(data);
-        console.log(3)
       })
 
       return formatedList;
@@ -255,14 +257,23 @@ function Dashboard() {
       return formatedList;
     }
 
+  };
+
+  /**
+   * 
+   */ 
+  const handleFetchCumulative=async()=>{
+    let url = `${import.meta.env.VITE_DAF_API}/accumulated_cash_flow/summary_cash_flow/?entity_id=${entityId}`;
+    try {
+      let response = await fetchData(url);
+      setCummulative(response?.daily_sums);
+      setCummulativeSrc(response?.daily_sums);
+    } catch (error) {
+      console.log(error);
+    }
   }
-
-  useEffect(()=>{
+    useEffect(()=>{
     let comparisons = handleCompare(recipeData, expenseData);
-    console.log(comparisons)
-    console.log(recipeData)
-    console.log(expenseData)
-
     setTreasuryData(comparisons);
     setTreasuryDataSrc(comparisons);
 
@@ -276,35 +287,46 @@ function Dashboard() {
 
     handleGetExpenseSummary();
     // handleGetExpenseSummaryPrediction();
+
+    handleFetchCumulative();
   }, []);
 
   useEffect(()=>{
     switch(step){
-      case "WEEK" :
-        
+      
+      case "WEEK" :        
         let weeklyRecipes = groupByWeek(recipeDataSrc);
         let weeklyExpenses = groupByWeek(expenseDataSrc);
+        let weeklyCummulative = groupByWeek(cummulativeSrc);
         let weeklyTreasury = handleCompare(weeklyRecipes, weeklyExpenses);
         
         setExpenseData(weeklyExpenses);
         setRecipeData(weeklyRecipes);
         setTreasuryData(weeklyTreasury);
-
+        setCummulative(weeklyCummulative);
         return
+
       case "MONTH":
         let monthlyRecipes = groupByMonth(recipeDataSrc);
         let monthlyExpenses = groupByMonth(expenseDataSrc);
+        let monthlyCummulative = groupByWeek(cummulativeSrc);
         let monthlyTreasury = handleCompare(monthlyRecipes, monthlyExpenses);
 
+
+        console.log(monthlyCummulative);
         setExpenseData(monthlyExpenses);
         setRecipeData(monthlyRecipes);
+        setCummulative(monthlyCummulative);
         setTreasuryData(monthlyTreasury);
         return
+
       default :
         setExpenseData(expenseDataSrc);
         setRecipeData(recipeDataSrc);
+        setCummulative(cummulativeSrc);
         setTreasuryData(treasuryDataSrc);
       return
+
     }
   }, [step]);
 
@@ -322,9 +344,11 @@ function Dashboard() {
     if(startDate != "" && endDate != ""){
       const filteredData = filterObjectsByDateRange(recipeDataSrc, startDate, endDate);
       const expenseFilteredData = filterObjectsByDateRange(expenseDataSrc, startDate, endDate);
+      const cummulativeFilteredData = filterObjectsByDateRange(cummulativeSrc?.daily_sums, startDate, endDate);
 
       setRecipeData(filteredData);
       setExpenseData(expenseFilteredData);
+      setCummulative(cummulativeFilteredData);
 
       const expense = expenseFilteredData?.reduce((total, item)=>{
         return total + item.total_amount
@@ -333,6 +357,7 @@ function Dashboard() {
       const recipe = filteredData?.reduce((total, item)=>{
         return total + item.total_amount
       }, 0);
+
 
       setRecipeTotal(recipe);
       setExpenseTotal(expense);
@@ -345,7 +370,6 @@ function Dashboard() {
       setRecipeData(recipeDataSrc);
       setExpenseData(expenseDataSrc);
     }
-
   }, [startDate, endDate]);
 
   return (
@@ -418,7 +442,7 @@ function Dashboard() {
                   path === "expenses"? expenseData : 
                   treasuryData
                 } 
-                predictions={recipePredictions}
+                predictions={path === "treasury" ? cummulative : []}
               />
             </div>
 

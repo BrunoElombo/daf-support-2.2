@@ -680,7 +680,6 @@ function ExpensePage() {
   const handleGetEntitySite=async()=>{
     let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
     if(!requestError){
-      console.log(response)
       setEntitySites(response);
     }
   }
@@ -1564,6 +1563,17 @@ const getOperatorAccounts = async (operator) =>{
                     </button>
                   </div>
                 </div>
+            </Modal>
+
+            {/* Management controller */}
+            <Modal
+              title={<p>Observation du controlleur</p>}
+              open={true}
+              onCancel={()=>setOpenValidateModal(false)}
+              onOk={handleToggleOpenForm}
+              footer={()=>{}}
+            >
+              
             </Modal>
 
             {/* Validation de la dépense */}

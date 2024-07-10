@@ -53,7 +53,6 @@ function RecettePage() {
       try {
           let result = controller ;
           setEmployeesControllers(result);
-          console.log(result)
       } catch (error) {
           console.error("Error creating recipe:", error);
       }
@@ -64,7 +63,6 @@ function RecettePage() {
       try {
           let result = controller ;
           setEmployees(result);
-          console.log(result);
       } catch (error) {
           console.error("Error creating recipe:", error);
       }

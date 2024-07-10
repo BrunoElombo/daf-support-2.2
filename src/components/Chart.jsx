@@ -6,13 +6,18 @@ const { RangePicker } = DatePicker;
 
 function Chart({ data, legendBorderColor, legendBgColor, predictions }) {
   const [selectedDateRange, setSelectedDateRange] = useState([]);
-
   const chartData = {
     labels: data?.map(item => new Date(item?.day?.split("T")[0])?.toLocaleDateString()),
     datasets: [
       {
-        label: '',
+        label: 'Trésoreries',
         data: data?.map(item => item?.total_amount),
+        borderColor: "",
+        backgroundColor: "",
+      },
+      {
+        label: 'Cummule de trésorerie',
+        data: predictions?.map(item => item?.total_amount),
         borderColor: "",
         backgroundColor: "",
       },

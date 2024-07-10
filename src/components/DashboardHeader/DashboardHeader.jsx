@@ -168,7 +168,7 @@ const handleChangedEntity=async (id)=>{
                         </Link>
                     </li>
                 </VerifyPermissions>
-                <VerifyPermissions
+                {/* <VerifyPermissions
                     expected={["chief_financial_officer", "general_manager", "president", "operations_manager"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
@@ -179,7 +179,7 @@ const handleChangedEntity=async (id)=>{
                             <span>Reporting</span>
                         </Link>
                     </li>
-                </VerifyPermissions>
+                </VerifyPermissions> */}
 
 
                 {/* <VerifyPermissions

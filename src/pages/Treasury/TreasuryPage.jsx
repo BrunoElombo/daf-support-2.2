@@ -113,7 +113,6 @@ function TreasuryPage() {
     try {
       const response = await fetchData(url+"/expensesheet/summary_by_year/?year="+actualYear+"&entity_id="+entityId);
       if (response && response.annual_sums) {
-        console.log(response.annual_sums)
         setExpenseTotal(response.annual_sums[0].total_amount)
       }
       
@@ -125,7 +124,6 @@ function TreasuryPage() {
   const handleGetEntitySite=async()=>{
     let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
     if(!requestError){
-      console.log(response)
       setEntitySites(response);
     }
   }
