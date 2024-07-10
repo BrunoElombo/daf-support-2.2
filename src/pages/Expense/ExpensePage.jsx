@@ -7,7 +7,7 @@ import { Table, Modal, Upload, Drawer, Space, Select, notification, Popover } fr
 import { v4 as uuidV4 } from 'uuid';
 import useFetch from '../../hooks/useFetch';
 const { Dragger } = Upload;
-import { FunnelIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, TrashIcon, EllipsisHorizontalIcon, PaperClipIcon, PlusIcon, EyeIcon, PencilIcon, CheckIcon, XMarkIcon, BanknotesIcon, CalculatorIcon, ArrowUpRightIcon, ArrowTopRightOnSquareIcon  } from '@heroicons/react/24/outline';
+import { FunnelIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, TrashIcon, EllipsisHorizontalIcon, PaperClipIcon, PlusIcon, EyeIcon, PencilIcon, CheckIcon, XMarkIcon, BanknotesIcon, CalculatorIcon, ArrowUpRightIcon, ArrowTopRightOnSquareIcon, PencilSquareIcon  } from '@heroicons/react/24/outline';
 import { AUTHCONTEXT } from '../../context/AuthProvider';
 import Collapsible from '../../components/Collapsible/Collapsible';
 import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
@@ -17,6 +17,7 @@ import axios from 'axios';
 import StateForm from '../../components/caisse/StateForm';
 import CurrencyCuts from '../../components/caisse/CurrencyCuts';
 import { v4 as uuid } from 'uuid'
+import ManagementControllerForm from './ManagementControllerForm';
 
 
 const rowSelection = {
@@ -51,6 +52,7 @@ function ExpensePage() {
   
 
   const [isUpdateMode, setIsUpdateMode] = useState(false);
+  const [managementControllerFormIsOpen, setManagementControllerFormIsOpen] = useState(false);
 
   const { userInfo } = useContext(AUTHCONTEXT);
 
@@ -589,32 +591,67 @@ function ExpensePage() {
               (record.statut.includes("REJECT") || record.statut.includes("EXECUTED"))?
               <></>
               :
-              (userFunction == "operations_manager" && record.date_valid_manager_department == null && record.statut != "IN_DISBURSEMENT") ?
+              (
+                userRole == "management_controller" 
+                && record.date_valid_management_controller == null
+              )?
+              <PencilSquareIcon onClick={()=>{
+                setManagementControllerFormIsOpen(true);
+                setSelectedExpense(record)
+              }} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />:
+              (userFunction == "operations_manager" 
+                && record.date_valid_manager_department == null 
+                && record.statut != "IN_DISBURSEMENT"
+                && record.date_valid_management_controller != null
+              ) ?
               <>
                 <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
                 <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/>
               </>
               :
-              ((userRole == "chief_financial_officer" && record.date_valid_manager_department) && record.date_valid_budgetary_department == null && record.statut != "IN_DISBURSEMENT") ?
+              ((
+                userRole == "chief_financial_officer" 
+                && record.date_valid_manager_department) 
+                && record.date_valid_budgetary_department == null 
+                && record.statut != "IN_DISBURSEMENT"
+                && record.date_valid_management_controller != null
+              ) ?
               <>
                 <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
                 <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/>
-                
               </>
               :
-              ((userRole == "general_manager" && record.date_valid_budgetary_department) && record.date_valid_general_director === null && record.statut != "IN_DISBURSEMENT") ?
+              ((
+                userRole == "general_manager" 
+                && record.date_valid_budgetary_department) 
+                && record.date_valid_general_director === null 
+                && record.statut != "IN_DISBURSEMENT"
+                && record.date_valid_management_controller != null
+              ) ?
               <>
                 <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
                 <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/>
               </>
               :
-              ((userRole == "president" && record.date_valid_general_director) && record.date_valid_president == null && record.statut != "IN_DISBURSEMENT") ?
+              ((
+                userRole == "president" 
+                && record.date_valid_general_director) 
+                && record.date_valid_president == null 
+                && record.statut != "IN_DISBURSEMENT"
+                && record.date_valid_management_controller != null
+              ) ?
                 <>
                   <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
                   <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/>
                 </>
               :
-              ((userRole == "rop" && record.date_valid_president ) && record.date_valid_rop == null && record.statut == "IN_DISBURSEMENT") ?
+              ((
+                userRole == "rop" 
+                && record.date_valid_president ) 
+                && record.date_valid_rop == null 
+                && record.statut == "IN_DISBURSEMENT"
+                && record.date_valid_management_controller != null
+              ) ?
               <>
                 <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
                 {/* <XMarkIcon onClick={()=>{setSelectionRow2(record)}} className='text-gray-500 h-6 cursor-pointer hover:bg-red-300 hover:text-white p-1 rounded-lg' title='Rejeter'/> */}
@@ -1568,12 +1605,20 @@ const getOperatorAccounts = async (operator) =>{
             {/* Management controller */}
             <Modal
               title={<p>Observation du controlleur</p>}
-              open={true}
-              onCancel={()=>setOpenValidateModal(false)}
+              open={managementControllerFormIsOpen}
+              onCancel={()=>setManagementControllerFormIsOpen(false)}
               onOk={handleToggleOpenForm}
               footer={()=>{}}
             >
-              
+              <ManagementControllerForm
+                selected={selectedExpense}
+                onSubmit={()=>
+                  {
+                    handleGetAllExpenses();
+                    setManagementControllerFormIsOpen(false);
+                  }
+                }
+              />
             </Modal>
 
             {/* Validation de la dépense */}

@@ -15,6 +15,7 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
     const [site, setSite] = useState("");
     const [initiator, setInitiator] = useState("");
     const [beneficiary, setBeneficiary] = useState("");
+    const [isFavorable, setIsFavorable] = useState("");
     const [department, setDepartment] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("");
     const [amountRange, setAmountRange] = useState("");
@@ -39,10 +40,6 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
         try {
             setIsLoading(true);
             let url = `${import.meta.env.VITE_DAF_API}/expensesheet/multi_criteria_search/`;
-            let headersList = {
-                "Accept": "*/*",
-                "Content-Type": "application/json"
-            }
             let data = {
                 "employee_initiator":initiator,
                 "employee_beneficiary":beneficiary,
@@ -54,6 +51,7 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
                 "payment_method":paymentMethod,
                 "start_date":startDate,
                 "end_date":endDate,
+                "is_an_favorable_management_controller":isFavorable,
                 "statut":statut,
                 "entity_id":entityId
             };
@@ -89,6 +87,7 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
     const handleClearForm = () =>{
         setStatut("");
         setSite("");
+        setIsFavorable("");
         setInitiator("");
         setBeneficiary("");
         setDepartment("");
@@ -169,6 +168,14 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
                         <option value="REJECT FINANCIAL MANAGEMENT">Rejeter par le DAF</option>
                         <option value="REJECT GENERAL MANAGEMENT">Rejeter par le DG</option>
                         <option value="REJECT PRESIDENT">Rejeter par le Pre.</option>
+                    </select>
+                </div>
+                <div className='flex flex-col'>
+                    <label htmlFor="" className='text-xs'>Favorable :</label>
+                    <select className='text-xs' value={isFavorable} onChange={e=>setIsFavorable(e.target.value)}>
+                        <option value=""></option>
+                        <option value={"True"}>Oui</option>
+                        <option value={"False"}>Non</option>
                     </select>
                 </div>
                 <div className='flex flex-col'>

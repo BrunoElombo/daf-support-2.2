@@ -95,7 +95,7 @@ const handleChangedEntity=async (id)=>{
             </div>
             <ul className='space-x-4 text-sm text-white overflow-x-auto hidden md:flex'>
                 <VerifyPermissions
-                    expected={["chief_financial_officer", "accountant", "department_manager", "general_manager", "president", "operations_manager"]}
+                    expected={["chief_financial_officer", "management_controller", "accountant", "department_manager", "general_manager", "president", "operations_manager"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
@@ -130,6 +130,7 @@ const handleChangedEntity=async (id)=>{
                         "coordinator", 
                         "chief_financial_officer",
                         "cashier",
+                        "management_controller",
                         "rop",
                     ]}
                     roles={userInfo?.role?.name}
@@ -144,7 +145,7 @@ const handleChangedEntity=async (id)=>{
                 </VerifyPermissions>
 
                 <VerifyPermissions
-                    expected={["chief_financial_officer", "general_manager", "president", "operations_manager"]}
+                    expected={["chief_financial_officer","management_controller", "general_manager", "president", "operations_manager"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
@@ -157,7 +158,7 @@ const handleChangedEntity=async (id)=>{
                 </VerifyPermissions>
                 
                 <VerifyPermissions
-                    expected={["chief_financial_officer", "general_manager", "president", "cashier", "operations_manager", "bank_mandate"]}
+                    expected={["chief_financial_officer","management_controller", "general_manager", "president", "cashier", "operations_manager", "bank_mandate"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >

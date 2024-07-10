@@ -90,11 +90,10 @@ function TreasuryPage() {
 
   const handleGetSite=async()=>{
     let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
-    console.log(response)
     try {
       setSites(response);
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   }
 
@@ -141,7 +140,6 @@ function TreasuryPage() {
     try {
       const response = await fetchData(url+"/recipesheet/summary_by_year/?year="+actualYear+"&entity_id="+entityId);
       if (response && response.annual_sums) {
-        console.log(response.annual_sums)
         setRecipeTotal(response.annual_sums[0].total_amount)
       }
       
@@ -186,12 +184,14 @@ function TreasuryPage() {
             item?.amount?.toString().toLowerCase().includes(searchTextLower) ||
             item?.transaction_number?.toString().toLowerCase().includes(searchTextLower) ||
             item?.uin_beneficiary?.toString().toLowerCase().includes(searchTextLower) ||
-            (beneficiaires?.find(employee => employee?.User.id == item?.employee_controller)?.User?.name?.toLowerCase().includes(searchTextLower) ? 
-            beneficiaires?.find(employee => employee?.User.id == item?.employee_beneficiary)?.User?.name?.toLowerCase().includes(searchTextLower)
-            :externalEntities.find(externalEntity=> externalEntity?.external_entity.id === item?.employee_controller)?.external_entity.name.toUpperCase()) ||
-            entitySites?.find(site => site?.id == item?.site)?.name.toLowerCase().includes(searchTextLower)
+            sites?.find(site=>site.id === item?.site)?.name.toString().toLowerCase().includes(searchTextLower) ||
+            (
+              (beneficiaires.find(benef=>benef?.User.id == item.employee_beneficiary)) ?
+              beneficiaires.find(benef=>benef?.User.id == item.employee_beneficiary)?.User?.name?.toLowerCase().includes(searchTextLower) :
+              externalEntities.find(externalEntity=>externalEntity?.external_entity.id == item.employee_beneficiary)?.external_entity?.name?.toLowerCase().includes(searchTextLower)
+            )
           )
-        })
+        });
         setExpensesData(search);
       }
       else{
@@ -233,7 +233,7 @@ function TreasuryPage() {
 
   const handleExternalEntity = async()=>{
     const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
-    if(!requestError){
+    if(requestError === ""){
       let result = external;
       setExternalEntities(result);
     }
@@ -627,7 +627,11 @@ function TreasuryPage() {
       dataIndex: 'employee_beneficiary',
       key: 'employee_beneficiary',
       width:  "200px",
-      render: (text, record)=>highlightText(beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase())
+      render: (text, record)=>(
+        highlightText(beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase())||
+        highlightText(externalEntities.find(ent=> ent?.external_entity.id_entity === text)?.external_entity.name.toUpperCase()) ||
+        "N/A"
+      )
     },
     {
       title: 'Montant',
@@ -635,7 +639,7 @@ function TreasuryPage() {
       key: 'amount',
       width:  "200px",
       render:(text, record)=>(
-        <>{highlightText(numberWithCommas(record.total_amount))} XAF</>
+        <>{highlightText(numberWithCommas(text))} XAF</>
       )
     },
     {

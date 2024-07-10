@@ -35,6 +35,7 @@ function TreasurySheetFilter({setRecetteDataSrc, onSubmit}) {
     const [amountLessThan, setAmountLessThan] = useState("");
     const [amountGreaterThan, setAmountGreaterThan] = useState("");
     const [amount, setAmount] = useState("");
+    const [isFavorable, setIsFavorable] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("");
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
@@ -57,6 +58,7 @@ function TreasurySheetFilter({setRecetteDataSrc, onSubmit}) {
                 "grt_total_amount":amountGreaterThan,
                 "lst_total_amount":amountLessThan,
                 "total_amount":amount,
+                "is_an_favorable_management_controller":isFavorable,
                 "provenance":provenance,
                 "start_date":startDate,
                 "end_date":endDate,
@@ -102,6 +104,7 @@ function TreasurySheetFilter({setRecetteDataSrc, onSubmit}) {
         setAmountLessThan("");
         setProvenance("");
         setShift("");
+        setIsFavorable("");
         setAmountRange("");
         setAmount("");
         setStartDate("");
@@ -135,6 +138,14 @@ function TreasurySheetFilter({setRecetteDataSrc, onSubmit}) {
         <div>
             <form className='space-y-2' onSubmit={handleSubmitFilter}>
                 <div className='flex flex-col w-full max-h-[200px] overflow-y-auto'>
+                    <div className='flex flex-col'>
+                        <label htmlFor="" className='text-xs'>Favorable :</label>
+                        <select className='text-xs' value={isFavorable} onChange={e=>setIsFavorable(e.target.value)}>
+                            <option value=""></option>
+                            <option value={"True"}>Oui</option>
+                            <option value={"False"}>Non</option>
+                        </select>
+                    </div>
                     <div className='flex flex-col'>
                         <label htmlFor="" className='text-xs'>Initiateur :</label>
                         <select className='text-xs' value={initiator} onChange={e=>setInitiator(e.target.value)}>
