@@ -533,6 +533,31 @@ function ExpensePage() {
       render: (text)=><b>{numberWithCommas(text)} XAF</b>
     },
     {
+      title: 'Avis controleur conf.',
+      dataIndex: 'is_an_favorable_management_controller',
+      key: 'is_an_favorable_management_controller',
+      width:  "200px",
+      render: (isFavorable) => {
+        let backgroundColor = '';
+        if (isFavorable === null) {
+          backgroundColor = 'bg-yellow-50';
+        } else if (isFavorable === false) {
+          backgroundColor = 'bg-red-200';
+        } else {
+          backgroundColor = 'bg-white';
+        }
+        return (
+          <div className={`px-4 py-2 rounded ${backgroundColor} text-xs`}>
+            {isFavorable === null
+              ? 'En attente'
+              : isFavorable === false
+              ? 'Non Favorable'
+              : 'Favorable'}
+          </div>
+        );
+      }
+    },
+    {
       title: 'Status',
       width:  "200px",
       render:(text, record)=>
@@ -593,7 +618,7 @@ function ExpensePage() {
               :
               (
                 userRole == "management_controller" 
-                && record.date_valid_management_controller == null
+                && (record.is_an_favorable_management_controller == null)
               )?
               <PencilSquareIcon onClick={()=>{
                 setManagementControllerFormIsOpen(true);
@@ -602,7 +627,7 @@ function ExpensePage() {
               (userFunction == "operations_manager" 
                 && record.date_valid_manager_department == null 
                 && record.statut != "IN_DISBURSEMENT"
-                && record.date_valid_management_controller != null
+                && record.is_an_favorable_management_controller != null
               ) ?
               <>
                 <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
@@ -614,7 +639,7 @@ function ExpensePage() {
                 && record.date_valid_manager_department) 
                 && record.date_valid_budgetary_department == null 
                 && record.statut != "IN_DISBURSEMENT"
-                && record.date_valid_management_controller != null
+                && record.is_an_favorable_management_controller != null
               ) ?
               <>
                 <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
@@ -626,7 +651,7 @@ function ExpensePage() {
                 && record.date_valid_budgetary_department) 
                 && record.date_valid_general_director === null 
                 && record.statut != "IN_DISBURSEMENT"
-                && record.date_valid_management_controller != null
+                && record.is_an_favorable_management_controller != null
               ) ?
               <>
                 <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
@@ -638,7 +663,7 @@ function ExpensePage() {
                 && record.date_valid_general_director) 
                 && record.date_valid_president == null 
                 && record.statut != "IN_DISBURSEMENT"
-                && record.date_valid_management_controller != null
+                && record.is_an_favorable_management_controller != null
               ) ?
                 <>
                   <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
@@ -646,11 +671,11 @@ function ExpensePage() {
                 </>
               :
               ((
-                userRole == "rop" 
+                userRole == "paymaster_general" 
                 && record.date_valid_president ) 
                 && record.date_valid_rop == null 
                 && record.statut == "IN_DISBURSEMENT"
-                && record.date_valid_management_controller != null
+                && record.is_an_favorable_management_controller != null
               ) ?
               <>
                 <CheckIcon onClick={()=>setSelectionRow(record)} className='text-gray-500 h-6 cursor-pointer hover:bg-green-300 hover:text-white p-1 rounded-lg' title='Valider' />
@@ -838,12 +863,12 @@ function ExpensePage() {
             'Content-Type': 'multipart/form-data'
           }
         });
-        if(response.ok){
+        if(response.status === 200){
           const fileData = await response?.data?.map(file => file.url);
-          fileList = fileData;
-          setUploadedFiles(fileData);
-          setFiles([]);
-          setSelectedFiles("")
+          fileList = await fileData;
+          await setUploadedFiles(fileList);
+          // await setFiles([]);
+          // await setSelectedFiles("")
         }
         
       } catch (error) {
@@ -880,7 +905,8 @@ function ExpensePage() {
     formData.append("entity", entityId);
     formData.append("transaction_number", transactionNumber);
     formData.append("denomination_cash_cut_expenses", JSON.stringify(updatedCurrencyCuts));
-    formData.append("image_list", `["${[fileList]}"]`);
+    
+    formData.append("image_list", `[${uploadedFiles}]`);
   
     const requestOptions = {
       method: "POST",
@@ -1210,7 +1236,7 @@ const getOperatorAccounts = async (operator) =>{
               </button>
               }
               <VerifyPermissions
-                expected={["coordinator", "rop", "accountant"]}
+                expected={["rop", "accountant"]}
                 roles={userInfo?.role?.name}
                 functions={userInfo?.Function?.name}
               >
@@ -1402,7 +1428,7 @@ const getOperatorAccounts = async (operator) =>{
 
                     {/* Files selected */}
                     <div className='w-full flex flex-col'>
-                      <input type="file" multiple onChange={handleFileChange} value={selectedFiles}/>
+                      <input type="file" multiple onChange={handleFileChange} value={selectedFiles} accept="image/*,.pdf, .doc, .docx, .xlxs, .xls"/>
                       <p className="text-xs">Selected Files</p>
                       <ul className="flex flex-wrap space-x-2 space-y-2">
                         {

@@ -43,14 +43,14 @@ function ValidationRecette({
             if(!isMultipleSelect){
               url = import.meta.env.VITE_DAF_API+"/recipesheet/"+recipeId+"/?entity_id="+ENTITY_ID;
               data = {
-                  "description": observation,
+                  "description": observation == "" ? "ras" : observation,
                   "it_is_a_cash_desk_movement": false
               };
             }else{
               url = import.meta.env.VITE_DAF_API+"/recipesheet/bulk_validation/?entity_id="+ENTITY_ID;
               data = {
                 "pk_list": recipeId,
-                "description": observation,
+                "description": observation == "" ? "ras" : observation,
                 "it_is_a_cash_desk_movement": false
               };
             }

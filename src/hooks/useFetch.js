@@ -24,8 +24,8 @@ function useFetch() {
           const errorText = await response.text(); 
           throw new Error(`Error: ${errorText}`); 
         }
-    
         const result = await response.json();
+        result.status = response.status
         return result;
 
       } catch (error) {
@@ -72,6 +72,7 @@ function useFetch() {
         }
         setRequestError("Error");
         const result = await response.json();
+        result.status = response.status
         return result;
       } catch (error) {
         setRequestError(error.message);

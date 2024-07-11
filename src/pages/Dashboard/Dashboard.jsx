@@ -272,7 +272,9 @@ function Dashboard() {
       console.log(error);
     }
   }
-    useEffect(()=>{
+  
+
+  useEffect(()=>{
     let comparisons = handleCompare(recipeData, expenseData);
     setTreasuryData(comparisons);
     setTreasuryDataSrc(comparisons);

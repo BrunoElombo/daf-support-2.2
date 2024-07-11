@@ -30,6 +30,14 @@ function Caisse() {
   const [mandateFormIsOpen, setMandateFormIsOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState("");
 
+  const [cashBalance, setCashBalance] = useState("");
+
+  const [banks, setBanks] = useState([]);
+  const [sites, setSites] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [entities, setEntities] = useState([]);
+  const [cashDesks, setCashDesks] = useState([]);
+
   // Approvisionement
   const [openApproModal, setOpenApproModal] = useState(false);
 
@@ -39,12 +47,6 @@ function Caisse() {
     setPath(selectedPath);
   }
 
-
-  const [banks, setBanks] = useState([]);
-  const [sites, setSites] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [entities, setEntities] = useState([]);
-  const [cashDesks, setCashDesks] = useState([]);
 
   //   Get the cashdsk state data
   const handleGetSupply= async ()=>{
@@ -62,6 +64,7 @@ function Caisse() {
     try {
         const url = import.meta.env.VITE_DAF_API+"/cash_desk_state/?entity_id="+entityId
         const response = await fetchData(url);
+        setCashBalance(response?.results[0])
         setCashDeskState(response?.results);
         setCashDeskStateSrc(response?.results);
     } catch (error) {
@@ -210,7 +213,16 @@ const handleGetCashDesk= async()=>{
 
   const CASH_DESK_COLUMNS = [
     { title: "Numéro de référence", dataIndex: "reference_number", key: "1" },
-    { title: "Caisse enregistreuse", dataIndex: "cash_register", key: "2" },
+    { 
+      title: "Caisse enregistreuse", 
+      dataIndex: "cash_register", 
+      key: "2",
+      width: "200px",
+      render:(text, record)=>{
+        let deskName = cashDesks.find(desk=> desk?.id === text)?.name;
+        return <>{deskName || "N/A"}</>
+      }  
+    },
     { title: "Monnaie", dataIndex: "currency", key: "3" },
     { title: "Montant", dataIndex: "total_amount", key: "4",
       render:(text, record)=>{
@@ -245,7 +257,9 @@ const handleGetCashDesk= async()=>{
   
   return (
     <LoginLayout>
-        <CaissePageHeader />
+        <CaissePageHeader 
+          cashBalance={cashBalance?.total_amount}
+        />
         <TabsComponent>
           <Tab
             title={<p>Appro caisse</p>}

@@ -654,7 +654,6 @@ function RecettePage() {
               />} 
               title="Filtre" 
               trigger="click"
-              open={popOverIsOpen}
               >
               <button 
                 className='w-auto text-sm text-white btn bg-green-500 p-2 rounded-lg shadow-sm flex items-center'
