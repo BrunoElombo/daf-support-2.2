@@ -3,7 +3,7 @@ import { notification } from 'antd';
 import useFetch from '../../hooks/useFetch';
 import { ExclamationTriangleIcon, XCircleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
-function ManagementControllerForm({selected, onsubmit}) {
+function ManagementControllerForm({selected, onSubmit}) {
 
   let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
     // States
@@ -20,21 +20,22 @@ function ManagementControllerForm({selected, onsubmit}) {
     const handleSubmit=async(e)=>{
         e.preventDefault();
         setRequestIsLoading(true)
-        let url = `${import.meta.env.VITE_DAF_API}/expensesheet/validation_management_controller/${selected.id}/?entity_id=${entityId}`;
+        let url = `${import.meta.env.VITE_DAF_API}/expensesheet/validation_management_controller/?entity_id=${entityId}`;
         let data={
-          observation_comments_controller: observation,
-          is_an_favorable_management_controller: isFavorable
+          observation: observation,
+          is_an_favorable_management_controller: isFavorable,
+          pk: selected?.id
         }
         try {
            const response = await updateData(url, data, true);
-           console.log(response)
-           if(requestError != ""){
+           console.log(response);
+           if(response.status !== 200){
             openNotification("ECHEC", "Echec de la validation", 3, <ExclamationTriangleIcon className="text-yellow-500 h-8 w-8"/>);
             return;
            }
            openNotification("SUCCESS", "Valider avec success", 2, <CheckCircleIcon className="text-green-500 h-8 w-8"/>);
            handleClearForm();
-           onsubmit();
+           onSubmit();
         } catch (error) {
           console.log(error.message);
           openNotification("ECHEC", "Une erreur est survenue", 5, <XCircleIcon className="text-red-500 h-8 w-8"/>);

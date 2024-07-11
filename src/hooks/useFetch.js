@@ -97,12 +97,12 @@ function useFetch() {
           });
           if(!response.ok){
             setRequestError("Failed to update");
-            const errorText = await response.json();
             throw new Error(`Error: Failed to update`);
           }
           setRequestError("");
           let result = await response.json();
           // let data = await result ;
+          result.status = response.status
           return result;
           // throw new Error
         } catch (error) {
