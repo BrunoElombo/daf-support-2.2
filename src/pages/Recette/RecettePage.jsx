@@ -17,6 +17,7 @@ import RecetteSheetFilter from './RecetteSheetFilter';
 // import * as XLSX from 'xlsx';
 import $ from 'jquery';
 import axios from 'axios';
+import RecipeDetail from '../../components/RecipeDetail';
 
 
 function RecettePage() {
@@ -804,7 +805,7 @@ function RecettePage() {
           }
         >
           <div className='w-full h-full overflow-hidden flex flex-col md:flex-row justify-evenly md:space-x-2'>
-
+            <RecipeDetail data={activeRecipe}/>
             {/* Recette details */}
             <div className='w-full md:w-1/2 bg-white border-[1px] rounded-lg overflow-y-auto p-3 space-y-2'>
               
