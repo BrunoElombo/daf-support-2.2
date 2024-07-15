@@ -15,12 +15,12 @@ function Chart({ data, legendBorderColor, legendBgColor, predictions }) {
         borderColor: "",
         backgroundColor: "",
       },
-      {
-        label: 'Cummule de trésorerie',
-        data: predictions?.map(item => item?.total_amount),
-        borderColor: "",
-        backgroundColor: "",
-      },
+      // {
+      //   label: 'Cummule de trésorerie',
+      //   data: predictions?.map(item => item?.total_amount),
+      //   borderColor: "",
+      //   backgroundColor: "",
+      // },
     ],
   };
 

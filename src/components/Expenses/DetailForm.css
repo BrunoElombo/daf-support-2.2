@@ -1,0 +1,7 @@
+.disbabled{
+    padding: 5px 10px !important;
+    background: #f0f0f0;
+    border-bottom: 0px solid #22C55E !important;
+    font-family: "poppins", sans-serif !important;
+    cursor: not-allowed !important;
+}

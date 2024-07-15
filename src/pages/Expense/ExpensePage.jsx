@@ -18,6 +18,7 @@ import StateForm from '../../components/caisse/StateForm';
 import CurrencyCuts from '../../components/caisse/CurrencyCuts';
 import { v4 as uuid } from 'uuid'
 import ManagementControllerForm from './ManagementControllerForm';
+import DetailForm from '../../components/Expenses/DetailForm';
 
 
 const rowSelection = {
@@ -696,18 +697,19 @@ function ExpensePage() {
   }
 
   const handleShowDetails=async(record)=>{
-    let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
+    setIsOpenDrawer(true);
+    setSelectedExpense(record);
+    // console.log(selected);
 
-    try {
-      let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+record?.id+"/?entity_id="+entityId
-      const detail = await fetchData(url);
-      const selected = expenseDataSrc.find(expense=>expense.id === record.id);
-      setIsOpenDrawer(true);
-      console.log(selected);
-      setSelectedExpense(selected);
-    } catch (error) {
-      openNotification("ECHEC", "Impossible de charger les détails");
-    }
+    // let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
+    
+    // try {
+    //   let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+record?.id+"/?entity_id="+entityId
+    //   const detail = await fetchData(url);
+    //   setSelectedExpense(selected);
+    // } catch (error) {
+    //   openNotification("ECHEC", "Impossible de charger les détails");
+    // }
   }
 
   const handleGetAllExpenses = async() =>{
@@ -888,10 +890,6 @@ function ExpensePage() {
     headersList.append(
       "Authorization", "Bearer " + localStorage.getItem("token")
     );
-
-    // Perform changes
-    console.log(JSON.stringify(updatedCurrencyCuts));
-  
     const formData = new FormData();
     formData.append("site", site);
     formData.append("employee_beneficiary", beneficiaire);
@@ -906,7 +904,7 @@ function ExpensePage() {
     formData.append("transaction_number", transactionNumber);
     formData.append("denomination_cash_cut_expenses", JSON.stringify(updatedCurrencyCuts));
     
-    formData.append("image_list", `[${uploadedFiles}]`);
+    formData.append("image_list", `[${fileList}]`);
   
     const requestOptions = {
       method: "POST",
@@ -1814,7 +1812,7 @@ const getOperatorAccounts = async (operator) =>{
             </Modal>
 
             <Drawer
-              title={<p>Détails de la recette</p>}
+              title={<p>Détails de la dépense</p>}
               placement={"bottom"}
               width={500}
               height={"90vh"}
@@ -1830,14 +1828,34 @@ const getOperatorAccounts = async (operator) =>{
                     <button className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-red-300'>
                       <XMarkIcon className="h-5"/>
                       <span>Rejeter</span>
-                    </button>
-                    <button 
-                      className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-gray-300'
-                      onClick={()=>{}}
-                    >
-                      <PencilIcon className="h-5"/>
-                      <span>Modifier</span>
                     </button> */}
+                    {
+                      isUpdateMode ? 
+                      <>
+                        <button 
+                        className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-gray-300'
+                        onClick={()=>setIsUpdateMode(false)}
+                        >
+                          <XMarkIcon className="h-5"/>
+                          <span>Annuler</span>
+                        </button>
+                        <button 
+                        className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-gray-300'
+                        onClick={()=>{}}
+                        >
+                          {/* <Icon className="h-5"/> */}
+                          <span>Sauvegarder</span>
+                        </button>
+                      </>
+                      :
+                      <button 
+                        className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-gray-300'
+                        onClick={()=>setIsUpdateMode(true)}
+                      >
+                        <PencilIcon className="h-5"/>
+                        <span>Modifier</span>
+                      </button>
+                    }
                     {
                       (selectedExpense?.statut?.includes("REJECT") || selectedExpense?.statut?.includes("EXECUTED")) ?<></>:
                         <button className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-gray-300' onClick={handleDeleteExpense}>
@@ -1849,89 +1867,10 @@ const getOperatorAccounts = async (operator) =>{
                 </Space>
               }
             >
-              <div className='w-full h-full overflow-hidden flex justify-evenly space-x-2'>
-
-                {/* Recette details */}
-                <div className='w-1/2 bg-white border-[1px] rounded-lg overflow-y-auto p-3'>
-                  
-                  <div className='flex items-center space-x-5 space-y-3'>
-                    <div>
-                      <label htmlFor="">Date initiatier :</label>
-                        <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
-                          <p>02/05/2024</p>
-                        </div>
-                    </div>
-                    <div>
-                      <label htmlFor="">Numéro de Références :</label>
-                      <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
-                        <p>1001/05/24</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="">Controlleur :</label>
-                      {isUpdateMode ? 
-                      <div>
-                        <select className='w-full' name="" id="" value={controller} onChange={e=>setController(e.target.value)}>
-                          <option value="">Choisir le controleur</option>
-                          <option value="">Controleur 1</option>
-                          <option value="">Controleur 2</option>
-                          <option value="">Controleur 3</option>
-                        </select>
-                      </div>
-                      :
-                      <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
-                        <p>Controlleur 1</p> 
-                      </div>
-                      }
-                  </div>
-                  <div>
-                    <label htmlFor="">Provenence :</label>
-                    {isUpdateMode ? 
-                      <div>
-                        <select className='w-full' name="" id="" value={origin} onChange={e=>setOrigin(e.target.value)}>
-                          <option value="">Provenance</option>
-                          <option value="">Règlement facture</option>
-                          <option value="">Caution sur opération</option>
-                          <option value="">Vente sur site</option>
-                        </select>
-                      </div>
-                      :
-                      <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
-                        <p>vente sur site</p> 
-                      </div>
-                      }
-                  </div>
-                  <div>
-                    <label htmlFor="">Shift :</label>
-                    {isUpdateMode ? 
-                      <div>
-                        <select className='w-full' name="" id="" value={shift} onChange={e=>setShift(e.target.value)}>
-                          <option value="">Choisir le shift</option>
-                          <option value="">6h-15h</option>
-                          <option value="">15h-22h</option>
-                          <option value="">22h-6h</option>
-                        </select>
-                      </div>
-                      :
-                      <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
-                        <p>15h-22h</p> 
-                      </div>
-                      }
-                  </div>
-                </div>
-
-                {/* Operations details */}
-                <div className='w-1/2 bg-white border-[1px] rounded-lg overflow-y-auto flex flex-col space-y-2 p-3'>
-                
-                  <Collapsible 
-                    title={<p>Toutes les opérations</p>}
-                    isOpenned={false}
-                  >
-                  </Collapsible>
-                </div>
-
-              </div>
+              <DetailForm 
+                selected={selectedExpense}
+                isUpdateMode={isUpdateMode}
+              />
             </Drawer>
 
         </LoginLayout>

@@ -424,6 +424,11 @@ function Dashboard() {
               isActive={path === "treasury"}
               onClick={()=>handleTabClick("treasury")}
             />
+            <Tab 
+              title={<p className='text-md'>Cumulative</p>}
+              isActive={path === "cumulative"}
+              onClick={()=>handleTabClick("cumulative")}
+            />
           </TabsComponent>
           <div className='flex w-auto justify-end items-center space-x-2 mt-2'>
             <label htmlFor="" className='text-xs'>Choisir le pas :</label>
@@ -442,9 +447,10 @@ function Dashboard() {
                 data={
                   path === "recipes" ? recipeData : 
                   path === "expenses"? expenseData : 
+                  path === "cumulative"? cummulative : 
                   treasuryData
                 } 
-                predictions={path === "treasury" ? cummulative : []}
+                // predictions={path === "treasury" ? cummulative : []}
               />
             </div>
 
