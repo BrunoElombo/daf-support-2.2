@@ -2,3 +2,13 @@ Every user should be attache
 Notify the user of th evolution of the 
 Add a comment when validating in required, 
 validate and validation sous-reserve to be able to notify.
+{
+    id:
+    name
+    montant
+    sblin:[
+        {...},
+        {...},
+        {...},
+    ]
+}

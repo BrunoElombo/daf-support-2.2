@@ -1829,7 +1829,7 @@ const getOperatorAccounts = async (operator) =>{
                       <XMarkIcon className="h-5"/>
                       <span>Rejeter</span>
                     </button> */}
-                    {
+                    {/* {
                       isUpdateMode ? 
                       <>
                         <button 
@@ -1843,7 +1843,6 @@ const getOperatorAccounts = async (operator) =>{
                         className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-gray-300'
                         onClick={()=>{}}
                         >
-                          {/* <Icon className="h-5"/> */}
                           <span>Sauvegarder</span>
                         </button>
                       </>
@@ -1855,8 +1854,9 @@ const getOperatorAccounts = async (operator) =>{
                         <PencilIcon className="h-5"/>
                         <span>Modifier</span>
                       </button>
-                    }
+                    } */}
                     {
+                      selectedExpense?.date_validation_department_manager != null &&
                       (selectedExpense?.statut?.includes("REJECT") || selectedExpense?.statut?.includes("EXECUTED")) ?<></>:
                         <button className='btn hover:text-white flex items-center space-x-2 text-gray-500  text-sm hover:bg-gray-300' onClick={handleDeleteExpense}>
                         <TrashIcon className="h-5"/>

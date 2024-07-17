@@ -186,21 +186,21 @@ function DetailForm({data, selected, isUpdateMode}) {
                         }
                     />
                 </div>:
-                <form className=' space-y-3 p-2 border-[1px] border-gray-100 rounded-lg flex flex-col md:flex-row h-full max-h-full overflow-y-scroll'>
-                    <div className=''>
+                <form className=' space-y-3 p-2 border-[1px] border-gray-100 w-full rounded-lg flex flex-col md:flex-row space-x-0 md:space-x-2 h-full max-h-full overflow-y-scroll'>
+                    <div className='w-1/2'>
                         <h4 className=''>Information général :</h4>
                         <div className='flex items-center space-x-0 md:space-x-2'>
-                            <div className={'flex flex-col w-1/4'}>
+                            <div className={'flex flex-col w-full'}>
                                 <label htmlFor="" className='text-xs'>Date initiation :</label>
                                 <input type="text" className={`disbabled text-sm`} value={initiationDate?.split("T")[0]} disabled/>
                             </div>
-                            <div className='flex flex-col w-1/4'>
+                            <div className='flex flex-col w-full'>
                                 <label htmlFor="" className='text-xs'>Numéro de référence :</label>
                                 <input type="text" className=" text-sm disbabled" value={details?.reference_number} disabled/>
                             </div>
                         </div>
                         <div className='flex items-center space-x-0 md:space-x-2'>
-                            <div className={'flex flex-col w-1/2'}>
+                            <div className={'flex flex-col w-full'}>
                                 <label htmlFor="" className='text-xs'>Méthod de paiment :</label>
                                 <select type="text"  className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value)}  disabled={!formIsUpdate}>
                                     <option value="CARTE">Carte</option>
@@ -210,7 +210,7 @@ function DetailForm({data, selected, isUpdateMode}) {
                             </div>
                         </div>
                         <div className='flex items-center space-x-0 md:space-x-2'>
-                            <div className={'flex flex-col w-1/2'}>
+                            <div className={'flex flex-col w-full'}>
                                 <label htmlFor="" className='text-xs'>Ligne budgétaire :</label>
                                 <input type="text"  className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={details?.file_number}  disabled={!formIsUpdate}/>
                                 {/* <select type="text"  className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value)}  disabled={!formIsUpdate}>
@@ -221,7 +221,7 @@ function DetailForm({data, selected, isUpdateMode}) {
                             </div>
                         </div>
                         <div className='flex items-center space-x-0 md:space-x-2'>
-                            <div className={'flex flex-col w-1/2'}>
+                            <div className={'flex flex-col w-full'}>
                                 <label htmlFor="" className='text-xs'>Montant :</label>
                                 <input type="text" className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={amount} onChange={e=>setAmount(e.target.value)} disabled={!formIsUpdate} />
                             </div>
@@ -238,9 +238,9 @@ function DetailForm({data, selected, isUpdateMode}) {
                                 </div>
                             </div>
                         </div>
-                        <div className='flex items-center space-x-0 md:space-x-2 w-1/2'>
-                            <div className={'flex flex-col w-1/2'}>
-                                <label htmlFor="" className='text-xs'>Site :</label>
+                        <div className='flex items-center space-x-0 md:space-x-2 w-full'>
+                            <div className={'flex flex-col w-full'}>
+                                <label htmlFor="" className='text-xs'>Justif :</label>
                                 <div className='flex flex-wrap w-full'>
                                     {
                                         details?.image_list ?
@@ -255,78 +255,78 @@ function DetailForm({data, selected, isUpdateMode}) {
                             </div>
                         </div>
                         <div className='flex items-center space-x-0 md:space-x-2'>
-                            <div className={'flex flex-col w-1/2'}>
+                            <div className={'flex flex-col w-full'}>
                                 <label htmlFor="" className='text-xs'>Description :</label>
                                 <textarea type="text"  className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={description}  onChange={e=>setDescription(e.target.value)} disabled={!formIsUpdate}>
                                 </textarea>
                             </div>
                         </div>
                     </div>
-                    <div className=''>
-
-                    </div>
-                    
-                    {/* <div className='flex items-center space-x-0 md:space-x-2'>
-                        <div className={'flex flex-col w-1/2'}>
-                            <label htmlFor="" className='text-xs'>Indication de l'urgence :</label>
-                            <select type="text"  className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={isUrgent}  onChange={e=>setIsUrgent(e.target.value)} disabled={!formIsUpdate}>
-                                <option value={true}>Urgent</option>
-                                <option value={false}>Pas urgent</option>
-                            </select>
-                        </div>
-                    </div> */}
-                    
-
-                    {/* <div className='flex items-center space-x-0 md:space-x-2'>
-                        <div className={'flex flex-col w-1/2'}>
-                            <label htmlFor="" className='text-xs'>Numéro du fichier :</label>
-                            <input type="text" className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={details?.fileNumber || "N/A"}  disabled={!formIsUpdate} />
-                        </div>
-                    </div>
-                    <div className='flex items-center space-x-0 md:space-x-2'>
-                        <div className={'flex flex-col w-1/2'}>
-                            <label htmlFor="" className='text-xs'>Numéro du fichier :</label>
-                            <input type="text" className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={details?.corporate_name || "N/A"}  disabled={!formIsUpdate} />
-                        </div>
-                    </div>
-                    <div className='flex items-center space-x-0 md:space-x-2'>
-                        <div className={'flex flex-col w-1/2'}>
-                            <label htmlFor="" className='text-xs'>NIU :</label>
-                            <input type="text" className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={details?.uin_beneficiary || "N/A"}  disabled={!formIsUpdate} />
-                        </div>
-                    </div>
-                    <div className='flex items-center space-x-0 md:space-x-2 w-1/2'>
-                        <div className={'flex flex-col w-1/2'}>
-                            <label htmlFor="" className='text-xs'>Fichier :</label>
-                            <div className='flex flex-wrap w-1/2'>
-                                {
-                                    details?.image_list?.map((file, index)=>
-                                        <a className='p-1 text-xs bg-gray-50 border-[1px] border-gray-100 rounded-xl' key={index} href={`${file}`} target='_blank'>
-                                            <small>{file}</small>
-                                        </a>
-                                    )
-                                }
+                    <div className='w-[2px] bg-gray-200 border-[1px] border-gray-200'></div>
+                    <div className='w-1/2 space-y-2'>
+                            <div className='flex flex-col '>
+                                    <label htmlFor="" className='text-xs'>Status de la fiche :</label>
+                                    <input type="text" className={`disbabled text-sm`}  value={ details?.statut } disabled={!formIsUpdate} />
                             </div>
-                        </div>
+                            <div className='flex flex-col'>
+                                    <label htmlFor="" className='text-xs'>Numéro de transaction :</label>
+                                    <input type="text" className={`disbabled text-sm`}  value={ details?.transaction_number || 'N/A'} disabled={!formIsUpdate} />
+                            </div>
+                            <div className='flex flex-col'>
+                                    <label htmlFor="" className='text-xs'>NIU bénéficiaire :</label>
+                                    <input type="text" className={`disbabled text-sm`}  value={ details?.uin_benefeiciary || 'N/A' } disabled={!formIsUpdate} />
+                            </div>
+                            {
+                                 details?.observation_manager_department &&
+                                <div className='flex items-center'>
+                                <div className={'flex flex-col w-full'}>
+                                    <label htmlFor="" className='text-xs'>Observation chef de département :</label>
+                                    <textarea type="text"  className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={ details?.observation_manager_department || 'N/A' }  onChange={e=>setDescription(e.target.value)} disabled={!formIsUpdate}>
+                                    </textarea>
+                                </div>
+                            </div>
+                            }
+                            {
+                                details?.observation_budgetary_department &&
+                                <div className='flex items-center space-x-0 md:space-x-2'>
+                                <div className={'flex flex-col w-full'}>
+                                    <label htmlFor="" className='text-xs'>Observation DAF :</label>
+                                    <textarea type="text"  className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={ details?.observation_budgetary_department || 'N/A' }  onChange={e=>setDescription(e.target.value)} disabled={!formIsUpdate}>
+                                    </textarea>
+                                </div>
+                            </div>
+                            }
+                            {
+                                details?.observation_general_director &&
+                                <div className='flex items-center space-x-0 md:space-x-2'>
+                                <div className={'flex flex-col w-full'}>
+                                    <label htmlFor="" className='text-xs'>Observation Directeur general :</label>
+                                    <textarea type="text"  className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={ details?.observation_general_director || 'N/A' }  onChange={e=>setDescription(e.target.value)} disabled={!formIsUpdate}>
+                                    </textarea>
+                                </div>
+                            </div>
+                            }
+                            {
+                                details?.observation_president  &&
+                                <div className='flex items-center space-x-0 md:space-x-2'>
+                                    <div className={'flex flex-col w-full'}>
+                                        <label htmlFor="" className='text-xs'>Observation président(e) :</label>
+                                        <textarea type="text"  className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={ details?.observation_president || 'N/A' }  onChange={e=>setDescription(e.target.value)} disabled={!formIsUpdate}>
+                                        </textarea>
+                                    </div>
+                                </div>
+                            }
+                            {
+                                details?.paymaster_general &&
+                                <div className='flex items-center space-x-0 md:space-x-2'>
+                                    <div className={'flex flex-col w-full'}>
+                                        <label htmlFor="" className='text-xs'>Observation TPG :</label>
+                                        <textarea type="text"  className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={ details?.paymaster_general || 'N/A' }  onChange={e=>setDescription(e.target.value)} disabled={!formIsUpdate}>
+                                        </textarea>
+                                    </div>
+                                </div>
+                            }
                     </div>
-                    <div className='flex items-center space-x-0 md:space-x-2 w-1/2'>
-                        <div className='flex flex-col w-full'>
-                            <label htmlFor="" className='text-xs'>Site :</label>
-                            <select type="text" className={`${formIsUpdate ?"":"disbabled"} text-xs`} value={details?.site} disabled={!formIsUpdate}>
-                                {
-                                    sites.map(site => <option value={site?.id} key={site?.id}>{site?.name}</option>)
-                                }
-                            </select>
-                        </div>
-                    </div>
-                    <div className='flex items-center space-x-0 md:space-x-2 w-1/2'>
-                        <div className='flex flex-col w-full'>
-                            <label htmlFor="" className='text-xs'>Beneficiaire :</label>
-                            <select type="text" className=" text-sm" value={details?.time_created?.split("T")[0]} disabled={!formIsUpdate}>
-                                <option value=""></option>
-                            </select>
-                        </div>
-                    </div> */}
                 </form>
             }
         </div>
