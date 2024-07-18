@@ -51,8 +51,6 @@ function useFetch() {
         if (token) {
           headers.Authorization = `Bearer ${token}`;
         } else {
-          // Handle missing token scenario (e.g., log a warning or return an error)
-          console.warn("Authorization token missing in localStorage");
           setRequestError("Missing authorization token");
           throw new Error(`Error: Missing authorization token`);
         }

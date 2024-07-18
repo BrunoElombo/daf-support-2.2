@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import useFetch from '../../hooks/useFetch';
+import moment from 'moment';
 
 function CaissePageHeader({cashBalance}) {
 
@@ -14,6 +15,7 @@ function CaissePageHeader({cashBalance}) {
     const [expense, setExpense] = useState("");
     const [recipe, setRecipe] = useState("");
     const [expenses, setExpenses] = useState([]);
+    const [year, setYear] = useState("");
 
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
@@ -24,18 +26,28 @@ function CaissePageHeader({cashBalance}) {
     const [expenseDataSrc, setExpenseDataSrc] = useState([]);
     const [expenseData, setExpenseData] = useState([]);
 
+    const [cashDesks, setCashDesks] = useState([]);
+    const [cashDesksSrc, setCashDesksSrc] = useState([]);
+    const [cashDesk, setCashDesk] = useState("");
+
     const [tempRecipeTotal, setTempRecipeTotal] = useState("0");
     const [tempExpenseTotal, setTempExpenseTotal] = useState("0");
 
     // Hooks
-    const { requestError, requestLoading, fetchData } = useFetch();
+    const { requestError, requestLoading, fetchData, postData, updateData } = useFetch();
 
 
     // Side Effects
     useEffect(()=>{
-      handleGetExpenses()
+      // handleGetDeskCheckOuts()
       handleGetCheckouts();
+      handleGetCashDesk();
     }, []);
+
+    useEffect(()=>{
+      handleGetDeskData(cashDesk);
+      handleGetDeskEntering(cashDesk);
+    }, [cashDesk]);
 
     useEffect(()=>{
       if(startDate != "" && endDate != ""){
@@ -84,19 +96,45 @@ function CaissePageHeader({cashBalance}) {
     }
 
     /**
-     * Get the expense summary
+     * Get the chekouts summary
      */
-    const handleGetExpenses= async ()=>{
+    const handleGetDeskCheckOuts= async ()=>{
       let url = `${import.meta.env.VITE_DAF_API}/expensesheet/summary_by_year/?year=2024&entity_id=${entityId}`;
       try {
         const response = await fetchData(url);
-        let lastExpenseSum = response?.daily_sums[response?.daily_sums.length-1]?.total_amount;
-        setExpense(lastExpenseSum);
-        setTempExpenseTotal(lastExpenseSum);
-        setExpenseData(response?.daily_sums)
-        setExpenseDataSrc(response?.daily_sums)
+        let dailySum = getDailySums(response);
+        setExpense(dailySum);
       } catch (error) {
         console.error("Error: ", error);
+      }
+    }
+   
+    /**
+     * Get the chekouts summary
+     */
+    const handleGetDeskEntery= async ()=>{
+      let url = `${import.meta.env.VITE_DAF_API}/cash_desk_movement/summary_by_year/?year=2024&entity_id=${entityId}`;
+      try {
+        const response = await fetchData(url);
+        let dailySum = getDailySums(response);
+        console.log(dailySum)
+        setRecipe(dailySum);
+      } catch (error) {
+        console.error("Error: ", error);
+      }
+    }
+
+    /**
+     * Get all the cash desk
+     * @param null
+     * @return {null}
+    */
+    const handleGetCashDesk= async()=>{
+      const response = await fetchData(import.meta.env.VITE_USER_API+"/cash-desk");
+      if(!requestError){
+          setCashDesks(response);
+          setCashDesk(response[0]?.id);
+          return;
       }
     }
 
@@ -150,6 +188,34 @@ function CaissePageHeader({cashBalance}) {
         }));
     };
 
+    /**
+     * Get the total amount per cash desk
+     * @param {String} id 
+     * @returns {null}
+     */
+    const handleGetDeskData = async (id) =>{
+      let url = `${import.meta.env.VITE_DAF_API}/expensesheet/summary_by_year_by_desk/?year=2024&desk=${id}&entity_id=${entityId}`;	
+      let response = await fetchData(url);
+      if(response.status === 200){
+        let dailySum = getDailySums(response);
+        setExpense(dailySum)
+      } 
+    }
+   
+    /**
+     * Get the total amount per cash desk
+     * @param {String} id 
+     * @returns {null}
+     */
+    const handleGetDeskEntering= async (id) =>{
+      let url = `${import.meta.env.VITE_DAF_API}/cash_desk_movement/summary_by_year/?year=2024&desk=${id}&entity_id=${entityId}`;	
+      let response = await fetchData(url);
+      if(response.status === 200){
+        console.log(response);
+        let dailySum = getDailySums(response);
+        setRecipe(dailySum)
+      } 
+    }
     // Function to filter objects by date range
     /** 
      * @param {Array} objects 
@@ -165,12 +231,27 @@ function CaissePageHeader({cashBalance}) {
       return filteredObjects;
     }
 
+    /**
+     * Get daily sums
+     * @param {*} data 
+     * @returns 
+     */
+
+    function getDailySums(data) {
+      const today = moment().format('YYYY-MM-DD')
+      const dailySums = data?.daily_sums || []; 
+    
+      const dailySum = dailySums.find(entry => moment(entry?.day).format('YYYY-MM-DD') === today);
+      return dailySum ? dailySum?.total_amount : 0; 
+    }
+
+
   return (
     <div>
-      <div className='flex items-center space-x-2'>
+      {/* <div className='flex items-center space-x-2'>
         <input type="date" value={startDate} className='text-xs' onChange={e=>setStartDate(e.target.value)}/>
         <input type="date" value={endDate} className='text-xs' onChange={e=>setEndDate(e.target.value)}/>
-      </div>
+      </div> */}
       <PageHeader>
           <div className='flex justify-between items-center w-full'>
               <div className='mt-2 md:mt-0 flex space-x-5'>
@@ -187,16 +268,13 @@ function CaissePageHeader({cashBalance}) {
                   Entrée en caisse : <b className='bg-yellow-300 p-2 rounded-lg'>{numberWithCommas(recipe) || 0} XAF</b>
                 </h3>
               </div>
-              {/* <div className='flex space-x-2 items-center'>
-                <div className="flex space-x-2 items-center">
-                  <label htmlFor="" className='text-xs'>Du :</label>
-                  <input type="date" className='text-xs'/>
-                </div>
-                <div className="flex space-x-2 items-center">
-                  <label htmlFor="" className='text-xs'>Du :</label>
-                  <input type="date" className='text-xs'/>
-                </div>
-              </div>    */}
+              <div className='flex space-x-2 items-center'>
+                  <select className='text-xs' value={setCashDesk} onChange={e=>setCashDesk(e.target.value)}>
+                    {
+                      cashDesks.map(desk=><option value={desk?.id} key={desk?.id}>{desk?.name?.toUpperCase()}</option>)
+                    }
+                  </select>
+              </div>   
           </div>
       </PageHeader>
     </div>

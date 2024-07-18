@@ -86,6 +86,7 @@ function RecettePage() {
   const  [operationDataSrc, setOperationDataSrc] = useState([]);
   const  [employees, setEmployees] = useState([]);
   const [departments, setDepartements] = useState([]);
+  const [externalEntities, setExternalEntities] = useState([]);
   const generateRefNumber = (table) => {
     const existingNumbers = table.map(expense => parseInt(expense.ref_number.split('/')[0]));
     const nextNumber = existingNumbers.length === 0 ? 1001 : Math.max(...existingNumbers) + 1;
@@ -276,6 +277,14 @@ function RecettePage() {
     let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
     if(!requestError){
       setEntitySites(response);
+    }
+  }
+
+  const handleExternalEntity = async()=>{
+    const response = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
+    if(response.status === 200){
+      setExternalEntities(response);
+      return;
     }
   }
 
@@ -523,6 +532,7 @@ function RecettePage() {
     handleGetEntitySite();
     handleGetEmployees();
     handleGetallDepartments();
+    handleExternalEntity();
   }, []);
 
   const formatExportData=(data)=>{
@@ -548,7 +558,7 @@ function RecettePage() {
         employee_checkout: employees?.find(employee=>employee?.User.id === employee_checkout)?.User.name || "N/A",
         statut:statut || "N/A",
         payment_method: payment_method || "N/A",
-        department: departments.find(dept=>dept?.id === department)?.displayName || "N/A",
+        department: departments?.find(dept=>dept?.id === department)?.displayName || "N/A",
         date_valid_controller: date_valid_controller?.split("T")[0] || "N/A",
         date_valid_employee_checkout: date_valid_employee_checkout?.split("T")[0] || "N/A",
         time_created: time_created || "N/A",

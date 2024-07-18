@@ -4,17 +4,19 @@ import { AUTHCONTEXT } from '../../context/AuthProvider';
 import TabsComponent from '../../components/TabsComponents/TabsComponent';
 import VerifyPermissions from '../../components/Permissions/VerifyPermissions';
 import Tab from '../../components/TabsComponents/Tab';
+import { FunnelIcon } from '@heroicons/react/24/outline';
 import PageHeader from '../../components/PageHeader/PageHeader';
 import useFetch from '../../hooks/useFetch';
-import { Drawer, Modal, Table } from 'antd';
+import { Drawer, Modal, Table, Popover } from 'antd';
 import ApproForm from '../Treasury/ApproForm';
 import { ArrowsRightLeftIcon, CheckIcon, XMarkIcon, EyeIcon, PencilIcon } from '@heroicons/react/24/outline'
 import StateForm from '../../components/caisse/StateForm';
 import CaissePageHeader from './CaissePageHeader';
 import MandatoryForm from './MandatoryForm';
+import SupplyFilter from './SupplyFilter';
 
 function Caisse() {
-  const [path, setPath] = useState("appro");
+  const [path, setPath] = useState("supply");
   const {userInfo} = useContext(AUTHCONTEXT);
   /**
    * Commas to numbers
@@ -37,11 +39,12 @@ function Caisse() {
   const [employees, setEmployees] = useState([]);
   const [entities, setEntities] = useState([]);
   const [cashDesks, setCashDesks] = useState([]);
+  const [searchValue, setSearchValue] = useState("");
 
   // Approvisionement
   const [openApproModal, setOpenApproModal] = useState(false);
 
-  // Billeterie
+  // State
   const  [billeterieFormIsOpen, setBilleterieFormIsOpen] = useState(false);
   const handleTabClick = (selectedPath) =>{
     setPath(selectedPath);
@@ -122,16 +125,42 @@ const handleGetCashDesk= async()=>{
   }
 }
 
+/**
+ * Highlight the 
+ */
+const highlightText = (text) => {
+  if (!searchValue) return text;
+
+  const regex = new RegExp(searchValue, 'gi');
+  return <span dangerouslySetInnerHTML={{ __html: text.replace(
+    new RegExp(searchValue, 'gi'),
+    (match) => `<mark style="background-color: yellow;">${match}</mark>`
+  )}} />
+};
+
+/**
+ * Multi criterial filtering
+ */
+
 
 
   const SUPPLY_COLUMNS = [
     { title: "#", key: "1", width: "50px", render: (text, record)=><>{supplyData.indexOf(record)+1}</>},
-    { title: "Numéro ref", dataIndex: "reference_number", key: "2", width: "200px" },
+    { 
+      title: "Numéro ref", 
+      dataIndex: "reference_number", 
+      key: "2", 
+      width: "200px",
+      render:(text, record)=>{
+        return <>{highlightText(text)}</>
+      } 
+    },
     { 
       title: "Compte bancaire", 
       dataIndex: "bank_account", 
       key: "3", 
       width: "200px",
+      render: (text, record)=><>{highlightText(text)}</>
     },
     { 
       title: "Caisse", 
@@ -140,7 +169,7 @@ const handleGetCashDesk= async()=>{
       width: "200px",
       render:(text, record)=>{
         let deskName = cashDesks.find(desk=> desk?.id === text)?.name;
-        return <>{deskName}</>
+        return <>{highlightText(deskName)}</>
       } 
     },
     { 
@@ -151,7 +180,7 @@ const handleGetCashDesk= async()=>{
       render:(text, record)=>{
         let convertedEmployeeIds = employees?.find
         (employee=>employee?.User?.id == text)
-        return <p className='capitalize'>{convertedEmployeeIds?.User?.name}</p>
+        return <p className='capitalize'>{highlightText(convertedEmployeeIds?.User?.name)}</p>
       }
     },
     { 
@@ -159,7 +188,10 @@ const handleGetCashDesk= async()=>{
       dataIndex: "amount", 
       key: "amount", 
       width: "200px",
-      render:(text, record)=><>{numberWithCommas(text)}</>
+      render:(text, record)=>{
+        let amount = numberWithCommas(text);
+      return <>{highlightText(amount)}</>
+    }
     },
     { 
       title: "Statut", 
@@ -252,7 +284,49 @@ const handleGetCashDesk= async()=>{
     handleGetAllEntities();
     handleGetBank();
     handleGetCashDesk();
-  }, [])
+  }, []);
+
+  useEffect(()=>{
+    if(path === 'supply'){
+      if(searchValue.length > 0){
+        const search = supplyDataSrc?.filter((item) => {
+            const searchTextLower = searchValue.toLowerCase();
+            return(
+              item?.reference_number.toString().toLowerCase().includes(searchTextLower) ||
+              item?.amount.toString().toLowerCase().includes(searchTextLower) ||
+              item?.currency.toString().toLowerCase().includes(searchTextLower) ||
+              item?.bank_account.toString().toLowerCase().includes(searchTextLower) ||
+              employees?.find(employee => employee?.User.id == item?.bank_mandate)?.User?.name?.toLowerCase().includes(searchTextLower) ||
+              sites?.find(site => site?.id == item?.site)?.name.toLowerCase().includes(searchTextLower) ||
+              cashDesks.find(desk=> desk?.id === item?.cash_register)?.name.toLowerCase().includes(searchTextLower)
+            )
+        })
+        setSupplyData(search)
+      }else{
+        setSupplyData(supplyDataSrc);
+      }
+    }
+
+    if(path === 'state'){
+      if(searchValue.length > 0){
+        const search = cashDeskState?.filter((item) => {
+          const searchTextLower = searchValue.toLowerCase();
+        return(
+          item?.reference_number.toString().toLowerCase().includes(searchTextLower) ||
+          item?.amount.toString().toLowerCase().includes(searchTextLower) ||
+          item?.currency.toString().toLowerCase().includes(searchTextLower) ||
+          // employees?.find(employee => employee?.User.id == item?.employee_controller)?.User?.name?.toLowerCase().includes(searchTextLower) ||
+          sites?.find(site => site?.id == item?.site)?.name.toLowerCase().includes(searchTextLower) 
+        )
+      })
+        // setRecetteDataSrc(search)
+      }else{
+        // setRecetteDataSrc(filteredData);
+      }
+    }
+  
+  }, [searchValue]);
+
 
   
   return (
@@ -263,13 +337,13 @@ const handleGetCashDesk= async()=>{
         <TabsComponent>
           <Tab
             title={<p>Appro caisse</p>}
-            isActive={path === "appro"}
-            onClick={()=>handleTabClick("appro")}
+            isActive={path === "supply"}
+            onClick={()=>handleTabClick("supply")}
           />
           <Tab
             title={<p>État de caisse</p>}
-            isActive={path === "billeterie"}
-            onClick={()=>handleTabClick("billeterie")}
+            isActive={path === "state"}
+            onClick={()=>handleTabClick("state")}
           />
           {/* <Tab
             title={<p>Trésorerie</p>}
@@ -279,24 +353,32 @@ const handleGetCashDesk= async()=>{
         </TabsComponent>
         <div className='p-3'>
             <div>
-              <h3>{path == "appro" ? "Appro caisse" : path == "billeterie" ? "Billeterie" :path == "tresorerie" && "Tresorerie"}</h3>
+              <h3>{path == "supply" ? "Supply caisse" : path == "state" ? "State" :path == "tresorerie" && "Tresorerie"}</h3>
               <PageHeader>
                 <div className='flex items-center justify-between w-full'>
-                  <input type="search" className='text-sm' placeholder='Recherche'/>
+                  <div className='flex items-center space-x-2'>
+                    <input type="search" className='text-sm' placeholder='Recherche' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/>
+                    <Popover content={path === 'supply' ? <SupplyFilter  />: <></>} title="Filtre" trigger="click">
+                        <button className='w-auto text-sm text-white btn bg-green-500 p-2 rounded-lg shadow-sm flex items-center'>
+                          <FunnelIcon className='text-white w-4 h-4'/>
+                          Filtre
+                        </button>
+                    </Popover>
+                  </div>
                   <VerifyPermissions
                       expected={["cashier"]}
                       roles={userInfo?.role?.name}
                       functions={userInfo?.Function?.name}
                   >
                     {
-                      path == "billeterie"?
+                      path == "state"?
                       <></>
                       :
                       <button 
                         className='btn bg-green-500 text-white text-sm'
                         onClick={()=>setOpenApproModal(true)}
                       >
-                        Initier un appro.
+                        Initier un supply.
                       </button>
                     }
                 </VerifyPermissions>
@@ -304,8 +386,8 @@ const handleGetCashDesk= async()=>{
               </PageHeader>
               <div className='border-[1px] border-gray-100 p-3 rounded-lg mt-3'>
                 <Table 
-                  dataSource={path == "appro" ?supplyData : path == "billeterie" ? cashDeskState : path == "tresorerie" && []}
-                  columns = {path == "appro" ? SUPPLY_COLUMNS : path == "billeterie" ? CASH_DESK_COLUMNS :path == "tresorerie" && []}
+                  dataSource={path == "supply" ?supplyData : path == "state" ? cashDeskState : path == "tresorerie" && []}
+                  columns = {path == "supply" ? SUPPLY_COLUMNS : path == "state" ? CASH_DESK_COLUMNS :path == "tresorerie" && []}
                   footer={()=>(
                     <div></div>
                   )}
@@ -322,7 +404,7 @@ const handleGetCashDesk= async()=>{
             </div>
         </div>
 
-        {/* Initiation d'appro */}
+        {/* Initiation d'supply */}
         <Modal
           open={openApproModal}
           onCancel={()=>setOpenApproModal(false)}
@@ -381,7 +463,7 @@ const handleGetCashDesk= async()=>{
         </Modal>
 
         <Drawer
-          title={<p>Détails de la billeterie</p>}
+          title={<p>Détails de la state</p>}
           placement={"bottom"}
           width={500}
           height={"90vh"}

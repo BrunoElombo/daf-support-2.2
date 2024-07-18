@@ -1,7 +1,6 @@
 import React, {useState, useEffect} from 'react'
 import useFetch from '../../hooks/useFetch';
 import $ from 'jquery';
-import { formatCountdown } from 'antd/es/statistic/utils';
 
 // let beneficiairyList = [];
 function ExepenseSheetFilter({setExpenseDataSrc}) {
@@ -77,6 +76,7 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
             setIsLoading(false);
         }
     }
+    
     // --Handle Cancel form
     const handleCancel=(e) =>{
         e.preventDefault();
@@ -95,6 +95,7 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
         setAmountRange("");
         setAmountLessThan("");
         setAmountGreaterThan("");
+        setAmount("");
         setStartDate("");
         setEndDate("");
     }

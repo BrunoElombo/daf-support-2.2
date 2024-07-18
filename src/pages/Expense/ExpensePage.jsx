@@ -762,7 +762,6 @@ function ExpensePage() {
     const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
     if(!requestError){
       let result = external;
-      
       setExternalEntities(result);
     }
   }
@@ -942,8 +941,7 @@ function ExpensePage() {
     if(searchValue.length > 0){
       const search = filteredData?.filter((item) => {
         const searchTextLower = searchValue.toLowerCase();
-        // return Object.values(item)?.some((fieldValue) => fieldValue?.toString().toLowerCase().includes(searchTextLower)
-      // );
+        
       return(
         item?.reference_number?.toString().toLowerCase().includes(searchTextLower) ||
         item?.statut?.toString().toLowerCase().includes(searchTextLower) ||
@@ -951,11 +949,11 @@ function ExpensePage() {
         item?.amount?.toString().toLowerCase().includes(searchTextLower) ||
         item?.transaction_number?.toString().toLowerCase().includes(searchTextLower) ||
         item?.uin_beneficiary?.toString().toLowerCase().includes(searchTextLower) ||
+        externalEntities?.find(externalEntity=> externalEntity?.external_entity.id == item?.employee_beneficiary)?.external_entity.name.toLowerCase().includes(searchTextLower)||
         beneficiaires?.find(employee => employee?.User.id == item?.employee_initiator)?.User?.name?.toLowerCase().includes(searchTextLower) ||
-        (beneficiaires?.find(employee => employee?.User.id == item?.employee_controller)?.User?.name?.toLowerCase().includes(searchTextLower) ? 
-        beneficiaires?.find(employee => employee?.User.id == item?.employee_controller)?.User?.name?.toLowerCase().includes(searchTextLower)
-        :externalEntities.find(externalEntity=> externalEntity?.external_entity.id === item?.employee_controller)?.external_entity.name.toUpperCase()) ||
-        entitySites?.find(site => site?.id == item?.site)?.name.toLowerCase().includes(searchTextLower) 
+        beneficiaires?.find(employee => employee?.User.id == item?.employee_controller)?.User?.name?.toLowerCase().includes(searchTextLower) ||
+        entitySites?.find(site => site?.id == item?.site)?.name.toLowerCase().includes(searchTextLower) ||
+        departments?.find(department => department?.id == item?.department)?.displayName.toLowerCase().includes(searchTextLower) 
       )
     }
   )
@@ -1205,26 +1203,45 @@ const getOperatorAccounts = async (operator) =>{
               </Popover>
             </div>
             <div className='w-full md:w-auto space-x-2 flex '>
-              {
-                selectedRowKeys.length > 0 &&
-                <>
-                  <div className='flex items-center space-x-2'>
-                    <p className='text-xs'><b>{selectedRowKeys.length}</b> Fiches selectionés</p>
-                    <button className='text-xs bg-green-500 text-white p-2 rounded-lg shadow-md' onClick={()=>{
-                      {
-                        multipleAction === "VALIDER" ?
-                          setOpenValidateModal(true)
-                        :
-                          setOpenRejectModal(true)
-                      };
-                      setIsMultipleSelect(true);
-                      }}>Action</button>
-                  </div>
-                  <select className='text-xs' value={multipleAction} onChange={e=>setMultipleAction(e.target.value)}>
-                    <option value="VALIDER">Valider</option>
-                    <option value="REJETER">Rejeter</option>
-                  </select>
-                </>
+              { 
+                  <VerifyPermissions
+                      expected={["accountant", 
+                          "department_manager", 
+                          "general_manager", 
+                          "president", 
+                          "operations_manager", 
+                          "paymaster_general",
+                          "chief_financial_officer",
+                          "cashier",
+                          "rop",
+                      ]}
+                      roles={userInfo?.role?.name}
+                      functions={userInfo?.Function?.name}
+                  >
+                  <>
+                  {
+                  selectedRowKeys.length > 0 &&
+                  <>
+                    <div className='flex items-center space-x-2'>
+                      <p className='text-xs'><b>{selectedRowKeys.length}</b> Fiches selectionés</p>
+                      <button className='text-xs bg-green-500 text-white p-2 rounded-lg shadow-md' onClick={()=>{
+                        {
+                          multipleAction === "VALIDER" ?
+                            setOpenValidateModal(true)
+                          :
+                            setOpenRejectModal(true)
+                        };
+                        setIsMultipleSelect(true);
+                        }}>Action</button>
+                    </div>
+                    <select className='text-xs' value={multipleAction} onChange={e=>setMultipleAction(e.target.value)}>
+                      <option value="VALIDER">Valider</option>
+                      <option value="REJETER">Rejeter</option>
+                    </select>
+                  </>
+                  }
+                  </>
+                  </VerifyPermissions>
               }
               { expenseDataSrc?.length > 0 &&
                 <button className={`${isLoading?"bg-green-300 cursor-not-allowed":"bg-green-500"}  btn p-2 text-white rounded-lg shadow-sm text-sm`} onClick={handleDataExport}>
@@ -1670,9 +1687,9 @@ const getOperatorAccounts = async (operator) =>{
                   } */}
                 </VerifyPermissions>
                 {
-                  (selectedExpense?.it_is_a_cash_desk_movement == false && selectedExpense.payment_method == "ESPECES") &&
+                  (selectedExpense.payment_method == "ESPECES") &&
                     <VerifyPermissions
-                      expected={["rop"]}
+                      expected={["paymaster_general"]}
                       roles={userInfo?.role?.name}
                       functions={userInfo?.Function?.name}
                     >
@@ -1787,7 +1804,6 @@ const getOperatorAccounts = async (operator) =>{
                 <input type="text" placeholder='Numéro de la transaction' value={observationTPG} onChange={e=>setObservationTPG(e.target.value)}/>
                 <div className='flex items-center justify-end'>
                   <button className={`${requestLoading ? "bg-green-300" : "bg-green-500" } btn text-white text-sm shadow flex items-center`}>
-                    
                     <span>{requestLoading ? "Validation en cours..." :"Validation"}</span>
                   </button>
                 </div>

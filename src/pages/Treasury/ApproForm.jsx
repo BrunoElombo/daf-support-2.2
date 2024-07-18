@@ -204,7 +204,7 @@ function ApproForm({onSubmit}) {
      */
     const handleGetEmployees = async()=>{
         try {
-          const benef = await fetchData(import.meta.env.VITE_USER_API+"/employees");
+          const benef = await fetchData(import.meta.env.VITE_USER_API+"/employees/mandatory");
           setEmployees(benef);
           setEmployee(benef[0]?.User.id);
         } catch (error) {
