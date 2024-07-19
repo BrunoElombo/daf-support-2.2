@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import useFetch from '../../hooks/useFetch';
+import $ from 'jquery';
 
 
-function SupplyFilter() {
+function SupplyFilter({setSupplyData}) {
     // Hooks
     const { requestError, requestLoading, fetchData, postData, updateData } = useFetch();
+    const entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
 
     // State
 
@@ -15,6 +17,10 @@ function SupplyFilter() {
     const [mandatories, setMandatories] = useState([]);
     const [entities, setEntities] = useState([]);
     const [sites, setSites] = useState([]);
+    const [amountGreaterThan, setAmountGreaterThan] = useState("")
+    const [amountLessThan, setAmountLessThan] = useState("")
+    const [amountRange, setAmountRange] = useState("")
+    const [isLoading, setIsLoading] = useState(false)
 
     /**
      * Form states
@@ -41,21 +47,15 @@ function SupplyFilter() {
         e.preventDefault();
         try {
             setIsLoading(true);
-            let url = `${import.meta.env.VITE_DAF_API}/expensesheet/multi_criteria_search/`;
+            let url = `${import.meta.env.VITE_DAF_API}/cash_desk_movement/multi_criteria_search/?entity_id=${entityId}`;
             let data = {
-                // "employee_initiator":initiator,
-                // "employee_beneficiary":beneficiary,
-                // "site":site,
-                // "department":department,
-                // "grt_total_amount":amountGreaterThan,
-                // "lst_total_amount":amountLessThan,
-                // "amount":amount,
-                // "payment_method":paymentMethod,
-                // "start_date":startDate,
-                // "end_date":endDate,
-                // "is_an_favorable_management_controller":isFavorable,
-                // "statut":statut,
-                // "entity_id":entityId
+                "grt_total_amount":amountGreaterThan,
+                "lst_total_amount":amountLessThan,
+                "cash_register":desk,
+                "bank_mandate":mandatory,
+                "amount":amount,
+                "site":site,
+                "entity_id":entityId
             };
             $.ajax({
                 method: "GET",
@@ -70,7 +70,7 @@ function SupplyFilter() {
                 const formatedData = data?.map(obj => {
                     return { ...obj, key: obj.id };
                   });
-                  setExpenseDataSrc(formatedData);
+                  setSupplyData(data);
                 setIsLoading(false);
             });
 
@@ -123,13 +123,25 @@ function SupplyFilter() {
             setEntities(response);
         }
     }
+
+    /**
+     * Handle clear form
+     */
+    const handleClearForm=async(e)=>{
+        e.preventDefault();
+        setDesk("");
+        setMandatory("");
+        setAmount("");
+        setSite("");
+    }
+
     // 
   return (
     <div className='w-[300px] max-w-[300px] space-y-3'>
         <form onSubmit={handleSubmitFilter} className='flex flex-col'>
             <div className='flex flex-col'>
                 <label htmlFor="" className='text-xs'>Caisse :</label>
-                <select className='text-xs'>
+                <select className='text-xs' value={desk} onChange={e=>setDesk(e.target.value)}>
                     <option value=""></option>
                     {
                         desks.map(desk=><option className='' value={desk?.id} key={desk?.id}>{desk?.name?.toUpperCase()}</option>)
@@ -138,7 +150,7 @@ function SupplyFilter() {
             </div>
             <div className='flex flex-col'>
                 <label htmlFor="" className='text-xs'>Mandataire :</label>
-                <select className='text-xs'>
+                <select className='text-xs' value={mandatory} onChange={e=>setMandatory(e.target.value)}>
                     <option value=""></option>
                     {
                         mandatories.map(mandatory=><option value={mandatory?.User?.id} key={mandatory?.User?.id}>{mandatory?.User?.name?.toUpperCase()}</option>)
@@ -146,14 +158,38 @@ function SupplyFilter() {
                 </select>
             </div>
             <div className='flex flex-col'>
-                <label htmlFor="" className='text-xs'>Montant :</label>
-                <select className='text-xs'>
-                    <option value=""></option>
-                </select>
-            </div>
+                    <label htmlFor="" className='text-xs'>Montant :</label>
+                    <div className='w-full flex space-x-2'>
+                        <select className='text-xs w-1/2' value={amountRange} onChange={e=>{
+                            setAmount("");
+                            setAmountGreaterThan("");
+                            setAmountLessThan("");
+                            setAmountRange(e.target.value)
+                            }}>
+                            <option value=""></option>
+                            <option value="total_amount">Égale</option>
+                            <option value="grt_total_amount">Superieur</option>
+                            <option value="lst_total_amount">Inférieur</option>
+                        </select>
+                        <input type="number" placeholder='Montant' className='text-sm z-1/2' min={0}
+                            value={
+                                amountRange === "lst_total_amount" ? amountLessThan:
+                                amountRange === "grt_total_amount" ? amountGreaterThan:
+                                amount
+                            }
+
+                            onChange={e =>
+                                e.target.value !=0 &&
+                                amountRange === "lst_total_amount" ? setAmountLessThan(e.target.value):
+                                amountRange === "grt_total_amount" ? setAmountGreaterThan(e.target.value):
+                                (!isNaN(e.target.value) || e.target.value >0) && setAmount(e.target.value)
+                            }
+                        />
+                    </div>
+                </div>
             <div className='flex flex-col'>
                 <label htmlFor="" className='text-xs'>Site :</label>
-                <select className='text-xs'>
+                <select className='text-xs' value={site} onChange={e=>setSite(e.target.value)}>
                     <option value=""></option>
                     {
                         sites.map(site =><option value={site?.id} key={site?.id}>{site?.name}</option>)
@@ -164,7 +200,7 @@ function SupplyFilter() {
             <div className='mt-3'>
                 <div className='flex justify-end'>
                     <button type='submit' className="btn btn-primary text-xs">Filtrer</button>
-                    <button type='reset' className="btn text-red-500 text-xs">Effacer</button>
+                    <button className="btn text-red-500 text-xs" type='reset' onClick={handleClearForm}>Effacer</button>
                 </div>
             </div>
         </form>

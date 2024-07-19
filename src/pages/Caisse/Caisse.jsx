@@ -358,7 +358,7 @@ const highlightText = (text) => {
                 <div className='flex items-center justify-between w-full'>
                   <div className='flex items-center space-x-2'>
                     <input type="search" className='text-sm' placeholder='Recherche' value={searchValue} onChange={e=>setSearchValue(e.target.value)}/>
-                    <Popover content={path === 'supply' ? <SupplyFilter  />: <></>} title="Filtre" trigger="click">
+                    <Popover content={path === 'supply' ? <SupplyFilter setSupplyData={setSupplyData}/>: <></>} title="Filtre" trigger="click">
                         <button className='w-auto text-sm text-white btn bg-green-500 p-2 rounded-lg shadow-sm flex items-center'>
                           <FunnelIcon className='text-white w-4 h-4'/>
                           Filtre

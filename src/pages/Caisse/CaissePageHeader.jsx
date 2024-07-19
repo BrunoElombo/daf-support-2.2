@@ -45,8 +45,8 @@ function CaissePageHeader({cashBalance}) {
     }, []);
 
     useEffect(()=>{
-      handleGetDeskData(cashDesk);
       handleGetDeskEntering(cashDesk);
+      handleGetDeskData(cashDesk);
     }, [cashDesk]);
 
     useEffect(()=>{
@@ -197,8 +197,8 @@ function CaissePageHeader({cashBalance}) {
       let url = `${import.meta.env.VITE_DAF_API}/expensesheet/summary_by_year_by_desk/?year=2024&desk=${id}&entity_id=${entityId}`;	
       let response = await fetchData(url);
       if(response.status === 200){
-        let dailySum = getDailySums(response);
-        setExpense(dailySum)
+        let dailySum = await getDailySums(response);
+        setExpense(dailySum);
       } 
     }
    
@@ -208,11 +208,10 @@ function CaissePageHeader({cashBalance}) {
      * @returns {null}
      */
     const handleGetDeskEntering= async (id) =>{
-      let url = `${import.meta.env.VITE_DAF_API}/cash_desk_movement/summary_by_year/?year=2024&desk=${id}&entity_id=${entityId}`;	
+      let url = `${import.meta.env.VITE_DAF_API}/cash_desk_movement/summary_by_year_by_desk/?year=2024&desk=${id}&entity_id=${entityId}`;	
       let response = await fetchData(url);
       if(response.status === 200){
-        console.log(response);
-        let dailySum = getDailySums(response);
+        let dailySum = await getDailySums(response);
         setRecipe(dailySum)
       } 
     }
@@ -265,11 +264,11 @@ function CaissePageHeader({cashBalance}) {
                   Sortie de caisse : <b className='bg-yellow-300 p-2 rounded-lg'>{numberWithCommas(expense) || 0} XAF</b>
                 </h3>
                 <h3 className="text-xs">
-                  Entrée en caisse : <b className='bg-yellow-300 p-2 rounded-lg'>{numberWithCommas(recipe) || 0} XAF</b>
+                  Entrée en caisse : <b className='bg-yellow-300 p-2 rounded-lg'>{ numberWithCommas(recipe) || 0 } XAF</b>
                 </h3>
               </div>
               <div className='flex space-x-2 items-center'>
-                  <select className='text-xs' value={setCashDesk} onChange={e=>setCashDesk(e.target.value)}>
+                  <select className='text-xs' value={cashDesk} onChange={e=>setCashDesk(e.target.value)}>
                     {
                       cashDesks.map(desk=><option value={desk?.id} key={desk?.id}>{desk?.name?.toUpperCase()}</option>)
                     }
