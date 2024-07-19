@@ -146,6 +146,9 @@ function ExpensePage() {
   const [showMobileSuggestions, setShowMobileSuggestions] = useState(false);
   const [mobileAccountsSuggestions, setMobileAccountsSuggestions] = useState([]);
 
+  const [budgetLines, setBudgetLines] = useState([]);
+  const [budgetLine, setBudgetLine] = useState("");
+
   const [file, setFile] = useState(null);
   const [fileUrl, setFileUrl] = useState(null);
   const fileRef = useRef(null);
@@ -442,6 +445,41 @@ function ExpensePage() {
       openNotification("ECHEC", "Echec du rejet de la fiche"); 
     }
 
+  }
+
+  const handleGetBudgetLines=async ()=>{
+    let url =`${import.meta.env.VITE_BUDGET_API}/sub_lines/`;
+    try{
+      let response = await fetchData(url);
+      setBudgetLines(response?.results);
+      setFileNumber(response?.results[0]?.id);
+    }catch(error){
+      console.error("BUDGET_LINES_ERR", error)
+    }
+  }
+
+  const handleSubmitBudgetLines=async ()=>{
+    try{
+      if(fileNumber === "" || montant === ""){
+        openNotification("ECHEC", "Ligne budgetaire et montant son requis");
+        return;
+      }
+      let url = `${import.meta.env.VITE_BUDGET_API}/update-expense/`;
+      let data = {
+        id: fileNumber,
+        amount: montant
+      }
+      let response = await postData(url, data , true);
+      if(requestError){
+        openNotification("ECHEC", "Erreur sur la ligne budgetaire");
+        return false
+      }
+      return true;
+    }catch(error){
+      console.error("BUDGET_LINES", error)
+      throw error
+    };
+    return false;
   }
 
   const setSelectionRow = (expense) => {
@@ -840,6 +878,7 @@ function ExpensePage() {
     setSite(sites[0]?.id);
     setBeneficiaire(JSON.parse(localStorage.getItem("user"))?.User?.id);
     // setUploadedFiles([]);
+    setFileNumber("")
     setFiles([]);
     setMontant("");
     setDescription("");
@@ -910,8 +949,9 @@ function ExpensePage() {
       headers: headersList,
       body: formData,
     };
-  
+    
     try {
+      handleSubmitBudgetLines();
       const url = import.meta.env.VITE_DAF_API + "/expensesheet/?entity_id=" + entityId;
       const response = await fetch(url, requestOptions);
       if (!response.ok) {
@@ -1179,6 +1219,7 @@ const getOperatorAccounts = async (operator) =>{
     handleGetDepartments();
     handleGetCashDesks();
     handleGetCurrencies();
+    handleGetBudgetLines();
     getOperators();
   } , []);
 
@@ -1434,10 +1475,9 @@ const getOperatorAccounts = async (operator) =>{
                     <div className='flex flex-col'>
                       <label htmlFor="" className='text-xs'>Ligne budgetaire :</label>
                       <select className='w-full' value={fileNumber} onChange={e=>setFileNumber(e.target.value)}>
-                        <option value="Ligne 1 (reparation clim.)">Ligne 1 (reparation clim.)</option>
-                        <option value="Ligne 2 (reparation clim.)">Ligne 2 (reparation clim.)</option>
-                        <option value="Ligne 3 (reparation clim.)">Ligne 3 (reparation clim.)</option>
-                        <option value="Ligne 4 (reparation clim.)">Ligne 4 (reparation clim.)</option>
+                        {
+                          budgetLines.map(line=><option value={line.id} key={line.id}>{line.name}</option>)
+                        }
                       </select>
                     </div>
 

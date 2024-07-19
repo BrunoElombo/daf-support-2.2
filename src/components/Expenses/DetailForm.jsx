@@ -52,6 +52,10 @@ function DetailForm({data, selected, isUpdateMode}) {
     const  [budgetaryDeptObs, setBudgetaryDeptObs] = useState("");
     const  [generalDirectorObs, setGeneralDirectorObs] = useState("");
     const  [paymasterGeneralObs, setPayMAsterGeneralObs] = useState("");
+    const [budgetLines, setBudgetLines] = useState([]);
+    const [budgetLine, setBudgetLine] = useState("");
+
+    
     // Props
 
     // Handlers
@@ -123,12 +127,23 @@ function DetailForm({data, selected, isUpdateMode}) {
 
     };
 
+    const handleGetBudgetLines=async ()=>{
+        let url =`${import.meta.env.VITE_BUDGET_API}/sub_lines/`;
+        try{
+          let response = await fetchData(url);
+          setBudgetLines(response?.results);
+        }catch(error){
+          console.error("BUDGET_LINES_ERR", error)
+        }
+    }
+
     // SideEffects
     useEffect(()=>{
         setFormIsUpdate(isUpdateMode);
         handleGetDepartments();
         handleGetEntitySite();
         handleBenef();
+        handleGetBudgetLines();
     }, []);
 
     useEffect(()=>{
@@ -152,7 +167,7 @@ function DetailForm({data, selected, isUpdateMode}) {
                 setDescription(response.description);
                 setAmount(response.amount);
                 setPaymentMethod(response.payment_method);
-                setFileNumber(response.file_number);
+                setFileNumber(budgetLines.find(line=>line.id == response.file_number)?.name || "N/A");
                 setTransactionNumber(response.transaction_number);
                 setComporateName(response.corporate_name);
                 setUinBenefeiciary(response.uin_benefeiciary);
@@ -203,16 +218,18 @@ function DetailForm({data, selected, isUpdateMode}) {
                             <div className={'flex flex-col w-full'}>
                                 <label htmlFor="" className='text-xs'>Méthod de paiment :</label>
                                 <select type="text"  className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value)}  disabled={!formIsUpdate}>
+                                    <option value="ESPECES">Espèces</option>
                                     <option value="CARTE">Carte</option>
                                     <option value="VIREMENT">Virement</option>
-                                    <option value="MOBILE">Mobile</option>
+                                    <option value="CHEQUE">Cheque</option>
+                                    <option value="PAIMENT MOBILE">Paiment mobile</option>
                                 </select>
                             </div>
                         </div>
                         <div className='flex items-center space-x-0 md:space-x-2'>
                             <div className={'flex flex-col w-full'}>
                                 <label htmlFor="" className='text-xs'>Ligne budgétaire :</label>
-                                <input type="text"  className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={details?.file_number}  disabled={!formIsUpdate}/>
+                                <input type="text"  className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={fileNumber}  disabled={!formIsUpdate}/>
                                 {/* <select type="text"  className={`${formIsUpdate ?"":"disbabled"} text-sm`}  value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value)}  disabled={!formIsUpdate}>
                                     <option value="CARTE">Carte</option>
                                     <option value="VIREMENT">Virement</option>
