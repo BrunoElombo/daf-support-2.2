@@ -12,10 +12,11 @@ function useFetch() {
       let headersList = {
         "Accept": "*/*",
         "Authorization": "Bearer "+localStorage.getItem("token"),
+        mode: 'cors'
       }
 
       try {
-        const response = await fetch(url, { 
+        const response = await fetch("https://cors-anywhere.herokuapp.com/ "+url, { 
           method: "GET",
           headers: headersList
         });
@@ -44,6 +45,7 @@ function useFetch() {
       const headers = {
         Accept: "*/*",
         "Content-Type": "application/json",
+        mode: 'cors'
       };
     
       if (withAuth) {
@@ -57,7 +59,7 @@ function useFetch() {
       }
 
       try {
-        const response = await fetch(url, {
+        const response = await fetch("https://cors-anywhere.herokuapp.com/ "+url, {
           method: "POST",
           headers,
           body: JSON.stringify({ ...data }),
@@ -85,11 +87,12 @@ function useFetch() {
       setRequestLoading(true);
         let headersList = {
           "Authorization": (withAuth ? "Bearer "+localStorage.getItem("token") : ""),
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+            mode: 'cors'
         }
         
         try {
-          const response = await fetch(url, {
+          const response = await fetch("https://cors-anywhere.herokuapp.com/ "+url, {
             method: "PATCH",
             headers: headersList,
             body: JSON.stringify({...data})
