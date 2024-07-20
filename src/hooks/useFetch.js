@@ -16,7 +16,7 @@ function useFetch() {
       }
 
       try {
-        const response = await fetch("https://cors-anywhere.herokuapp.com/ "+url, { 
+        const response = await fetch(url, { 
           method: "GET",
           headers: headersList
         });
@@ -59,7 +59,7 @@ function useFetch() {
       }
 
       try {
-        const response = await fetch("https://cors-anywhere.herokuapp.com/ "+url, {
+        const response = await fetch(url, {
           method: "POST",
           headers,
           body: JSON.stringify({ ...data }),
@@ -92,7 +92,7 @@ function useFetch() {
         }
         
         try {
-          const response = await fetch("https://cors-anywhere.herokuapp.com/ "+url, {
+          const response = await fetch(url, {
             method: "PATCH",
             headers: headersList,
             body: JSON.stringify({...data})
