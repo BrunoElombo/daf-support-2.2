@@ -124,6 +124,7 @@ function ExpensePage() {
       handleBeneficiaryBankAccount(JSON.parse(localStorage.getItem("user"))?.User?.id);
     }else if(recipientType === "PERSONNEMORALE"){
       setRecipient(externalEntities[0]?.id);
+      setBeneficiaire(externalEntities[0]?.id);
       handleBeneficiaryBankAccount(externalEntities[0]?.id);
     }
   }, [recipientType]);
@@ -452,6 +453,7 @@ function ExpensePage() {
     let url =`${import.meta.env.VITE_BUDGET_API}/sub_lines/`;
     try{
       let response = await fetchData(url);
+      console.log(response);
       setBudgetLines(response?.results);
       setFileNumber(response?.results[0]?.id);
     }catch(error){
@@ -497,7 +499,7 @@ function ExpensePage() {
   };
 
   const numberWithCommas=(x)=>{
-    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
+    return x?.toString()?.replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
   }
 
   const expensesCol = [
@@ -515,7 +517,7 @@ function ExpensePage() {
       width:  "200px",
       render: (text, record)=>{
         const site = entitySites?.find(site=>site?.id === text)
-        return <>{site?.name != undefined? highlightText(site?.name) :highlightText(text) }</>
+        return <p className="capitalize">{site?.name != undefined? highlightText(site?.name) :highlightText(text) }</p>
       }
     },
     {
@@ -524,9 +526,9 @@ function ExpensePage() {
       key: 'employee_initiator',
       width:  "200px",
       render: (text, record)=> {
-        return beneficiaires.find(benef=> benef?.User?.id === text)?.User?.name.toUpperCase() ?  
-        highlightText(beneficiaires.find(benef=> benef?.User?.id === text)?.User?.name?.toUpperCase()) : 
-        highlightText(externalEntities.find(externalEntity=> externalEntity?.external_entity?.id === text)?.external_entity?.name?.toUpperCase());
+        return beneficiaires.find(benef=> benef?.User?.id === text)?.User?.displayName?.toUpperCase() ?  
+        highlightText(beneficiaires.find(benef=> benef?.User?.id === text)?.User?.displayName?.toUpperCase()) : 
+        highlightText(externalEntities.find(externalEntity=> externalEntity?.id === text)?.User?.name?.toUpperCase());
       }
     },
     {
@@ -538,14 +540,14 @@ function ExpensePage() {
         {
           let entityName = JSON.parse(localStorage.getItem("user"))?.entity?.Sigle;
             if (beneficiaires.find(benef=> benef?.User?.id === text) != undefined){
-              return highlightText(beneficiaires.find(benef=> benef?.User?.id === text)?.User?.name?.toUpperCase())
+              return highlightText(beneficiaires.find(benef=> benef?.User?.id === text)?.User?.displayName?.toUpperCase())
             }
             if(entityId == text) {
               return highlightText(entityName)
             };
 
-            if (externalEntities.find(externalEntity=> externalEntity?.external_entity?.id === text)!= undefined) {
-              return highlightText(externalEntities.find(externalEntity=> externalEntity?.external_entity?.id === text)?.external_entity?.name?.toUpperCase());
+            if (externalEntities.find(externalEntity=> externalEntity?.id === text)!= undefined) {
+              return highlightText(externalEntities.find(externalEntity=> externalEntity?.id === text)?.displayName?.toUpperCase());
             }
             return highlightText("N/A")
         }
@@ -735,8 +737,8 @@ function ExpensePage() {
   }
 
   const handleShowDetails=async(record)=>{
-    setIsOpenDrawer(true);
     setSelectedExpense(record);
+    setIsOpenDrawer(true);
   }
 
   const handleGetAllExpenses = async() =>{
@@ -977,9 +979,9 @@ function ExpensePage() {
         item?.amount?.toString().toLowerCase().includes(searchTextLower) ||
         item?.transaction_number?.toString().toLowerCase().includes(searchTextLower) ||
         item?.uin_beneficiary?.toString().toLowerCase().includes(searchTextLower) ||
-        externalEntities?.find(externalEntity=> externalEntity?.external_entity.id == item?.employee_beneficiary)?.external_entity.name.toLowerCase().includes(searchTextLower)||
-        beneficiaires?.find(employee => employee?.User.id == item?.employee_initiator)?.User?.name?.toLowerCase().includes(searchTextLower) ||
-        beneficiaires?.find(employee => employee?.User.id == item?.employee_controller)?.User?.name?.toLowerCase().includes(searchTextLower) ||
+        externalEntities?.find(externalEntity=> externalEntity?.id == item?.employee_beneficiary)?.displayName.toLowerCase().includes(searchTextLower)||
+        beneficiaires?.find(employee => employee?.User.id == item?.employee_initiator)?.User?.displayName?.toLowerCase().includes(searchTextLower) ||
+        beneficiaires?.find(employee => employee?.User.id == item?.employee_controller)?.User?.displayName?.toLowerCase().includes(searchTextLower) ||
         entitySites?.find(site => site?.id == item?.site)?.name.toLowerCase().includes(searchTextLower) ||
         departments?.find(department => department?.id == item?.department)?.displayName.toLowerCase().includes(searchTextLower) 
       )
@@ -1475,13 +1477,13 @@ const getOperatorAccounts = async (operator) =>{
                     <div className='flex flex-col'>
                       <label htmlFor="" className='text-xs'>Ligne budgetaire :</label>
                       <select className='w-full' value={fileNumber} onChange={e=>setFileNumber(e.target.value)}>
-                        {/* {
+                        {
                           budgetLines?.length > 0 &&
                           budgetLines.map(line=><option value={line?.id} key={line?.id}>{line?.name}</option>)
-                        } */}
-                        <option value="line1">Ligne budgetaire 1</option>
+                        }
+                        {/* <option value="line1">Ligne budgetaire 1</option>
                         <option value="line2">Ligne budgetaire 2</option>
-                        <option value="line3">Ligne budgetaire 3</option>
+                        <option value="line3">Ligne budgetaire 3</option> */}
                       </select>
                     </div>
 

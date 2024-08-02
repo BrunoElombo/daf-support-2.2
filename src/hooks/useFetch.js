@@ -42,6 +42,7 @@ function useFetch() {
         headers: { 'Content-Type': 'application/json'},
         body
       };
+      if(withAuth) requestOptions.headers.Authorization = "Bearer " + localStorage.getItem("token")
       
       let response = await fetch(`${url}`, requestOptions);
       let result = await response.json();
@@ -53,8 +54,7 @@ function useFetch() {
       setRequestLoading(true);
         let headersList = {
           "Authorization": (withAuth ? "Bearer "+localStorage.getItem("token") : ""),
-          "Content-Type": "application/json",
-            mode: 'cors'
+          "Content-Type": "application/json"
         }
         
         try {

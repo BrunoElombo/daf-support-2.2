@@ -89,8 +89,9 @@ function TreasuryPage() {
   }
 
   const handleGetSite=async()=>{
-    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
+    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
     try {
+      if(response.error) return response.error;
       setSites(response);
     } catch (error) {
       console.error(error);
@@ -100,6 +101,7 @@ function TreasuryPage() {
   const handleBenef = async()=>{
     try {
       const benef = await fetchData(import.meta.env.VITE_USER_API+"/employees");
+      if(benef.error) return benef.error;
       setBeneficiaires(benef);
     } catch (error) {
       console.log(error);
@@ -121,16 +123,16 @@ function TreasuryPage() {
   }
   
   const handleGetEntitySite=async()=>{
-    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
-    if(!requestError){
-      setEntitySites(response);
-    }
+    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
+    if(response.error) return response.error;
+    setEntitySites(response);
   }
 
   const handleGetDepartments=async()=>{
     let response = await fetchData(import.meta.env.VITE_USER_API+"/departments");
+    if(response.error) return response.error;
+    setDepartements(response);
     if(!requestError){
-      setDepartements(response);
     }
   }
 
@@ -187,8 +189,8 @@ function TreasuryPage() {
             sites?.find(site=>site.id === item?.site)?.name.toString().toLowerCase().includes(searchTextLower) ||
             (
               (beneficiaires.find(benef=>benef?.User.id == item.employee_beneficiary)) ?
-              beneficiaires.find(benef=>benef?.User.id == item.employee_beneficiary)?.User?.name?.toLowerCase().includes(searchTextLower) :
-              externalEntities.find(externalEntity=>externalEntity?.external_entity.id == item.employee_beneficiary)?.external_entity?.name?.toLowerCase().includes(searchTextLower)
+              beneficiaires.find(benef=>benef?.User.id == item.employee_beneficiary)?.User?.displayName?.toLowerCase().includes(searchTextLower) :
+              externalEntities.find(externalEntity=>externalEntity?.external_entity.id == item.employee_beneficiary)?.name?.toLowerCase().includes(searchTextLower)
             )
           )
         });
@@ -208,8 +210,8 @@ function TreasuryPage() {
             item?.provenance.toString().toLowerCase().includes(searchTextLower) ||
             item?.shift.toString().toLowerCase().includes(searchTextLower) ||
             item?.payment_method.toString().toLowerCase().includes(searchTextLower)||
-            beneficiaires?.find(employee => employee?.User.id == item?.employee_initiator)?.User?.name?.toLowerCase().includes(searchTextLower) ||
-            beneficiaires?.find(employee => employee?.User.id == item?.employee_controller)?.User?.name?.toLowerCase().includes(searchTextLower) ||
+            beneficiaires?.find(employee => employee?.User.id == item?.employee_initiator)?.User?.displayName?.toLowerCase().includes(searchTextLower) ||
+            beneficiaires?.find(employee => employee?.User.id == item?.employee_controller)?.User?.displayName?.toLowerCase().includes(searchTextLower) ||
             entitySites?.find(site => site?.id == item?.site)?.name.toLowerCase().includes(searchTextLower) 
             )
           }
@@ -232,7 +234,7 @@ function TreasuryPage() {
   }
 
   const handleExternalEntity = async()=>{
-    const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
+    const external = await fetchData(import.meta.env.VITE_USER_API+"/external-entities");
     if(requestError === ""){
       let result = external;
       setExternalEntities(result);
@@ -278,9 +280,9 @@ function TreasuryPage() {
         uin_client : uin_client || "N/A",
         transaction_number :transaction_number || "N/A",
         bank_account_number : bank_account_number || "N/A",
-        employee_initiator: beneficiaires?.find(employee=>employee?.User.id === employee_initiator)?.User.name || "N/A",
-        employee_controller: beneficiaires?.find(employee=>employee?.User.id === employee_controller)?.User.name || "N/A",
-        employee_checkout: beneficiaires?.find(employee=>employee?.User.id === employee_checkout)?.User.name || "N/A",
+        employee_initiator: beneficiaires?.find(employee=>employee?.User.id === employee_initiator)?.User?.displayName || "N/A",
+        employee_controller: beneficiaires?.find(employee=>employee?.User.id === employee_controller)?.User?.displayName || "N/A",
+        employee_checkout: beneficiaires?.find(employee=>employee?.User.id === employee_checkout)?.User?.displayName || "N/A",
         statut:statut || "N/A",
         payment_method: payment_method || "N/A",
         department: departments.find(dept=>dept?.id === department)?.displayName || "N/A",
@@ -316,7 +318,7 @@ function TreasuryPage() {
       .then((response) => {
         console.log(response.data);
         const link = document.createElement('a');
-        link.href = response.data.fileUrl;
+        link.href = response?.data?.fileUrl;
         link.download = 'export.xlsx';
         link.click();
       })
@@ -416,13 +418,13 @@ function TreasuryPage() {
       return {
         reference_number: reference_number || "N/A",
         site: entitySites?.find(item=>item?.id === site)?.name || "N/A",
-        employee_initiator: beneficiaires?.find(employee=>employee?.User.id === employee_initiator)?.User.name || "N/A",
-        employee_beneficiary: beneficiaires?.find(employee=>employee?.User.id === employee_beneficiary)?.User.name || "N/A",
-        manager_department: beneficiaires?.find(employee=>employee?.User.id === manager_department)?.User.name || "N/A",
-        budgetary_department: beneficiaires?.find(employee=>employee?.User.id === budgetary_department)?.User.name || "N/A",
-        general_director: beneficiaires?.find(employee=>employee?.User.id === general_director)?.User.name || "N/A",
-        president: beneficiaires?.find(employee=>employee?.User.id === president)?.User.name || "N/A",
-        paymaster_general:beneficiaires?.find(employee=>employee?.User.id === paymaster_general)?.User.name || "N/A",
+        employee_initiator: beneficiaires?.find(employee=>employee?.User.id === employee_initiator)?.User.displayName || "N/A",
+        employee_beneficiary: beneficiaires?.find(employee=>employee?.User.id === employee_beneficiary)?.User.displayName || "N/A",
+        manager_department: beneficiaires?.find(employee=>employee?.User.id === manager_department)?.User.displayName || "N/A",
+        budgetary_department: beneficiaires?.find(employee=>employee?.User.id === budgetary_department)?.User.displayName || "N/A",
+        general_director: beneficiaires?.find(employee=>employee?.User.id === general_director)?.User.displayName || "N/A",
+        president: beneficiaires?.find(employee=>employee?.User.id === president)?.User.displayName || "N/A",
+        paymaster_general:beneficiaires?.find(employee=>employee?.User.id === paymaster_general)?.User.displayName || "N/A",
         description: description || "N/A",
         amount: amount || 0,
         payment_method: payment_method || "N/A",
@@ -629,7 +631,7 @@ function TreasuryPage() {
       width:  "200px",
       render: (text, record)=>(
         highlightText(beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase())||
-        highlightText(externalEntities.find(ent=> ent?.external_entity.id_entity === text)?.external_entity.name.toUpperCase()) ||
+        highlightText(externalEntities.find(ent=> ent?.id_entity === text)?.displayName.toUpperCase()) ||
         "N/A"
       )
     },

@@ -34,7 +34,6 @@ function ValidationRecette({
     const ENTITY_ID = JSON.parse(localStorage.getItem('user'))?.entity.id;
     const {requestError, requestLoading, fetchData, postData, updateData} = useFetch();
     const [observation, setObservation] = useState("");
-    console.log(ENTITY_ID)
     const handleSubmitValidation= async (evt)=>{
         evt.preventDefault();
         let url ="";

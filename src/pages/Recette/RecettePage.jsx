@@ -362,7 +362,7 @@ function RecettePage() {
       key: '2',
       width:  "200px",
       render:(text, record)=>(
-        <>{highlightText(employees.find(employee=>employee?.User?.id === text)?.User?.name?.toUpperCase())}</>
+        <>{highlightText(employees.find(employee=>employee?.User?.id === text)?.User?.displayName?.toUpperCase())}</>
       )
     },
     {
@@ -373,7 +373,7 @@ function RecettePage() {
       render:(text, record)=>(
         <>{
           record.employee_controller ?
-          highlightText(employees.find(employee=>employee?.User?.id === text)?.User?.name?.toUpperCase()):
+          highlightText(employees.find(employee=>employee?.User?.id === text)?.User?.displayName?.toUpperCase()):
           "N/A"
           }</>
       )

@@ -5,7 +5,8 @@ import { Spin } from 'antd';
 import './DetailForm.css';
 
 
-function DetailForm({data, selected, isUpdateMode}) {
+function DetailForm({selected, isUpdateMode}) {
+
     let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
 
     const benefType = {
@@ -15,6 +16,7 @@ function DetailForm({data, selected, isUpdateMode}) {
 
     // Hooks
     const { requestLoading, fetchData, postData, updateData } = useFetch();
+
     // States
     /**
      * Global states
@@ -69,20 +71,18 @@ function DetailForm({data, selected, isUpdateMode}) {
     const handleBenef = async()=>{
         try {
             const response = await fetchData(import.meta.env.VITE_USER_API+"/employees");
-            if(response.status === 200) {
-                setEmployees(response);
-            }
+            if(response.error) return response.error;
+            setEmployees(response);
         } catch (error) {
-            console.log(error.message);
+            console.error(error.message);
         }
     }
 
     const handleExternalEntity = async()=>{
-        const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
-        if(response.status === 200) {
-            let result = external;
-            setExternalEntities(result);
-        }
+        const external = await fetchData(import.meta.env.VITE_USER_API+"/external-entities");
+        if(response.error) return response.error;
+        let result = external;
+        setExternalEntities(result);
     }
 
     /**
@@ -90,9 +90,8 @@ function DetailForm({data, selected, isUpdateMode}) {
      */
     const handleGetDepartments=async()=>{
         let response = await fetchData(import.meta.env.VITE_USER_API+"/departments");
-        if(response.status === 200){
-          setDepartments(response);
-        }
+        if(response.error) return response.error;
+        setDepartments(response);
       }
       
       
@@ -100,10 +99,9 @@ function DetailForm({data, selected, isUpdateMode}) {
      * Fetch departments
      */
     const handleGetEntitySite=async()=>{
-        let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
-        if(response.status === 200){
-          setSites(response);
-        }
+        let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
+        if(response.error) return response.error;
+        setSites(response); 
     }
 
     /**
@@ -155,27 +153,27 @@ function DetailForm({data, selected, isUpdateMode}) {
             try {
               let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+selected?.id+"/?entity_id="+entityId
               const response = await fetchData(url);
+              setDetails(response);
+              setInitiationDate(response.time_created);
+              setDepartment(response.department);
+              setBeneficiary(response.employee_beneficiary);
+              setManagerDepartment(response.manager_department);
+              setBudgetaryDepartment(response.budgetary_department);
+              setGeneralDirector(response.general_director);
+              setPresident(response.president);
+              setDescription(response.description);
+              setAmount(response.amount);
+              setPaymentMethod(response.payment_method);
+              setFileNumber(budgetLines.find(line=>line.id == response.file_number)?.name || "N/A");
+              setTransactionNumber(response.transaction_number);
+              setComporateName(response.corporate_name);
+              setUinBenefeiciary(response.uin_benefeiciary);
+              setDepartmentManagerObs(response.observation_department_manager);
+              setSite(response.site);
+              setBudgetaryDeptObs(response.observation_department_budgetary);
+              setGeneralDirectorObs(response.observation_general_director);
+              setPayMAsterGeneralObs(response.observation_paymaster);
               if(response.status === 200){
-                setDetails(response);
-                setInitiationDate(response.time_created);
-                setDepartment(response.department);
-                setBeneficiary(response.employee_beneficiary);
-                setManagerDepartment(response.manager_department);
-                setBudgetaryDepartment(response.budgetary_department);
-                setGeneralDirector(response.general_director);
-                setPresident(response.president);
-                setDescription(response.description);
-                setAmount(response.amount);
-                setPaymentMethod(response.payment_method);
-                setFileNumber(budgetLines.find(line=>line.id == response.file_number)?.name || "N/A");
-                setTransactionNumber(response.transaction_number);
-                setComporateName(response.corporate_name);
-                setUinBenefeiciary(response.uin_benefeiciary);
-                setDepartmentManagerObs(response.observation_department_manager);
-                setSite(response.site);
-                setBudgetaryDeptObs(response.observation_department_budgetary);
-                setGeneralDirectorObs(response.observation_general_director);
-                setPayMAsterGeneralObs(response.observation_paymaster);
               }
             } catch (error) {
               openNotification("ECHEC", "Impossible de charger les détails");
@@ -203,11 +201,11 @@ function DetailForm({data, selected, isUpdateMode}) {
                 </div>:
                 <form className=' space-y-3 p-2 border-[1px] border-gray-100 w-full rounded-lg flex flex-col md:flex-row space-x-0 md:space-x-2 h-full max-h-full overflow-y-scroll'>
                     <div className='w-1/2'>
-                        <h4 className=''>Information général :</h4>
+                        <h4 className='mb-4'>Information général :</h4>
                         <div className='flex items-center space-x-0 md:space-x-2'>
                             <div className={'flex flex-col w-full'}>
                                 <label htmlFor="" className='text-xs'>Date initiation :</label>
-                                <input type="text" className={`disbabled text-sm`} value={initiationDate?.split("T")[0]} disabled/>
+                                <input type="text" className={`disbabled text-sm`} value={initiationDate?.split("T")[0]} />
                             </div>
                             <div className='flex flex-col w-full'>
                                 <label htmlFor="" className='text-xs'>Numéro de référence :</label>
