@@ -109,21 +109,20 @@ function RecetteSheetFilter({setRecetteDataSrc, onSubmit}) {
     }
     
     const handleGetEmployees = async()=>{
-        const controller = await fetchData(import.meta.env.VITE_USER_API+"/employees");
         try {
-            let result = controller ;
+            const controller = await fetchData(import.meta.env.VITE_USER_API+"/employees");
+            if(controller.error) return controller.error
+            let result = controller;
             setEmployees(result);
-            console.log(result);
         } catch (error) {
             console.error("Error creating recipe:", error);
         }
     }
 
     const handleGetEntitySite=async()=>{
-        let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
-        if(!requestError){
-          setEntitySites(response);
-        }
+        let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
+        if(response.error) return response.error;
+        setEntitySites(response);
       }
 
     useEffect(()=>{

@@ -15,18 +15,19 @@ function Login() {
     const [errorMsg, setErrorMsg] = useState('');
     const navigate = useNavigate();
 
-    const {requestLoading, fetchData, postData, requestError} = useFetch();
+    const {requestLoading, fetchData, postData, requestError } = useFetch();
 
     const handleGetUserInfo =async ()=>{
       try {
         let userData = await fetchData(import.meta.env.VITE_USER_API+"/users/account");
-        await localStorage.setItem("user", JSON.stringify(userData));
-        await setUserInfo(userData);
+        let { ...userInfo } = userData;
+        await localStorage.setItem("user", JSON.stringify(userInfo));
+        await setUserInfo(userInfo);
         await setIsLoggedIn(true);
-        if(userData?.User.role?.name === "president" 
-        || userData?.User.role?.name === "general_manager" 
-        || userData?.User.role?.name === "chief_financial_officer" 
-        || userData?.User.Function?.name === "operations_manager"){
+        if(userInfo?.role?.name === "president" 
+        || userInfo?.role?.name === "general_manager" 
+        || userInfo?.role?.name === "chief_financial_officer" 
+        || userInfo?.Function?.name === "operations_manager"){
           navigate("/");
         }
         else{
@@ -56,29 +57,25 @@ function Login() {
       }
     }, [username, password])
 
+
     const handleLogin=async(e)=>{
       e.preventDefault();
-      const data = {
-        username: username,
-        password: password
-      }
 
+      const data = {username: username, password: password}
       try {
-        const response = await postData(import.meta.env.VITE_USER_API+"/api/login/", data, false);
-        const {token} = await response;
-        
-        if(token){
-          localStorage.setItem("token", token);
-          handleGetUserInfo();
-          return
+        const response = await postData(import.meta.env.VITE_USER_API+"/login/", data, false);
+        localStorage.setItem("token", response?.token);
+        if(response?.message){
+          setErrorMsg(response?.message);
+          return;
         }
-        setErrorMsg("Nom utilisateur ou mot de passe incorrect")
+        handleGetUserInfo();
       } catch (error) {
+        console.log(error)
         setErrorMsg("Echec d'authentification");
       }
-
-        // navigate("/entities");
     }
+
   return (
     <div 
       className='w-full h-screen bg-gray-100 flex items-center justify-center p-2'
@@ -104,7 +101,7 @@ function Login() {
             </div>
           </div>
           <div>
-          <form className='flex flex-col items-center justify-center space-y-6'>
+          <form className='flex flex-col items-center justify-center space-y-6' onSubmit={handleLogin}>
             <input type="text" placeholder='Nom utilisateur ou Email' className='text-sm w-full md:w-auto' value={username} onChange={e=>setUsername(e.target.value)}/>
             <input type="password" placeholder='Mot de passe' className='text-sm w-full md:w-auto' value={password} onChange={e=>setPassword(e.target.value)}/>
             <p className="text-xs text-red-500">{errorMsg}</p>
@@ -114,7 +111,7 @@ function Login() {
             </div>
             <div className='w-full flex md:justify-end px-20'>
               <button 
-                  onClick={handleLogin}
+                  type="submit"
                   disabled={disbleLogin}
                   className={`${disbleLogin || requestLoading?"bg-green-300 cursor-not-allowed":"bg-green-500 cursor-pointer"} p-2 text-white rounded-lg shadow-sm shadow-green-600 text-sm w-full`} 
               >{requestLoading?"Connexion encours...":"Se connecter"}</button>

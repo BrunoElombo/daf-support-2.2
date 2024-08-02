@@ -131,11 +131,9 @@ function CaissePageHeader({cashBalance}) {
     */
     const handleGetCashDesk= async()=>{
       const response = await fetchData(import.meta.env.VITE_USER_API+"/cash-desk");
-      if(!requestError){
-          setCashDesks(response);
-          setCashDesk(response[0]?.id);
-          return;
-      }
+      if(response.error) return response.error;
+      setCashDesks(response);
+      setCashDesk(response[0]?.id);
     }
 
     // Methods
@@ -270,6 +268,7 @@ function CaissePageHeader({cashBalance}) {
               <div className='flex space-x-2 items-center'>
                   <select className='text-xs' value={cashDesk} onChange={e=>setCashDesk(e.target.value)}>
                     {
+                      cashDesks.length > 0 &&
                       cashDesks.map(desk=><option value={desk?.id} key={desk?.id}>{desk?.name?.toUpperCase()}</option>)
                     }
                   </select>

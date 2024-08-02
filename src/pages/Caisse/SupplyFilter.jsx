@@ -83,24 +83,22 @@ function SupplyFilter({setSupplyData}) {
      * Get the sites
      */
     const handleGetSite=async()=>{
-        let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
-        if(!requestError){
-            setSites(response);
-        }
+        let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
+        if(response.error) return response.error;
+        setSites(response);
     }
 
     /**
-     * Get the cash desks
-     */
-    const handleGetCashDesks= async ()=>{
-        let url = import.meta.env.VITE_USER_API+"/cash-desk";
-        try {
-          const response = await fetchData(url);
-          setDesks(response);
-        } catch (error) {
-          console.log(error);
-        }
-    }
+     * Get all the cash desk
+     * @param null
+     * @return {null}
+    */
+    const handleGetCashDesks= async()=>{
+        const response = await fetchData(import.meta.env.VITE_USER_API+"/cash-desk");
+        if(response.error) return response.error;
+        setDesks(response);
+        // setCashDesk(response[0]?.id);
+      }
 
     /**
      * Get all mandatories
@@ -108,6 +106,7 @@ function SupplyFilter({setSupplyData}) {
     const handleGetMandatories = async()=>{
         try {
           const employees = await fetchData(import.meta.env.VITE_USER_API+"/employees/mandatory");
+          if(employees.error) return employees.error;
           setMandatories(employees);
         } catch (error) {
           console.log(error.message);
@@ -118,10 +117,9 @@ function SupplyFilter({setSupplyData}) {
      * Get the entities
      */
     const handleGetEntities=async()=>{
-        let response = await fetchData(import.meta.env.VITE_USER_API+"/entities/all");
-        if(!requestError){
-            setEntities(response);
-        }
+        let response = await fetchData(import.meta.env.VITE_USER_API+"/entities");
+        if(response.error) return response.error;
+        setEntities(response);
     }
 
     /**
@@ -144,7 +142,8 @@ function SupplyFilter({setSupplyData}) {
                 <select className='text-xs' value={desk} onChange={e=>setDesk(e.target.value)}>
                     <option value=""></option>
                     {
-                        desks.map(desk=><option className='' value={desk?.id} key={desk?.id}>{desk?.name?.toUpperCase()}</option>)
+                        desks.length > 0 &&
+                        desks.map(desk=><option value={desk?.id} key={desk?.id}>{desk?.name?.toUpperCase()}</option>)
                     }
                 </select>
             </div>
@@ -153,6 +152,7 @@ function SupplyFilter({setSupplyData}) {
                 <select className='text-xs' value={mandatory} onChange={e=>setMandatory(e.target.value)}>
                     <option value=""></option>
                     {
+                        mandatories.length > 0 &&
                         mandatories.map(mandatory=><option value={mandatory?.User?.id} key={mandatory?.User?.id}>{mandatory?.User?.name?.toUpperCase()}</option>)
                     }
                 </select>
@@ -192,6 +192,7 @@ function SupplyFilter({setSupplyData}) {
                 <select className='text-xs' value={site} onChange={e=>setSite(e.target.value)}>
                     <option value=""></option>
                     {
+                        sites.length > 0 &&
                         sites.map(site =><option value={site?.id} key={site?.id}>{site?.name}</option>)
                     }
                 </select>

@@ -78,7 +78,7 @@ function RecettePage() {
   };
 
   const {fetchData, postData, requestError, requestLoading} = useFetch();
-  const entityValue = JSON.parse(localStorage.getItem('user'))?.entity.id;
+  const entityValue = JSON.parse(localStorage.getItem('user'))?.entity?.id;
   const [selectionType, setSelectionType] = useState('checkbox');
   // Recette can be of 2 types, Recette Portiere and Reglement de Factures. The inputs depends on what is selected
   const  [recipeDataSrc, setRecetteDataSrc] = useState([]);
@@ -274,10 +274,9 @@ function RecettePage() {
   }
 
   const handleGetEntitySite=async()=>{
-    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
-    if(!requestError){
-      setEntitySites(response);
-    }
+    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/");
+    if(response.error) return response.error;
+    setEntitySites(response);
   }
 
   const handleExternalEntity = async()=>{
@@ -847,7 +846,7 @@ function RecettePage() {
                   :
                   <div className="bg-gray-200 border-gray-300 border rounded-lg p-1">
                     <p>{
-                        employeesControllers.find(controller=>controller?.User?.id == activeRecipe.employee_controller)?.User.name.toUpperCase()
+                        employeesControllers.length > 0 ? employeesControllers.find(controller=>controller?.User?.id == activeRecipe.employee_controller)?.User.name.toUpperCase() :"N/A"
                       }</p> 
                   </div>
                   }

@@ -102,17 +102,17 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
 
     // --Handle Get Sites
     const handleGetEntitySite=async()=>{
-        let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
-        if(!requestError){
-            setSites(response);
-        }
+        let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/");
+        if(response.error) return response.error;
+        setSites(response);
     }
 
     // --Handle Get external entities
     const handleExternalEntity = async()=>{
-        const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
+        const external = await fetchData(import.meta.env.VITE_USER_API+"/external-entities");
+        if(external.error) return external.error;
         let formated = external.map(benef=>{
-            return{id: benef?.external_entity.id, name: benef?.external_entity.name}
+            return{id: benef?.id, name: benef?.name}
         });
         setBeneficiairyList(formated);
     }
@@ -121,6 +121,7 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
     const handleGetEmployees = async()=>{
         try {
             const controller = await fetchData(import.meta.env.VITE_USER_API+"/employees");
+            if(controller.error) return controller.error
             let foramtedController = await controller?.map(benef=>{
                 return {id: benef?.User.id, name: benef?.User.name}
             });
@@ -133,9 +134,8 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
     // --Handle Get Departments
     const handleGetDepartments = async() => {
         let response = await fetchData(import.meta.env.VITE_USER_API+"/departments");
-        if(!requestError){
+        if(response.error) return response.error;
         setDepartements(response);
-        }
     }
 
     // UseEffects
@@ -184,6 +184,7 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
                     <select className='text-xs' value={site} onChange={e=>setSite(e.target.value)}>
                         <option value=""></option>
                         {
+                            sites?.length > 0 &&
                             sites.map(site => <option key={site?.id} value={site?.id}>{site?.name}</option>)
                         }
                     </select>
@@ -193,6 +194,7 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
                     <select className='text-xs' value={department} onChange={e=>setDepartment(e.target.value)}>
                         <option value=""></option>
                         {
+                            departements?.length > 0 &&
                             departements.map(department => <option key={department?.id} value={department?.id}>{department?.displayName}</option>)
                         }
                     </select>
@@ -202,6 +204,7 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
                     <select className='text-xs' value={initiator} onChange={e=>setInitiator(e.target.value)}>
                         <option value=""></option>
                         {
+                            employees?.length > 0 &&
                             employees.map(employee => <option className='capitalize' key={employee?.id} value={employee?.id}>{employee?.name}</option>)
                         }
                     </select>
@@ -211,9 +214,11 @@ function ExepenseSheetFilter({setExpenseDataSrc}) {
                     <select className='text-xs' value={beneficiary} onChange={e=>setBeneficiary(e.target.value)}>
                         <option value=""></option>
                         {
+                            employees?.length > 0 &&
                             employees.map(benef => <option className='capitalize' key={benef?.id} value={benef?.id}>{benef?.name}</option>)
                         }
                         {
+                            beneficiairyList?.length > 0 &&
                             beneficiairyList.map(entity => <option className='capitalize' key={entity?.id} value={entity?.id}>{entity?.name}</option>)
                         }
                     </select>

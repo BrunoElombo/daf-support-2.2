@@ -1,9 +1,9 @@
-import React, {useState, useEffect} from 'react'
+import React, {useState, useEffect} from 'react';
 
 function useFetch() {
-
     const [ requestLoading, setRequestLoading ] = useState(false);
     const [requestError, setRequestError] = useState("");
+    
 
     const fetchData = async (url) => {
       setRequestError("");
@@ -12,7 +12,6 @@ function useFetch() {
       let headersList = {
         "Accept": "*/*",
         "Authorization": "Bearer "+localStorage.getItem("token"),
-        mode: 'cors'
       }
 
       try {
@@ -26,7 +25,6 @@ function useFetch() {
           throw new Error(`Error: ${errorText}`); 
         }
         const result = await response.json();
-        result.status = response.status
         return result;
 
       } catch (error) {
@@ -37,49 +35,17 @@ function useFetch() {
       }
     };
 
-
-    const postData = async (url, data = {}, withAuth = true) => {
-      setRequestError("");
-      setRequestLoading(true);
-    
-      const headers = {
-        Accept: "*/*",
-        "Content-Type": "application/json",
-        mode: 'cors'
+    const postData = async (url, data={}, withAuth=true) => {
+      let body = JSON.stringify(data);
+      let requestOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json'},
+        body
       };
-    
-      if (withAuth) {
-        const token = localStorage.getItem("token");
-        if (token) {
-          headers.Authorization = `Bearer ${token}`;
-        } else {
-          setRequestError("Missing authorization token");
-          throw new Error(`Error: Missing authorization token`);
-        }
-      }
-
-      try {
-        const response = await fetch(url, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ ...data }),
-        });
-    
-        if (!response.ok) {
-          setRequestError(`Request failed with status ${response.status}`);
-          const errorText = await response.json();
-          throw new Error(`Error: ${errorText}`);
-        }
-        setRequestError("Error");
-        const result = await response.json();
-        result.status = response.status
-        return result;
-      } catch (error) {
-        setRequestError(error.message);
-        throw new Error(`Error: ${error}`);
-      } finally {
-        setRequestLoading(false);
-      }
+      
+      let response = await fetch(`${url}`, requestOptions);
+      let result = await response.json();
+      return result;
     };
     
     const updateData = async (url, data={}, withAuth=true) => {
@@ -115,7 +81,6 @@ function useFetch() {
         }
   
     };
-
 
     return {requestLoading, fetchData, postData, requestError, updateData}
 }

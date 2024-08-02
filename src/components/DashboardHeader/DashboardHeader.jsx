@@ -84,7 +84,7 @@ const handleChangedEntity=async (id)=>{
                     <div className='bg-red-500 w-3 h-3 rounded-full absolute right-0 -top-1'>{}</div>
                     <BellIcon className="text-white h-6 w-6" />
                 </div>
-                <p onClick={()=>{setIsOpen(true)}} className='text-white text-sm bold cursor-pointer p-2 hover:bg-green-700'>Hi, <span className='capitalize'>{userInfo?.User.name}</span></p>
+                <p onClick={()=>{setIsOpen(true)}} className='text-white text-sm bold cursor-pointer p-2 hover:bg-green-700'>Hi, <span className='capitalize'>{userInfo?.User?.displayName}</span></p>
             </div>
         </div>
         <div className='md:pt-5 md:px-5 flex items-center'>
@@ -219,7 +219,7 @@ const handleChangedEntity=async (id)=>{
             <div>
                 <p><b>Nom d'utilisateur :</b></p>
                 <div className='p-2 bg-gray-200 border-gray-300 border-[1px] rounded-lg'>
-                   <p className='text-md capitalize'>{userInfo?.User?.name}</p> 
+                   <p className='text-md capitalize'>{userInfo?.User?.displayName}</p> 
                 </div>
             </div>
             <div>
@@ -232,7 +232,7 @@ const handleChangedEntity=async (id)=>{
                 <p><b>Entité :</b></p>
                 {/* <hr /><br /> */}
                 <div className='p-2 bg-gray-200 border-gray-300 border-[1px] rounded-lg'>
-                    <p className='capitalize'>{userInfo?.entity.raison_social}</p>
+                    <p className='capitalize'>{userInfo?.entity?.raison_social}</p>
                 </div>
                 {/* <select name="" id="" className='w-full mt-2' onChange={(e)=>handleChangedEntity(e.target.value)}>
                     {

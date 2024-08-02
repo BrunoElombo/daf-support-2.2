@@ -74,7 +74,7 @@ function ExpensePage() {
   const [description, setDescription] = useState('');
   const [files, setFiles] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState("");
-  const [fileNumber, setFileNumber] = useState("");
+  const [fileNumber, setFileNumber] = useState("line1");
   const[recipientType, setRecipientType] = useState("PERSONNEPHYSIQUE");
   const[recipient, setRecipient] = useState("");
 
@@ -94,35 +94,37 @@ function ExpensePage() {
     let url = import.meta.env.VITE_USER_API+"/cash-desk";
     try {
       const response = await fetchData(url);
+      if(response.error) return response.error;
       setCashDesks(response);
-      setCashDeskId(response[0]?.id)
+      // setCashDeskId(response[0]?.id)
     } catch (error) {
       
     }
   }
 
   const handleBeneficiaryBankAccount= async (id)=>{
-    let url = import.meta.env.VITE_USER_API+`${recipientType === "PERSONNEPHYSIQUE" ?"/employees/" :"/external_entities/"}${id}/banks`;
+    let url = import.meta.env.VITE_USER_API+`${recipientType === "PERSONNEPHYSIQUE" ?"/employees/" :"/external-entities/"}${id}/banks`;
     try {
         const response = await fetchData(url);
+        if(response.error) return response.error;
         setBeneficiaryBankAccount(response[0]?.bank.id);
         setBeneficiairyBanks(response);
-        setBeneficiaryBankAccountNumber(response[0]?.bankAccounts[0].account_number);
+        setBeneficiaryBankAccountNumber(response[0]?.bankAccounts[0]?.account_number);
         setBeneficiaryBankAccountNumbers(response[0]?.bankAccounts);    
     } catch (error) {
         openNotification("ECHEC", "Impossible dóbtenir les informations des bank\n du bénéficiaire");
-        console.log(error)
+        console.error(error)
         return;
       }
 }
 
   useEffect(()=>{
     if(recipientType === "PERSONNEPHYSIQUE"){
-      setBeneficiaire(JSON.parse(localStorage.getItem("user"))?.User.id);
-      handleBeneficiaryBankAccount(JSON.parse(localStorage.getItem("user"))?.User.id);
+      setBeneficiaire(JSON.parse(localStorage.getItem("user"))?.User?.id);
+      handleBeneficiaryBankAccount(JSON.parse(localStorage.getItem("user"))?.User?.id);
     }else if(recipientType === "PERSONNEMORALE"){
-      setRecipient(externalEntities[0]?.external_entity.id);
-      handleBeneficiaryBankAccount(externalEntities[0]?.external_entity.id);
+      setRecipient(externalEntities[0]?.id);
+      handleBeneficiaryBankAccount(externalEntities[0]?.id);
     }
   }, [recipientType]);
 
@@ -145,7 +147,7 @@ function ExpensePage() {
   const [beneficiaryBankAccount, setBeneficiaryBankAccount] = useState("");
   const [showMobileSuggestions, setShowMobileSuggestions] = useState(false);
   const [mobileAccountsSuggestions, setMobileAccountsSuggestions] = useState([]);
-
+  const [cutProduct, setCutProduct] = useState(0)
   const [budgetLines, setBudgetLines] = useState([]);
   const [budgetLine, setBudgetLine] = useState("");
 
@@ -266,8 +268,8 @@ function ExpensePage() {
     const actualYear = new Date().getFullYear();
     try {
       const response = await fetchData(url+"/expensesheet/summary_by_year/?year="+actualYear+"&entity_id="+entityId);
-      if (response && response.annual_sums) {
-        setExpenseTotal(response.annual_sums[0].total_amount)
+      if (response && response?.annual_sums) {
+        setExpenseTotal(response?.annual_sums[0]?.total_amount)
       }
       
     } catch (error) {
@@ -291,13 +293,13 @@ function ExpensePage() {
     });
 
     let totalSum = updatedCurrencyCuts.reduce((totalSum, item)=>{
-      return totalSum + item.total_amount
+      return totalSum + item?.total_amount
     }, 0);
 
     if(isMultipleSelect){
       selectedRowKeys?.forEach(async (rowKey)=>{
 
-        let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
+        let entityId = JSON.parse(localStorage.getItem("user"))?.entity?.id;
         let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+rowKey+"/?entity_id="+entityId;
         let data ={
           // is_urgent:typeValidation,
@@ -327,7 +329,7 @@ function ExpensePage() {
     else{
       let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
         let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+selectedExpense?.id+"/?entity_id="+entityId;
-        if(totalSum != selectedExpense.amount && selectedExpense.it_is_a_cash_desk_movement){
+        if(totalSum != selectedExpense?.amount && selectedExpense?.it_is_a_cash_desk_movement){
           openNotification("ECHEC", "Montant doit être égale au montant total");
           return;
         }
@@ -363,12 +365,11 @@ function ExpensePage() {
   const handleGetCurrencies=async()=>{
     try {
       let response = await fetchData(import.meta.env.VITE_USER_API+"/currencies");
-      if(!requestError){
-        setCurrency(response[0]?.code);
-        setCut(response[0]?.currencyCuts[0]?.value)
-        setCurrencyCuts(response[0]?.currencyCuts)
-        setCurrencies(response);
-      }
+      if(response.error) return response.error;
+      setCurrencies(response);
+      setCurrency(response[0]?.code);
+      setCut(response[0]?.currencyCuts[0]?.value)
+      setCurrencyCuts(response[0]?.currencyCuts)
     } catch (error) {
       console.log(error)
     }
@@ -413,7 +414,7 @@ function ExpensePage() {
 
   const handleRejectExpenses = async (e)=>{
     e.preventDefault();
-    let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id
+    let entityId = JSON.parse(localStorage.getItem("user"))?.entity?.id
     let url = 
     isMultipleSelect ?
     import.meta.env.VITE_DAF_API+"/expensesheet/bulk_rejection/?entity_id="+entityId
@@ -479,7 +480,6 @@ function ExpensePage() {
       console.error("BUDGET_LINES", error)
       throw error
     };
-    return false;
   }
 
   const setSelectionRow = (expense) => {
@@ -514,7 +514,7 @@ function ExpensePage() {
       key: 'site',
       width:  "200px",
       render: (text, record)=>{
-        const site = entitySites?.find(site=>site.id === record.site)
+        const site = entitySites?.find(site=>site?.id === text)
         return <>{site?.name != undefined? highlightText(site?.name) :highlightText(text) }</>
       }
     },
@@ -524,9 +524,9 @@ function ExpensePage() {
       key: 'employee_initiator',
       width:  "200px",
       render: (text, record)=> {
-        return beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase() ?  
-        highlightText(beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase()) : 
-        highlightText(externalEntities.find(externalEntity=> externalEntity?.external_entity.id === text)?.external_entity.name.toUpperCase());
+        return beneficiaires.find(benef=> benef?.User?.id === text)?.User?.name.toUpperCase() ?  
+        highlightText(beneficiaires.find(benef=> benef?.User?.id === text)?.User?.name?.toUpperCase()) : 
+        highlightText(externalEntities.find(externalEntity=> externalEntity?.external_entity?.id === text)?.external_entity?.name?.toUpperCase());
       }
     },
     {
@@ -537,15 +537,15 @@ function ExpensePage() {
       render: (text, record)=> 
         {
           let entityName = JSON.parse(localStorage.getItem("user"))?.entity?.Sigle;
-            if (beneficiaires.find(benef=> benef?.User.id === text) != undefined){
-              return highlightText(beneficiaires.find(benef=> benef?.User.id === text)?.User.name.toUpperCase())
+            if (beneficiaires.find(benef=> benef?.User?.id === text) != undefined){
+              return highlightText(beneficiaires.find(benef=> benef?.User?.id === text)?.User?.name?.toUpperCase())
             }
             if(entityId == text) {
               return highlightText(entityName)
             };
 
-            if (externalEntities.find(externalEntity=> externalEntity?.external_entity.id === text)!= undefined) {
-              return highlightText(externalEntities.find(externalEntity=> externalEntity?.external_entity.id === text)?.external_entity.name.toUpperCase());
+            if (externalEntities.find(externalEntity=> externalEntity?.external_entity?.id === text)!= undefined) {
+              return highlightText(externalEntities.find(externalEntity=> externalEntity?.external_entity?.id === text)?.external_entity?.name?.toUpperCase());
             }
             return highlightText("N/A")
         }
@@ -604,25 +604,25 @@ function ExpensePage() {
         <div className='flex space-x-2'>
           <>
             {
-              departments.find(department=> department?.id === record.department)?.name.includes("daf") ?
+              departments.find(department=> department?.id === record.department)?.name?.includes("daf") ?
               <>
               {
-                !record.is_urgent ?
+                !record?.is_urgent ?
                 <>
-                  <div className={`${((record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_budgetary_department != null && record.statut != "REJECT FINANCIAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF</div>
-                  <div className={`${((record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_general_director != null && record.statut != "REJECT GENERAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DG</div>
-                  <div className={`${((record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_president != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>PRE</div>
-                  <div className={`${((record.statut == "EXECUTED") || (record.date_valid_rop != null && record.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>TPG</div>
+                  <div className={`${((record?.statut === "VALIDATION GENERAL MANAGEMENT" || record?.statut === "VALIDATION PRESIDENT" ||  record?.statut == "EXECUTED" ||  record?.statut == "IN_DISBURSEMENT") || (record?.date_valid_budgetary_department != null && record?.statut != "REJECT FINANCIAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF</div>
+                  <div className={`${((record?.statut === "VALIDATION PRESIDENT" ||  record?.statut == "EXECUTED" ||  record?.statut == "IN_DISBURSEMENT") || (record?.date_valid_general_director != null && record?.statut != "REJECT GENERAL MANAGEMENT")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DG</div>
+                  <div className={`${((record?.statut == "EXECUTED" ||  record?.statut == "IN_DISBURSEMENT") || (record?.date_valid_president != null && record?.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>PRE</div>
+                  <div className={`${((record?.statut == "EXECUTED") || (record?.date_valid_rop != null && record?.statut != "REJECT PRESIDENT"))?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>TPG</div>
                 </>:
                 <div 
-                className={`${((record.statut === "VALIDATION FINANCIAL MANAGEMENT"|| record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_manager_department != null && record.statut != "REJECT DEPARTMENT MANAGER")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF
+                className={`${((record?.statut === "VALIDATION FINANCIAL MANAGEMENT"|| record?.statut === "VALIDATION GENERAL MANAGEMENT" || record?.statut === "VALIDATION PRESIDENT" ||  record?.statut == "EXECUTED" ||  record?.statut == "IN_DISBURSEMENT") || (record?.date_valid_manager_department != null && record?.statut != "REJECT DEPARTMENT MANAGER")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DAF
               </div>
               }
               </>
               :
               <>
                 <div 
-                  className={`${((record.statut === "VALIDATION FINANCIAL MANAGEMENT"|| record.statut === "VALIDATION GENERAL MANAGEMENT" || record.statut === "VALIDATION PRESIDENT" ||  record.statut == "EXECUTED" ||  record.statut == "IN_DISBURSEMENT") || (record.date_valid_manager_department != null && record.statut != "REJECT DEPARTMENT MANAGER")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DEX
+                  className={`${((record?.statut === "VALIDATION FINANCIAL MANAGEMENT"|| record?.statut === "VALIDATION GENERAL MANAGEMENT" || record?.statut === "VALIDATION PRESIDENT" ||  record?.statut == "EXECUTED" ||  record?.statut == "IN_DISBURSEMENT") || (record?.date_valid_manager_department != null && record?.statut != "REJECT DEPARTMENT MANAGER")) ?"bg-green-500":"bg-red-500 "} w-1/4 text-xs h-3 rounded-full text-white flex justify-center items-center`}>DEX
                 </div>
                 {
                   !record.is_urgent &&
@@ -737,17 +737,6 @@ function ExpensePage() {
   const handleShowDetails=async(record)=>{
     setIsOpenDrawer(true);
     setSelectedExpense(record);
-    // console.log(selected);
-
-    // let entityId = JSON.parse(localStorage.getItem("user"))?.entity.id;
-    
-    // try {
-    //   let url = import.meta.env.VITE_DAF_API+"/expensesheet/"+record?.id+"/?entity_id="+entityId
-    //   const detail = await fetchData(url);
-    //   setSelectedExpense(selected);
-    // } catch (error) {
-    //   openNotification("ECHEC", "Impossible de charger les détails");
-    // }
   }
 
   const handleGetAllExpenses = async() =>{
@@ -766,29 +755,27 @@ function ExpensePage() {
 
   const handleGetSite=async()=>{
     let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
-    if(!requestError){
-      setSite(response[0]?.id);
-      setSites(response);
-    }
+    if(response.error) return response.error;
+    setSite(response[0]?.id);
+    setSites(response);
   }
   
   const handleGetDepartments=async()=>{
     let response = await fetchData(import.meta.env.VITE_USER_API+"/departments");
-    if(!requestError){
-      setDepartements(response);
-    }
+    if(response.error) return response.error;
+    setDepartements(response);
   }
   
   const handleGetEntitySite=async()=>{
-    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
-    if(!requestError){
-      setEntitySites(response);
-    }
+    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
+    if(response.error) return response.error;
+    setEntitySites(response);
   }
 
   const handleBenef = async()=>{
     try {
       const benef = await fetchData(import.meta.env.VITE_USER_API+"/employees");
+      if(benef.error) return benef.error;
       setBeneficiaires(benef);
       setBeneficiaire(JSON.parse(localStorage.getItem("user"))?.User.id)
     } catch (error) {
@@ -797,20 +784,19 @@ function ExpensePage() {
   }
 
   const handleExternalEntity = async()=>{
-    const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
-    if(!requestError){
-      let result = external;
-      setExternalEntities(result);
-    }
+    const external = await fetchData(import.meta.env.VITE_USER_API+"/external-entities");
+    if(external.error) return external.error;
+    let result = external;
+    console.log(result);
+    setExternalEntities(result);
   }
 
   const handleGetBank= async()=>{
-    const banks = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity_banks");
-    if(!requestError){
-      setBankEntity(banks);
-      setBankAccountNumber(banks[0]?.bankAccounts[0]?.id);
-      setBankAccountNumbers(banks[0]?.bankAccounts);
-    }
+    const banks = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity-banks");
+    if(banks.error) return banks.error;
+    setBankEntity(banks);
+    setBankAccountNumber(banks[0]?.bankAccounts[0]?.id);
+    setBankAccountNumbers(banks[0]?.bankAccounts);
   }
 
   useEffect(()=>{
@@ -832,15 +818,17 @@ function ExpensePage() {
       setBeneficiaryBankAccountNumber("");
       return;
   }
+    setQty(0);
+    setCutProduct(0);
+    setCashDeskCuts([]);
     setBankAccountNumber("");
     setTransactionNumber("");
 }, [paymentMode]);
 
   const handleGetExternalBank= async()=>{
-    const banks = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
-    if(!requestError){
-      setBankExternalEntity(banks);
-    }
+    const banks = await fetchData(import.meta.env.VITE_USER_API+"/external-entities");
+    if(banks.error) return banks.error;
+    setBankExternalEntity(banks);
   }
 
   const handleDeleteExpense = async ()=>{
@@ -1003,6 +991,16 @@ function ExpensePage() {
     }
   }, [searchValue]);
   
+  useEffect(()=>{
+    setCutProduct(+cut* +qty);
+  },[cut, qty]);
+
+  useEffect(()=>{
+    if(currencyCuts?.length < 1){
+      setCutProduct(0)
+    }
+  }, [currencyCuts])
+
   const highlightText = (text) => {
     if (!searchValue) return text;
 
@@ -1179,11 +1177,9 @@ function ExpensePage() {
     let url = import.meta.env.VITE_USER_API+"/operators";
     try {
         let response = await fetchData(url);
-        if(!requestError){
-            setOperators(response);
-            setOperator(response[0]?.id);
-            return
-        }
+        if(response.error) return response.error;
+        setOperators(response);
+        setOperator(response[0]?.id);
     } catch (error) {
         console.warn(error.message);
     }
@@ -1197,10 +1193,8 @@ const getOperatorAccounts = async (operator) =>{
     let url = `${import.meta.env.VITE_USER_API}/operators/${id}/accounts`;
     try {
         let response = await fetchData(url);
-        if(!requestError){
-            setOperatorAccounts(response);
-            return
-        }
+        if(response.error) return response.error;
+        setOperatorAccounts(response);
     } catch (error) {
         console.warn(error.message);
     }
@@ -1261,10 +1255,10 @@ const getOperatorAccounts = async (operator) =>{
                   >
                   <>
                   {
-                  selectedRowKeys.length > 0 &&
+                  selectedRowKeys?.length > 0 &&
                   <>
                     <div className='flex items-center space-x-2'>
-                      <p className='text-xs'><b>{selectedRowKeys.length}</b> Fiches selectionés</p>
+                      <p className='text-xs'><b>{selectedRowKeys?.length}</b> Fiches selectionés</p>
                       <button className='text-xs bg-green-500 text-white p-2 rounded-lg shadow-md' onClick={()=>{
                         {
                           multipleAction === "VALIDER" ?
@@ -1365,7 +1359,8 @@ const getOperatorAccounts = async (operator) =>{
                                 // setDestinationAccount("");
                               }}>
                               {
-                                bankEntity.map(bank=><option key={bank?.bank.id} value={bank?.bank.id}>{bank?.bank.sigle}</option>)
+                                bankEntity?.length > 0 &&
+                                bankEntity.map(bank=><option key={bank?.bank?.id} value={bank?.bank?.id}>{bank?.bank?.sigle}</option>)
                               }
                             </select>
                           </div>
@@ -1373,6 +1368,7 @@ const getOperatorAccounts = async (operator) =>{
                             <label htmlFor="" className='text-xs'>Numéro de compte :</label>
                             <select name="" id="" value={bankAccountNumber} onChange={e=>setBankAccountNumber(e.target.value)} className='w-full'>
                               {
+                                bankAccountNumbers?.length > 0 &&
                                 bankAccountNumbers?.map(accountNumber => <option key={accountNumber?.account_number} value={accountNumber?.account_number}>{accountNumber?.account_number}</option>)
                               }
                             </select>
@@ -1393,7 +1389,8 @@ const getOperatorAccounts = async (operator) =>{
                                   setDestinationAccount("");
                                 }}>
                                 {
-                                  bankEntity.map(bank=><option key={bank?.bank.id} value={bank?.bank.id}>{bank?.bank.sigle}</option>)
+                                  bankEntity?.length > 0 &&
+                                  bankEntity.map(bank=><option key={bank?.bank?.id} value={bank?.bank?.id}>{bank?.bank?.sigle}</option>)
                                 }
                               </select>
                             </div>
@@ -1401,6 +1398,7 @@ const getOperatorAccounts = async (operator) =>{
                               <label htmlFor="" className='text-xs'>Numéro de la carte :</label>
                               <select value={bankAccountNumber} onChange={e=>setBankAccountNumber(e.target.value)} className='w-full'>
                                 {
+                                  bankAccountNumbers?.length > 0 &&
                                   bankAccountNumbers?.map(accountNumber => <option key={accountNumber?.cardNumber} value={accountNumber?.cardNumber}>{accountNumber?.cardNumber}</option>)
                                 }
                               </select>
@@ -1416,12 +1414,13 @@ const getOperatorAccounts = async (operator) =>{
                               <label htmlFor="" className='text-xs'>Choisir la banque opérateur</label>
                               <select className="w-full" name="" id="" value={originAccount} onChange={e=>{
                                   setOriginAccount(e.target.value);
-                                  const account = bankEntity.filter(account => account?.bank.id === e.target.value);
-                                  setBankAccountNumbers(account[0]?.bank.bank_account);
+                                  const account = bankEntity.filter(account => account?.bank?.id === e.target.value);
+                                  setBankAccountNumbers(account[0]?.bank?.bank_account);
                                   setDestinationAccount("");
                                 }}>
                                 {
-                                  bankEntity.map(bank=><option key={bank?.bank.id} value={bank?.bank.id}>{bank?.bank.sigle}</option>)
+                                  bankEntity?.length > 0 &&
+                                  bankEntity.map(bank=><option key={bank?.bank?.id} value={bank?.bank?.id}>{bank?.bank?.sigle}</option>)
                                 }
                               </select>
                             </div>
@@ -1439,6 +1438,7 @@ const getOperatorAccounts = async (operator) =>{
                             <label htmlFor="" className='text-xs'>Choisir l'opérateur :</label>
                             <select value={operator} onChange={handleSelectOperator}>
                                 {
+                                    operators?.length > 0 &&
                                     operators.map(operator => <option value={operator?.id}>{operator?.displayName}</option>)
                                 }
                             </select>
@@ -1475,9 +1475,13 @@ const getOperatorAccounts = async (operator) =>{
                     <div className='flex flex-col'>
                       <label htmlFor="" className='text-xs'>Ligne budgetaire :</label>
                       <select className='w-full' value={fileNumber} onChange={e=>setFileNumber(e.target.value)}>
-                        {
-                          budgetLines.map(line=><option value={line.id} key={line.id}>{line.name}</option>)
-                        }
+                        {/* {
+                          budgetLines?.length > 0 &&
+                          budgetLines.map(line=><option value={line?.id} key={line?.id}>{line?.name}</option>)
+                        } */}
+                        <option value="line1">Ligne budgetaire 1</option>
+                        <option value="line2">Ligne budgetaire 2</option>
+                        <option value="line3">Ligne budgetaire 3</option>
                       </select>
                     </div>
 
@@ -1501,6 +1505,7 @@ const getOperatorAccounts = async (operator) =>{
                       <label htmlFor="" className='text-xs'>Choisir le site</label>
                       <select name="" id="" value={site} onChange={e=>setSite(e.target.value)}>
                         {
+                          sites?.length > 0 &&
                           sites?.map(site=><option value={site?.id} key={site?.id}>{site?.name}</option>)
                         }
                       </select>
@@ -1511,11 +1516,11 @@ const getOperatorAccounts = async (operator) =>{
                         <select name="" id="" className='w-full' value={recipientType} onChange={e=>{
                             setRecipientType(e.target.value);
                             if(recipientType === "PERSONNEPHYSIQUE"){
-                              setBeneficiaire(JSON.parse(localStorage.getItem("user"))?.User.id);
-                              handleBeneficiaryBankAccount(JSON.parse(localStorage.getItem("user"))?.User.id);
+                              setBeneficiaire(JSON.parse(localStorage.getItem("user"))?.User?.id);
+                              handleBeneficiaryBankAccount(JSON.parse(localStorage.getItem("user"))?.User?.id);
                             }else{
-                              setRecipient(externalEntities[0]?.external_entity.id);
-                              handleBeneficiaryBankAccount(externalEntities[0]?.external_entity.id);
+                              setRecipient(externalEntities[0]?.id);
+                              handleBeneficiaryBankAccount(externalEntities[0]?.id);
                             }
                           }}>
                           <option value="PERSONNEPHYSIQUE">Personne physique</option>
@@ -1533,7 +1538,8 @@ const getOperatorAccounts = async (operator) =>{
                               }
                             }>
                             {
-                              beneficiaires.map(benef=><option value={benef?.User.id} key={benef?.User.id}>{benef?.User.name}</option>)
+                              beneficiaires.length > 0 &&
+                              beneficiaires.map(benef=><option value={benef?.User?.id} key={benef?.User?.id}>{benef?.User?.name}</option>)
                             }
                           </select>
                         </div>
@@ -1542,13 +1548,14 @@ const getOperatorAccounts = async (operator) =>{
                         <div className='flex flex-col  w-1/2'>
                           <label htmlFor="" className='text-xs'>Choisir l'entité</label>
                           <select name="" id="" className='w-full' value={beneficiaire} onChange={e=>{
-                              // setBeneficiaryBankAccount(beneficiairyBanks[0]?.bank.id)
+                              setBeneficiaryBankAccount(beneficiairyBanks[0]?.bank.id)
                               setBeneficiaire(e.target.value);
                               handleBeneficiaryBankAccount(e.target.value);
                             }
                             }>
                             {
-                              externalEntities.map(ext=><option value={ext?.external_entity.id} key={ext?.external_entity.id}>{ext?.external_entity.name}</option>)
+                              externalEntities?.length > 0 &&
+                              externalEntities.map(ext=><option value={ext?.id} key={ext?.id}>{ext?.displayName}</option>)
                             }
                           </select>
                         </div>
@@ -1565,11 +1572,19 @@ const getOperatorAccounts = async (operator) =>{
                               }
                             </select> */}
                             <label htmlFor="" className='text-xs'>Choisir la banque du bénéficiaire</label>
-                            <select value={beneficiaryBankAccount} onChange={e=>setBeneficiaryBankAccount(e.target.value)}>
+                            <select value={beneficiaryBankAccount} onChange={e=>{
+                              let selectedBank = beneficiairyBanks?.find(bank => bank?.bank?.id === e.target.value);
+                              if(selectedBank){
+                                setBeneficiaryBankAccountNumbers(selectedBank?.bankAccounts);
+                                setBeneficiaryBankAccountNumber(selectedBank?.bankAccounts[0]?.account_number)
+                              }
+                              setBeneficiaryBankAccount(e.target.value)
+                              }}>
                               {
-                                beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank.id} value={beneficiairy?.bank.id}>
+                                beneficiairyBanks?.length > 0 &&
+                                beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank?.id} value={beneficiairy?.bank?.id}>
                                   {
-                                    beneficiairy?.bank.sigle
+                                    beneficiairy?.bank?.sigle
                                   }
                                 </option>)
                               }
@@ -1579,6 +1594,7 @@ const getOperatorAccounts = async (operator) =>{
                             <label htmlFor="" className='text-xs'>Numéro du compte bénéficiaire</label>
                             <select name="" id="" value={beneficiaryBankAccountNumber} onChange={e=>setBeneficiaryBankAccountNumber(e.target.value)}>
                               {
+                                beneficiaryBankAccountNumbers?.length > 0 &&
                                 beneficiaryBankAccountNumbers?.map(accountNumber => <option value={accountNumber?.id} key={accountNumber?.id}>{accountNumber?.account_number}</option>)
                               }
                             </select>
@@ -1608,7 +1624,7 @@ const getOperatorAccounts = async (operator) =>{
                       <div className=''>
                        {/* Currency selection */}
                         <div className='flex flex-col w-full'>
-                          <label htmlFor="" className='text-xs'>Choisir la monnaie</label>
+                          <label htmlFor="" className='text-xs'>Choisir la monnaie :</label>
                           <select 
                             className='w-full' 
                             name="" 
@@ -1621,6 +1637,7 @@ const getOperatorAccounts = async (operator) =>{
                             }}
                           >
                             {
+                              currencies?.length > 0 &&
                               currencies?.map(item=><option value={item?.code} key={item?.id}>{`${item?.name} (${item?.code})`}</option>)
                             }
                           </select>
@@ -1634,17 +1651,20 @@ const getOperatorAccounts = async (operator) =>{
                                   <select value={cut} onChange={e=>setCut(e.target.value)}>
                                       {
                                           // currencyCuts?.map(cut=><option value={cut?.value}>{`${cut?.value}`}</option>)
+                                          currencyCuts?.length > 0 &&
                                           currencyCuts?.map(cut=><option value={cut?.value}>{`${numberWithCommas(cut?.value)}`}</option>)
                                       }
                                   </select>
                               </div>
                               <div className='w-1/4'>
-                                  <input type="number" placeholder='Qté' className='w-full' value={qty} onChange={e=>setQty(e.target.value)}/>
+                                  <input type="number" placeholder='Qté' className='w-full' value={qty} onChange={e=>{
+                                      if(+e.target.value >= 0){
+                                        setQty(e.target.value)
+                                      }
+                                    }}/>
                               </div>
                               <div className='py-2 px-1 border-b-2 border-b-green-500 bg-gray-50 w-full md:w-1/5 md:max-w-1/2 overflow-x-auto'>
-                                {
-                                  numberWithCommas(+cut * +qty)
-                                }
+                                {cutProduct}
                               </div>
                               <div className='space-x-2 w-1/4'>
                                   <button className='btn bg-green-500 text-xs text-white shadow-md w-full' onClick={handleAddCashDeskCut}>Ajouter</button>
@@ -1746,14 +1766,14 @@ const getOperatorAccounts = async (operator) =>{
                     </VerifyPermissions>
                 }
                 {
-                  (selectedExpense?.it_is_a_cash_desk_movement && selectedExpense.payment_method == "ESPECES") &&
+                  (selectedExpense?.it_is_a_cash_desk_movement && selectedExpense?.payment_method == "ESPECES") &&
                     <VerifyPermissions
                       expected={["rop"]}
                       roles={userInfo?.role?.name}
                       functions={userInfo?.Function?.name}
                     >
                       <div className=''>
-                        <p>Montant total: <b>{numberWithCommas(selectedExpense.amount)}</b></p>
+                        <p>Montant total: <b>{numberWithCommas(selectedExpense?.amount)}</b></p>
                       </div>
                     <div className=''>
                        {/* Currency selection */}

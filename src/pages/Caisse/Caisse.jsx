@@ -77,7 +77,7 @@ function Caisse() {
 
 // Get the sites
 const handleGetSite=async()=>{
-  let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
+  let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/");
   if(!requestError){
     setSites(response);
   }
@@ -96,7 +96,7 @@ const handleGetEmployees = async()=>{
 // Get the entities
 const handleGetAllEntities = async ()=>{
   try {
-    const benef = await fetchData(import.meta.env.VITE_USER_API+"/entities/all");
+    const benef = await fetchData(import.meta.env.VITE_USER_API+"/entities");
     setEntities(benef);
   } catch (error) {
     console.log(error.message);
@@ -237,7 +237,7 @@ const highlightText = (text) => {
       key: "site", 
       width: "200px",
       render:(text)=>{
-        let siteName = sites.find(site=>site.id  == text)?.name;
+        let siteName = sites.find(site=>site?.id  == text)?.name;
         return <p className='capitalize'>{siteName}</p>
       } 
     },
@@ -308,7 +308,7 @@ const highlightText = (text) => {
     }
 
     if(path === 'state'){
-      if(searchValue.length > 0){
+      if(searchValue?.length > 0){
         const search = cashDeskState?.filter((item) => {
           const searchTextLower = searchValue.toLowerCase();
         return(

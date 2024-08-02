@@ -14,25 +14,25 @@ function CreateRecetteForm(
 
     const {userInfo} = useContext(AUTHCONTEXT);
 
-    const entityValue = JSON.parse(localStorage.getItem('user'))?.entity.id;
+    const entityValue = JSON.parse(localStorage.getItem('user'))?.entity?.id;
     const numberWithCommas=(x)=>{
         return x?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
     }
     const handleGetSites=async()=>{
         let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
-        if(!requestError){
+        if(response.error) return response.error
           setSiteValue(response[0]?.id);
           setSites(response);
-        }
+        
     }
 
     const handleGetController = async()=>{
         const controller = await fetchData(import.meta.env.VITE_USER_API+"/employees/controllers");
         try {
             let result = controller ;
-            setEmployeeController(result[0]?.User?.id);
-            setEmployeesControllers(result)
-            console.log(result);
+            if(result.error) return result.error
+                setEmployeeController(result[0]?.User?.id);
+                setEmployeesControllers(result);
         } catch (error) {
             console.error("Error creating recipe:", error);
         }
@@ -109,15 +109,23 @@ function CreateRecetteForm(
     const [operator, setOperator] = useState("");
       
     const handleBeneficiaryBankAccount= async (id)=>{
-        let url = import.meta.env.VITE_USER_API+`/external_entities/${id}/banks`;
+        let url = import.meta.env.VITE_USER_API+`/external-entities/${id}/banks`;
         try {
         const response = await fetchData(url);
-        if(response.length > 0) {
-            setBeneficiairyBanks(response);
-            setExternalEntityBankAccountNumbers(response[0]?.bankAccounts);
+        if(response.error) return response.error;
+        console.log(response)
+        await setBeneficiairyBanks(response);
+        await setMobileAccountsSuggestions(response[0]?.bankAccounts);
+        await setBeneficiaryBankAccount(response[0]?.bank?.id);
+        await setExternalEntityBankAccountNumbers(response[0]?.bankAccounts);
+        if(paymentMethod === "VIREMENT" ){
+            await setExternalEntityBankAccountNumber(response[0]?.bankAccounts[0]?.account_number)
+        }
+        if(paymentMethod === "CARTE" ){
+            await setExternalEntityBankAccountNumber(response[0]?.bankAccounts[0]?.cardNumber)
         }
         } catch (error) {
-            openNotification("ECHEC", "Impossible dóbtenir les informations des bank\n du bénéficiaire");
+            console.error("ECHEC", "Impossible dóbtenir les informations des bank\n du bénéficiaire");
         }
     }
 
@@ -126,7 +134,7 @@ function CreateRecetteForm(
           title: 'Type d\'opération',
           dataIndex: 'label',
           key: '1',
-        //   render:(text, record)=>(<>{products.find(product => product.id === text)?.displayName}</>)
+        //   render:(text, record)=>(<>{products.find(product => product.name == record.label)?.name}</>)
         },
         {
           title: 'P.U',
@@ -199,7 +207,7 @@ function CreateRecetteForm(
         setExternalEntityBankAccountNumber(e.target.value);
         let suggestions = operatorAccounts?.filter(account => account?.name?.toLowerCase()?.includes(e.target.value.toLowerCase()))
         setMobileAccountsSuggestions(suggestions);
-        if(suggestions.length > 0){
+        if(suggestions?.length > 0){
             setShowMobileSuggestions(true);
             return;
         }
@@ -220,11 +228,8 @@ function CreateRecetteForm(
     const handleGetMobileAccounts= async () => {
         try {
             const response = await fetchData(import.meta.env.VITE_USER_API+"/account?type=mobile");
-            console.log(response);
-            if(!requestError){
-                setMobileAccounts(response);
-                return;
-            }
+            if(response.error) return response.error
+            setMobileAccounts(response);
         } catch (error) {
             openNotification("ECHEC", "Une erreur ")
         }
@@ -232,29 +237,29 @@ function CreateRecetteForm(
 
     const handleExternalEntity = async()=>{
         try {
-            const external = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
+            const external = await fetchData(import.meta.env.VITE_USER_API+"/external-entities");
             let result = external;
+            if(result.error) return result.error;
             setExternalEntities(result);
-            setExternalEntity(result[0]?.external_entity.id);
-            handleBeneficiaryBankAccount(result[0]?.external_entity.id)
+            setExternalEntity(result[0]?.external_entity?.id);
+            handleBeneficiaryBankAccount(result[0]?.external_entity?.id)
         } catch (error) {
             console.log(error);
         }
     }
 
     const handleGetBank= async()=>{
-        const banks = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity_banks");
-        if(requestError === ""){
-            setBankEntity(banks);
-            setEntityBankAccountNumbers(banks[0]?.bankAccounts)
-        }
+        const banks = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity-banks");
+        if(banks.error)return result.error       
+        setBankEntity(banks);
+        setEntityBankAccountNumbers(banks[0]?.bankAccounts);
+        setEntityBankAccountNumber(banks[0]?.bankAccounts[0]?.account_number);
     }
 
     const handleGetExternalBank= async()=>{
-        const banks = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
-        if(!requestError){
-            setBankExternalEntity(banks);
-        }
+        const banks = await fetchData(import.meta.env.VITE_USER_API+"/external-entities");
+        if(banks.error) return
+        setBankExternalEntity(banks);
     }
 
     const handleNextStep =() =>{
@@ -278,10 +283,9 @@ function CreateRecetteForm(
 
     const handleCreateOperation = async (e)=>{
         e.preventDefault();
-        if(selectedOperationType !== "" && operationQuantity !== "" && unitPrice !== ""){
+        if(selectedOperationType !== "" && operationQuantity !== 0 && unitPrice !== 0){
             const total = +operationQuantity * +unitPrice;
             const label = products?.find(product=>product?.id == selectedOperationType)?.displayName;
-            console.log(label);
             const data = {
                 id: uuid(),
                 "label": label,
@@ -300,11 +304,11 @@ function CreateRecetteForm(
                 setOperationErrMsg("Type d'operations requis");
                 return;
             }
-            if(operationQuantity === ""){
+            if(operationQuantity === 0){
                 setOperationErrMsg("Quantité requis");
                 return;
             }
-            if(unitPrice === ""){
+            if(unitPrice === 0){
                 setOperationErrMsg("Prix unitaire requis");
                 return;
             }
@@ -315,18 +319,14 @@ function CreateRecetteForm(
         setOperationErrMsg("");
     }, [selectedOperationType, operationQuantity, unitPrice])
 
-    useEffect(()=>{
-        handleBeneficiaryBankAccount(externalEntity)
-    }, [externalEntity])
 
     useEffect(()=>{
-        const selectedBank = bankEntity.find(bank=> bank.bank.id === entityBank);
+        const selectedBank = bankEntity?.find(bank=> bank?.bank?.id === entityBank);
         if(paymentMethod == "VIREMENT"){
             setEntityBankAccountNumbers(selectedBank?.bankAccounts);
             setExternalEntityBankAccountNumber(selectedBank?.bankAccounts[0].id);
             return
         }
-        setEntityBankAccountNumber("");
     }, [entityBank]);
 
     const handleCancelOperationCreation= (e) =>{
@@ -441,6 +441,7 @@ function CreateRecetteForm(
         try {
             const url = import.meta.env.VITE_USER_API+"/products";
             let response = await fetchData(url);
+            if(response.error) return result.error;
             setUnitPrice(response[0]?.unit)
             setSelectedOperationType(response[0]?.id);
             
@@ -452,7 +453,8 @@ function CreateRecetteForm(
 
     const handleGetAllEntities = async ()=>{
         try {
-          const benef = await fetchData(import.meta.env.VITE_USER_API+"/entities/all");
+          const benef = await fetchData(import.meta.env.VITE_USER_API+"/entities");
+          if( benef.error) return benef.error;
           setEntities(benef);
         } catch (error) {
           console.log(error.message);
@@ -485,14 +487,12 @@ function CreateRecetteForm(
         let url = import.meta.env.VITE_USER_API+"/operators";
         try {
             let response = await fetchData(url);
-            if(!requestError){
-                setOperators(response);
-                setOperator(response[0]?.id);
-                await getOperatorAccounts(response[0]?.id);
-                return
-            }
+            if(response.error) return result.error
+            setOperators(response);
+            setOperator(response[0]?.id);
+            await getOperatorAccounts(response[0]?.id);
         } catch (error) {
-            console.warn(error.message);
+            console.error(error.message);
         }
     }
 
@@ -504,11 +504,9 @@ function CreateRecetteForm(
         let url = `${import.meta.env.VITE_USER_API}/operators/${id}/accounts`;
         try {
             let response = await fetchData(url);
-            if(!requestError){
-                setOperatorAccounts(response);
-                setMobileAccountsSuggestions(response);
-                return
-            }
+            if(response.error) return response.error
+            setOperatorAccounts(response);
+            setMobileAccountsSuggestions(response);
         } catch (error) {
             console.warn(error.message);
         }
@@ -518,14 +516,67 @@ function CreateRecetteForm(
 
     useEffect(()=>{
         if(paymentMethod == "VIREMENT"){
-            console.log(beneficiairyBanks[0])
-            // setExternalEntityBankAccountNumbers(beneficiairyBanks[0]?.bankAccounts);
+            setExternalEntityBankAccountNumbers(beneficiairyBanks[0]?.bankAccounts);
             setExternalEntityBankAccountNumber(beneficiairyBanks[0]?.bankAccounts[0]?.account_number);
-            return;
+            handleBeneficiaryBankAccount(externalEntities[0]?.id);
+        }
+        if(paymentMethod == "CARTE"){
+            handleBeneficiaryBankAccount(externalEntities[0]?.id);
         }
         setExternalEntityBankAccountNumber("");
         setTransactionNumber("");
     }, [paymentMethod]);
+
+    // useEffect(()=>{
+    //     if(paymentMethod == "CARTE"){
+    //         setExternalEntityBankAccountNumbers(beneficiairyBanks[0]?.bankAccounts);
+    //         setExternalEntityBankAccountNumber("");
+    //     }
+        
+    //     if(paymentMethod == "VIREMENT"){
+    //         const accounts = beneficiairyBanks?.find(bank => bank?.bank?.id == beneficiaryBankAccount)?.bankAccounts
+    //         if(accounts){
+    //             setExternalEntityBankAccountNumbers(accounts);
+    //             setExternalEntityBankAccountNumber(accounts[0]?.account_number)
+    //         }
+    //     }
+    // }, [beneficiaryBankAccount]);
+    useEffect(()=>{
+        if(paymentMethod == "CARTE"){
+            setExternalEntityBankAccountNumbers(beneficiairyBanks[0]?.bankAccounts);
+            setExternalEntityBankAccountNumber("");
+        }
+        
+        if(paymentMethod == "VIREMENT"){
+            const accounts = beneficiairyBanks?.find(bank => bank?.bank?.id == beneficiaryBankAccount)?.bankAccounts
+            if(accounts){
+                setExternalEntityBankAccountNumbers(accounts);
+                setExternalEntityBankAccountNumber(accounts[0]?.account_number)
+            }
+        }
+    }, [paymentMethod]);
+    
+
+    useEffect(()=>{
+        handleBeneficiaryBankAccount(externalEntity);
+        // if(paymentMethod == "CARTE"){
+        //     setExternalEntityBankAccountNumbers(beneficiairyBanks[0]?.bankAccounts);
+        //     setExternalEntityBankAccountNumber("");
+        // }
+
+        
+        // if(paymentMethod == "VIREMENT"){
+        //     const accounts = beneficiairyBanks?.find(bank => bank?.bank?.id == beneficiaryBankAccount)?.bankAccounts
+        //     if(accounts){
+        //         setExternalEntityBankAccountNumbers(accounts);
+        //         setExternalEntityBankAccountNumber(accounts[0]?.account_number)
+        //     }
+        // }
+    }, [externalEntity]);
+
+    useEffect(()=>{
+        setExternalEntityBankAccountNumber("");
+    }, [operator]);
 
     useEffect(()=>{
         handleGetController();
@@ -536,7 +587,7 @@ function CreateRecetteForm(
         handleGetExternalBank();
         handleGetAllEntities();
         handleGetMobileAccounts();
-        handleBeneficiaryBankAccount();
+        // handleBeneficiaryBankAccount();
         getOperators();
         setShiftValue("6h-15h")
         const functions = JSON.parse(localStorage.getItem("user"))?.Function?.name;
@@ -606,6 +657,7 @@ function CreateRecetteForm(
                                 <label htmlFor="" className='text-xs'>Choisir l'opérateur :</label>
                                 <select value={operator} onChange={handleSelectOperator}>
                                     {
+                                        operators?.length > 0 &&
                                         operators.map(operator => <option value={operator?.id}>{operator?.displayName}</option>)
                                     }
                                 </select>
@@ -638,24 +690,27 @@ function CreateRecetteForm(
                     { paymentMethod === "VIREMENT" &&
                         <div className='w-full flex flex-col md:flex-row items-center space-x-3 justify-center'>
                             <div className='flex flex-col w-full md:w-1/2'>
-                                <label htmlFor="" className='text-xs'>Bank de l'entité</label>
+                                <label htmlFor="" className='text-xs'>Bank de l'entité :</label>
                                 <select className="w-full" name="" id="" value={entityBank} onChange={e=>{
                                     setEntityBank(e.target.value);
-                                    const account = bankEntity.filter(account => account?.bank.id === e.target.value);
-                                    setEntityBankAccountNumbers(account[0]?.bank.bank_account);
+                                    const account = bankEntity.filter(account => account?.bank?.id === e.target.value);
+                                    setEntityBankAccountNumbers(account[0]?.bank?.bank_account);
+                                    setEntityBankAccountNumber(account[0]?.bankAccounts[0]?.account_number)
                                     setDestinationAccount("");
                                 }}>
                                 {
-                                    bankEntity.map(bank=><option key={bank?.bank.id} value={bank?.bank.id}>{bank?.bank.sigle}</option>)
+                                    bankEntity?.length > 0 &&
+                                    bankEntity.map(bank=><option key={bank?.bank?.id} value={bank?.bank?.id}>{bank?.bank?.sigle}</option>)
                                 }
                                 </select>
                             </div>
                             <div className='flex flex-col w-full md:w-1/2'>
                                 <label htmlFor="" className='text-xs'>Numéro du compte de la bank</label>
                                 {/* Add a select bank and account for the external entity */}
-                                <select name="" id="" value={entityBankAccountNumber} onChange={e=>setEntityBankAccountNumber(e.target.value)}>
+                                <select value={entityBankAccountNumber} onChange={e=>setEntityBankAccountNumber(e.target.value)}>
                                     {
-                                        entityBankAccountNumbers?.map(accountNumber =><option value={accountNumber?.id} key={accountNumber?.id}>{accountNumber?.account_number}</option>)
+                                        entityBankAccountNumbers?.length > 0 &&
+                                        entityBankAccountNumbers?.map(accountNumber =><option value={accountNumber?.account_number} key={accountNumber?.id}>{accountNumber?.account_number}</option>)
                                     }
                                 </select>
                             </div>
@@ -676,10 +731,14 @@ function CreateRecetteForm(
                             <div className='w-full flex-col flex'>
                                 {/* Entite extern */}
                                 <label htmlFor="" className='text-xs'>Créditeur :</label>
-                                <select name="" id="" value={externalEntity} onChange={e=>setExternalEntity(e.target.value)}>
+                                <select value={externalEntity} onChange={e=>{
+                                    handleBeneficiaryBankAccount(e.target.value)
+                                    setExternalEntity(e.target.value)
+                                    }}>
                                     {
+                                        externalEntities?.length > 0 &&
                                         externalEntities.map(entity =>
-                                            <option value={entity?.external_entity.id}>{entity?.external_entity.name}</option>
+                                            <option value={entity?.id} key={entity?.id}>{entity?.name}</option>
                                         )
                                     }
                                 </select>
@@ -690,12 +749,13 @@ function CreateRecetteForm(
                         (paymentMethod === "CHEQUE") &&
                         <div className='w-full flex flex-col md:flex-row items-center space-x-3 justify-center'>
                             <div className='flex flex-col w-full'>
-                                <label htmlFor="" className='text-xs'>Choisir la banque du client</label>
+                                <label htmlFor="" className='text-xs'>Choisir la banque du client :</label>
                                 <select className='w-full' value={beneficiaryBankAccount} onChange={e=>setBeneficiaryBankAccount(e.target.value)}>
                                 {
-                                    beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank.id} value={beneficiairy?.bank.id}>
+                                    beneficiairyBanks?.length > 0 &&
+                                    beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank?.id} value={beneficiairy?.bank?.id}>
                                     {
-                                        beneficiairy.bank.sigle
+                                        beneficiairy?.bank?.sigle
                                     }
                                     </option>)
                                 }
@@ -716,15 +776,21 @@ function CreateRecetteForm(
                         <div className='w-full flex space-x-2'>
                             <div className='flex flex-col w-1/2'>
                                 <label htmlFor="" className='text-xs'>Choisir la banque du client</label>
-                                <select className='w-full' value={externalEntityBankAccountNumber} onChange={e=>{
-                                    let cardNumbers = beneficiairyBanks?.find(bank=>bank?.bank?.id === e.target.value);
-                                    setExternalEntityBankAccountNumbers(cardNumbers)
-                                    setBeneficiaryBankAccount(e.target.value);
-                                }}>
+                                <select 
+                                    className='w-full' 
+                                    value={beneficiaryBankAccount} 
+                                    onChange={e=>{
+                                    let cardNumbers = beneficiairyBanks?.find(bank=>bank?.bank?.id === e.target.value)?.bankAccounts;
+                                        setExternalEntityBankAccountNumbers(cardNumbers)
+                                        setExternalEntityBankAccountNumber("");
+                                        setBeneficiaryBankAccount(e.target.value);
+                                    }}
+                                >
                                 {
-                                    beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank.id} value={beneficiairy?.bank.id}>
+                                    beneficiairyBanks?.length > 0 &&
+                                    beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank?.id} value={beneficiairy?.bank?.id}>
                                     {
-                                        beneficiairy.bank.sigle
+                                        beneficiairy?.bank?.sigle
                                     }
                                     </option>)
                                 }
@@ -761,27 +827,34 @@ function CreateRecetteForm(
                             paymentMethod === "VIREMENT" &&
                             <div className='w-full flex flex-col md:flex-row items-center space-x-3 justify-center'>
                                 <div className='flex flex-col w-1/2'>
-                                    <label htmlFor="" className='text-xs'>Choisir la banque du client</label>
-                                    <select className='w-full' value={beneficiaryBankAccount} onChange={e=>setBeneficiaryBankAccount(e.target.value)}>
+                                    <label htmlFor="" className='text-xs'>Choisir la banque du client :</label>
+                                    <select className='w-full' value={beneficiaryBankAccount} onChange={e=>{
+                                        let actualbank = beneficiairyBanks.find(bank => bank?.bank?.id === e.target.value)
+                                        console.log(actualbank);
+                                        if(paymentMethod === "VIREMENT" ){
+                                            setExternalEntityBankAccountNumbers(actualbank?.bankAccounts);
+                                            setExternalEntityBankAccountNumber(actualbank?.bankAccounts[0]?.account_number)
+                                        }
+                                        setBeneficiaryBankAccount(e.target.value)
+                                        }}>
                                     {
-                                        beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank.id} value={beneficiairy?.bank.id}>
+                                        beneficiairyBanks?.length > 0 &&
+                                        beneficiairyBanks?.map(beneficiairy => <option key={beneficiairy?.bank?.id} value={beneficiairy?.bank?.id}>
                                         {
-                                            beneficiairy.bank.sigle
+                                            beneficiairy?.bank?.sigle
                                         }
                                         </option>)
                                     }
                                     </select>
                                 </div>
                                 <div className='flex flex-col w-full md:w-1/2'>
-                                    <label htmlFor="" className='text-xs'>Numéro de compte</label>
+                                    <label htmlFor="" className='text-xs'>Numéro de compte :</label>
                                     <select className="w-full" name="" id="" value={externalEntityBankAccountNumber} onChange={e=>{
                                         setExternalEntityBankAccountNumber(e.target.value);
-                                        // const account = bankEntity.filter(account => account?.bank.id === e.target.value);
-                                        //     setAccountNumbers(account[0]?.bank.bank_account);
-                                        //     setDestinationAccount("");
                                         }}>
                                         {
-                                            externalEntityBankAccountNumbers.map(bank=><option key={bank?.id} value={bank?.account_number}>{bank?.account_number}</option>)
+                                            externalEntityBankAccountNumbers?.length > 0 &&
+                                            externalEntityBankAccountNumbers.map(bank=><option key={bank?.account_number} value={bank?.account_number}>{bank?.account_number}</option>)
                                         }
                                 </select>
                                 </div>
@@ -808,7 +881,8 @@ function CreateRecetteForm(
                     <div className='flex flex-col'>
                         <label htmlFor="" className='text-xs'>Choisir le site</label>
                         <select name="" id="" value={siteValue} onChange={e=>setSiteValue(e.target.value)}>
-                            {
+                            {   
+                                sites?.length > 0 &&
                                 sites?.map(site => <option value={site?.id} key={site?.id}>{site?.name}</option>)
                             }
                         </select>
@@ -831,8 +905,9 @@ function CreateRecetteForm(
                             <label htmlFor="" className='text-xs'>Choisir le controleur</label>
                             <select name="" id="" value={employeeController} onChange={e=>setEmployeeController(e.target.value)}>
                                 {
-                                employeesControllers
-                                .map(controller=><option value={controller?.User?.id} key={controller?.User?.id}>{controller?.User?.name?.toUpperCase()}</option>)
+                                    employeesControllers?.length > 0 &&
+                                    employeesControllers
+                                    .map(controller=><option value={controller?.User?.id} key={controller?.User?.id}>{controller?.User?.name?.toUpperCase()}</option>)
                                 }
                             </select>
                         </div>
@@ -901,6 +976,7 @@ function CreateRecetteForm(
                                         setUnitPrice(+price?.unit);
                                     }}>
                                     {
+                                        products?.length > 0 &&
                                         products.map(product=><option key={product?.id} value={product?.id}>{product?.displayName}</option>)
                                     }
                                 </select>

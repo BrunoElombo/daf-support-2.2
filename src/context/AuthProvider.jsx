@@ -26,31 +26,31 @@ const AuthProvider = (props)=>{
         }
     }, [])
 
-    const handleGetUserInfo =async ()=>{
-        let userData = await fetchData(import.meta.env.VITE_DAF_API+"/users/account");
-        console.log(userData);
-        if(userData){
-          setUserInfo(userData.result);
-        }
-    }
+    // const handleGetUserInfo =async ()=>{
+    //     let userData = await fetchData(import.meta.env.VITE_DAF_API+"/users/account");
+    //     console.log(userData);
+    //     if(userData){
+    //       setUserInfo(userData.result);
+    //     }
+    // }
 
-    const handleGetEntities =async ()=>{
-      let entities = await fetchData(import.meta.env.VITE_DAF_API+"/users/account");
-        console.log(entities);
-        if(entities){
-          setUserInfo(entities.result);
-        }
-    }
+    // const handleGetEntities =async ()=>{
+    //   let entities = await fetchData(import.meta.env.VITE_DAF_API+"/users/account");
+    //     console.log(entities);
+    //     if(entities){
+    //       setUserInfo(entities.result);
+    //     }
+    // }
 
 
     useEffect(()=>{
         const storedToken = localStorage.getItem('token');
         if(!userInfo){
-            handleGetUserInfo();
+            // handleGetUserInfo();
         }
 
         if(!allEntities){
-          handleGetEntities();
+        //   handleGetEntities();
         }
 
         if(!storedToken){
@@ -58,18 +58,18 @@ const AuthProvider = (props)=>{
         }
     }, []);
 
-    const refreshToken = async () => {
-        const response = await fetchData(import.meta.env.VITE_DAF_API+"/refresh");
-        console.log(response);
+    // const refreshToken = async () => {
+    //     const response = await fetchData(import.meta.env.VITE_DAF_API+"/refresh");
+    //     console.log(response);
 
-        if(!requestError){
-            const {access} = response;     
-            console.log(access);
-            localStorage.setItem('token', newToken);
-            return;
-        }
+    //     if(!requestError){
+    //         const {access} = response;     
+    //         console.log(access);
+    //         localStorage.setItem('token', newToken);
+    //         return;
+    //     }
 
-    };
+    // };
 
     return (
         <AUTHCONTEXT.Provider value={{
