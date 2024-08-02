@@ -74,7 +74,7 @@ function ExpensePage() {
   const [description, setDescription] = useState('');
   const [files, setFiles] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState("");
-  const [fileNumber, setFileNumber] = useState("line1");
+  const [fileNumber, setFileNumber] = useState("");
   const[recipientType, setRecipientType] = useState("PERSONNEPHYSIQUE");
   const[recipient, setRecipient] = useState("");
 
@@ -1482,7 +1482,6 @@ const getOperatorAccounts = async (operator) =>{
                           budgetLines.map(line=><option value={line?.id} key={line?.id}>{line?.name}</option>)
                         }
                         {/* <option value="line1">Ligne budgetaire 1</option>
-                        <option value="line2">Ligne budgetaire 2</option>
                         <option value="line3">Ligne budgetaire 3</option> */}
                       </select>
                     </div>

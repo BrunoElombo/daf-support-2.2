@@ -121,8 +121,10 @@ function ApproForm({onSubmit}) {
      */
     const handleGetBank= async()=>{
         try {
-            const response = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity_banks");
+            const response = await fetchData(import.meta.env.VITE_USER_API+"/banks/entity-banks");
+            if(response.error) return response.error;
             setBanks(response);
+            console.log(response);
             setSelectedBank(response[0]?.bank?.id);
             setAccounts(response[0]?.bankAccounts);
             // setSuggestions(response[0]?.bankAccounts);
@@ -136,6 +138,7 @@ function ApproForm({onSubmit}) {
      */
     const handleGetCashDesk= async()=>{
         const response = await fetchData(import.meta.env.VITE_USER_API+"/cash-desk");
+        if(response.error) return response.error;
         if(!requestError){
             setCashDesks(response);
             setCashDesk(response[0]?.id);
@@ -205,6 +208,7 @@ function ApproForm({onSubmit}) {
     const handleGetEmployees = async()=>{
         try {
           const benef = await fetchData(import.meta.env.VITE_USER_API+"/employees/mandatory");
+          if(benef.error) return benef.error;
           setEmployees(benef);
           setEmployee(benef[0]?.User.id);
         } catch (error) {
@@ -218,6 +222,7 @@ function ApproForm({onSubmit}) {
     const handleGetSites=async()=>{
         try {
           let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
+          if(response.error) return response.error;
           setSite(response[0]?.id);
           setSites(response);
         } catch (error) {
@@ -230,6 +235,7 @@ function ApproForm({onSubmit}) {
         let url = import.meta.env.VITE_USER_API+"/cash-desk";
         try {
           const response = await fetchData(url);
+          if(response.error) return response.error;
           setCashDesks(response);
           setCashDesk(response[0]?.id);
         } catch (error) {
@@ -239,12 +245,11 @@ function ApproForm({onSubmit}) {
     const handleGetCurrencies=async()=>{
         try {
           let response = await fetchData(import.meta.env.VITE_USER_API+"/currencies");
-          if(!requestError){
-            setCurrency(response[0]?.code);
-            setCut(response[0]?.currencyCuts[0]?.value)
-            setCurrencyCuts(response[0]?.currencyCuts)
-            setCurrencies(response);
-          }
+          if(response.error) return response.error;
+          setCurrency(response[0]?.code);
+          setCut(response[0]?.currencyCuts[0]?.value)
+          setCurrencyCuts(response[0]?.currencyCuts)
+          setCurrencies(response);
         } catch (error) {
           console.log(error)
         }
@@ -332,13 +337,16 @@ function ApproForm({onSubmit}) {
                     className='text-sm' 
                     value={selectedBank} 
                     onChange={e=>{
+                        let actualBank = banks?.find(bank => bank?.bank?.id === e.target.value)?.bankAccounts;
+                        console.log(actualBank);
                         setBankAccount("");
-                        setSuggestions([]);
+                        setSuggestions(actualBank || []);
                         setSelectedBank(e.target.value);
                     }}
                 >
                     {
-                        banks.map(bank=><option value={bank?.bank?.id} key={bank?.bank?.id}>{bank?.bank?.Acronyme}</option>)
+                        // bank?.length > 0 &&
+                        banks.map(bank=><option value={bank?.bank?.id} key={bank?.bank?.id}>{bank?.bank?.name}</option>)
                     }
                 </select>
             </div>
@@ -356,6 +364,7 @@ function ApproForm({onSubmit}) {
                  suggestions.length > 0 &&
                     <ul className='absolute w-full bg-white shadow-sm rounded-b-sm p-2'>
                         {
+                            suggestions?.length > 0 &&
                             suggestions.map(suggestion =>
                                 <li 
                                     className='text-xs text-gray-500 cursor-pointer'
@@ -378,6 +387,7 @@ function ApproForm({onSubmit}) {
             <label htmlFor="" className='text-xs'>Choisir la caisse<span className='text-xs text-red-500'>*</span> :</label>
             <select value={cashDesk} onChange={e=>setCashDesk(e.target.value)}>
                 {
+                    cashDesk?.length > 0 &&
                     cashDesks.map(desk=><option value={desk?.id} key={desk?.id}>{desk?.name}</option>)
                 }
             </select>
@@ -388,7 +398,8 @@ function ApproForm({onSubmit}) {
             <label htmlFor="" className="text-xs">Choisir le mandataire <span className='text-xs text-red-500'>*</span> :</label>
             <select className='capitalize' value={employee} onChange={e=>setEmployee(e.target.value)}>
                 {
-                    employees.map(benef=><option value={benef?.User.id} key={benef?.User.id}>{benef?.User.name}</option>)
+                    employees?.length > 0 &&
+                    employees.map(benef=><option value={benef?.User.id} key={benef?.User.id}>{benef?.User.displayName}</option>)
                 }
             </select>
         </div>
@@ -424,6 +435,7 @@ function ApproForm({onSubmit}) {
                 }}
                 >
                 {
+                    currencies?.length > 0 &&
                     currencies?.map(item=><option value={item?.code} key={item?.id}>{`${item?.name} (${item?.code})`}</option>)
                 }
                 </select>
@@ -437,6 +449,7 @@ function ApproForm({onSubmit}) {
                         <select value={cut} onChange={e=>setCut(e.target.value)}>
                             {
                                 // currencyCuts?.map(cut=><option value={cut?.value}>{`${cut?.value}`}</option>)
+                                currencyCuts?.length > 0 &&
                                 currencyCuts?.map(cut=><option value={cut?.value}>{`${numberWithCommas(cut?.value)}`}</option>)
                             }
                         </select>

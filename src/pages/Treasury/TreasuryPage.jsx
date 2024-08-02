@@ -188,9 +188,9 @@ function TreasuryPage() {
             item?.uin_beneficiary?.toString().toLowerCase().includes(searchTextLower) ||
             sites?.find(site=>site.id === item?.site)?.name.toString().toLowerCase().includes(searchTextLower) ||
             (
-              (beneficiaires.find(benef=>benef?.User.id == item.employee_beneficiary)) ?
-              beneficiaires.find(benef=>benef?.User.id == item.employee_beneficiary)?.User?.displayName?.toLowerCase().includes(searchTextLower) :
-              externalEntities.find(externalEntity=>externalEntity?.external_entity.id == item.employee_beneficiary)?.name?.toLowerCase().includes(searchTextLower)
+              (beneficiaires.find(benef=>benef?.User?.id == item.employee_beneficiary)) ?
+              beneficiaires.find(benef=>benef?.User?.id == item.employee_beneficiary)?.User?.displayName?.toLowerCase().includes(searchTextLower) :
+              externalEntities.find(externalEntity=>externalEntity?.id == item.employee_beneficiary)?.name?.toLowerCase().includes(searchTextLower)
             )
           )
         });

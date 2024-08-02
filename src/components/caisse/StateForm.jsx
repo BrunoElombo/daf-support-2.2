@@ -73,7 +73,7 @@ function StateForm({onSubmit}) {
   }
 
   const handleGetEntitySite=async()=>{
-    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
+    let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/");
     if(!requestError){
       setEntitySites(response);
     }

@@ -48,7 +48,8 @@ function TreasurySheetFilter({setRecetteDataSrc, onSubmit}) {
             let url = `${import.meta.env.VITE_DAF_API}/recipesheet/multi_criteria_search/`;
             let headersList = {
                 "Accept": "*/*",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                'Authorization':'Bearer '+localStorage.getItem('token')
             }
             let data = {
                 "employee_initiator":initiator,
@@ -68,9 +69,7 @@ function TreasurySheetFilter({setRecetteDataSrc, onSubmit}) {
                 method: "GET",
                 url: url,
                 data: data,
-                headers: {
-                    'Authorization':'Bearer '+localStorage.getItem('token')
-                },
+                headers: headersList,
                 contentType: "application/json",
               })
             .done(function( data ) {
@@ -116,17 +115,15 @@ function TreasurySheetFilter({setRecetteDataSrc, onSubmit}) {
         try {
             let result = controller ;
             setEmployees(result);
-            console.log(result);
         } catch (error) {
             console.error("Error creating recipe:", error);
         }
     }
 
     const handleGetEntitySite=async()=>{
-        let response = await fetchData(import.meta.env.VITE_USER_API+"/sites/all");
-        if(!requestError){
-          setEntitySites(response);
-        }
+        let response = await fetchData(import.meta.env.VITE_USER_API+"/sites");
+        if(response.error) return response.error;
+        setEntitySites(response);
       }
 
     useEffect(()=>{
@@ -151,7 +148,7 @@ function TreasurySheetFilter({setRecetteDataSrc, onSubmit}) {
                         <select className='text-xs' value={initiator} onChange={e=>setInitiator(e.target.value)}>
                             <option value=""></option>
                             {
-                                employees.map((employee)=><option key={employee?.User.id} value={employee?.User.id}>{employee?.User.name?.toUpperCase()}</option>)
+                                employees.map((employee)=><option key={employee?.User?.id} value={employee?.User.id}>{employee?.User?.name?.toUpperCase()}</option>)
                             }
                         </select>
                     </div>
@@ -160,7 +157,7 @@ function TreasurySheetFilter({setRecetteDataSrc, onSubmit}) {
                         <select className='text-xs' value={controller} onChange={e=>setController(e.target.value)}>
                             <option value=""></option>
                             {
-                                employees.map((employee)=><option key={employee?.User.id} value={employee?.User.id}>{employee?.User.name?.toUpperCase()}</option>)
+                                employees.map((employee)=><option key={employee?.User?.id} value={employee?.User.id}>{employee?.User?.name?.toUpperCase()}</option>)
                             }
                         </select>
                     </div>

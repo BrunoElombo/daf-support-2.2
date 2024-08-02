@@ -200,7 +200,7 @@ function SupplyFilter({setSupplyData}) {
             {/* Submit and clear button */}
             <div className='mt-3'>
                 <div className='flex justify-end'>
-                    <button type='submit' className="btn btn-primary text-xs">Filtrer</button>
+                    <button type='submit' className={`${isLoading ? "bg-green-300" :"btn-primary"} btn text-xs text-white`}>{isLoading?"Encours...":"Filtrer"}</button>
                     <button className="btn text-red-500 text-xs" type='reset' onClick={handleClearForm}>Effacer</button>
                 </div>
             </div>
