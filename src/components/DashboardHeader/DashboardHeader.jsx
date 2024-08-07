@@ -1,5 +1,6 @@
 import React, {useContext, useEffect, useState} from 'react'
 import { Drawer, Space } from 'antd';
+import useFetch from '../../hooks/useFetch';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLongLeftIcon, 
     BanknotesIcon, 
@@ -14,11 +15,13 @@ import { ArrowLongLeftIcon,
 } from "@heroicons/react/24/outline";
 import { AUTHCONTEXT } from '../../context/AuthProvider';
 import VerifyPermissions from '../Permissions/VerifyPermissions';
+import UserInfo from '../userInfo/UserInfo';
 
 function DashboardHeader() {
 
   const locataion = useLocation();
   const { pathname } = location;
+  const { postData } = useFetch();
   const {userInfo, setIsLoggedIn, defaultEntity, setDefaultEntity, allEntities, setUserInfo, setAllEntities} = useContext(AUTHCONTEXT);
   const [isOpen, setIsOpen] = useState(false);
   const [menuIsOpen, setMenuIsOpen] = useState(false);
@@ -66,10 +69,19 @@ const handleChangedEntity=async (id)=>{
     setIsOpen(false);
   }
 
-  const handleLogout = ()=>{
-    localStorage.removeItem("token");
-    setIsLoggedIn(false);
-    navigate("/");
+  const handleLogout = async ()=>{
+      localStorage.clear();
+      navigate("/");
+      setIsLoggedIn(false);
+    //   try {
+    //       let response = await postData(import.meta.env.VITE_USER_API+"/api/login");
+    //       if(response.statut == 200){
+    //         // localStorage.removeItem("token");
+    //         setIsLoggedIn(false);
+    //     }
+    // } catch (error) {
+    //     alert("Echec de deconnexion")
+    // }
   };
 
   return (
@@ -84,7 +96,7 @@ const handleChangedEntity=async (id)=>{
                     <div className='bg-red-500 w-3 h-3 rounded-full absolute right-0 -top-1'>{}</div>
                     <BellIcon className="text-white h-6 w-6" />
                 </div>
-                <p onClick={()=>{setIsOpen(true)}} className='text-white text-sm bold cursor-pointer p-2 hover:bg-green-700'>Hi, <span className='capitalize'>{userInfo?.User?.displayName}</span></p>
+                <p onClick={()=>{setIsOpen(true)}} className='text-white text-sm bold cursor-pointer p-2 hover:bg-green-700'>Hi, <span className='capitalize'>{userInfo?.User?.displayName || "Anonymous"}</span></p>
             </div>
         </div>
         <div className='md:pt-5 md:px-5 flex items-center'>
@@ -215,34 +227,8 @@ const handleChangedEntity=async (id)=>{
           </Space>
         }
       >
-        <div className='flex flex-col space-y-3'>
-            <div>
-                <p><b>Nom d'utilisateur :</b></p>
-                <div className='p-2 bg-gray-200 border-gray-300 border-[1px] rounded-lg'>
-                   <p className='text-md capitalize'>{userInfo?.User?.displayName}</p> 
-                </div>
-            </div>
-            <div>
-                <p><b>Role / Function :</b></p>
-                <div className='p-2 bg-gray-200 border-gray-300 border-[1px] rounded-lg'>
-                   <p className='text-md'>{`${userInfo?.role?.displayName || userInfo?.Function?.displayName}`}</p> 
-                </div>
-            </div>
-            <div>
-                <p><b>Entité :</b></p>
-                {/* <hr /><br /> */}
-                <div className='p-2 bg-gray-200 border-gray-300 border-[1px] rounded-lg'>
-                    <p className='capitalize'>{userInfo?.entity?.raison_social}</p>
-                </div>
-                {/* <select name="" id="" className='w-full mt-2' onChange={(e)=>handleChangedEntity(e.target.value)}>
-                    {
-                        allEntities?.map(entity=>(
-                            <option value={entity.id} key={entity.id} >{entity.name}</option>
-                        ))
-                    }
-                </select> */}
-            </div>
-        </div>
+        <UserInfo />
+        
         </Drawer>
 
         {/* Main menu drawer */}
