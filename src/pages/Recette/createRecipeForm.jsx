@@ -69,7 +69,7 @@ function createRecipeForm({onSubmit}) {
      * Get the all related external entities
     */
    const getAllExternalEntities = async ()=>{
-    let url = import.meta.env.VITE_USER_API+"/external_entities";
+    let url = import.meta.env.VITE_USER_API+"/external-entities";
     try {
         let response = await fetchData(url);
         if(!requestError){

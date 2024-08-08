@@ -227,7 +227,7 @@ function CreateRecetteForm(
 
     const handleGetMobileAccounts= async () => {
         try {
-            const response = await fetchData(import.meta.env.VITE_USER_API+"/account?type=mobile");
+            const response = await fetchData(import.meta.env.VITE_USER_API+"/accounts?type=mobile");
             if(response.error) return response.error
             setMobileAccounts(response);
         } catch (error) {
@@ -272,7 +272,7 @@ function CreateRecetteForm(
         setCurrentStep(step-1);
     };
 
-    const {requestError, postData, requestLoading, fetchData} = useFetch();
+    const {requestError, postData, requestLoading, fetchData, setRequestLoading } = useFetch();
     
     const clearOperationsForm=()=>{
         // setSelectedOperationType(products[0]?.id);
@@ -377,7 +377,7 @@ function CreateRecetteForm(
             "entity": entityValue,
             "operation_types" : operations
         };
-
+        setRequestLoading(true);
         try {
             const response = await postData(url, data, true);
             onSubmit();
@@ -392,6 +392,8 @@ function CreateRecetteForm(
             openNotification("ECHEC", "Echec de creation de la recette.");
             // handleOpenModal("Echec de creation de la recette.",(<XMarkIcon className='text-red-500 h-8 w-8'/>))
             console.error("Error creating recipe:", error);
+        }finally{
+            setRequestLoading(false);
         }
     }
     

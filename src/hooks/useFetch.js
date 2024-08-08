@@ -82,7 +82,7 @@ function useFetch() {
   
     };
 
-    return {requestLoading, fetchData, postData, requestError, updateData}
+    return {requestLoading, setRequestLoading, fetchData, postData, requestError, updateData}
 }
 
 export default useFetch

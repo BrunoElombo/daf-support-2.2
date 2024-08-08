@@ -280,7 +280,7 @@ function RecettePage() {
   }
 
   const handleExternalEntity = async()=>{
-    const response = await fetchData(import.meta.env.VITE_USER_API+"/external_entities");
+    const response = await fetchData(import.meta.env.VITE_USER_API+"/external-entities");
     if(response.status === 200){
       setExternalEntities(response);
       return;
