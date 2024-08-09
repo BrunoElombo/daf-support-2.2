@@ -107,7 +107,7 @@ const handleChangedEntity=async (id)=>{
             </div>
             <ul className='space-x-4 text-sm text-white overflow-x-auto hidden md:flex'>
                 <VerifyPermissions
-                    expected={["chief_financial_officer", "management_controller", "accountant", "department_manager", "general_manager", "president", "operations_manager"]}
+                    expected={["chief_financial_officer","paymaster_general","management_controller", "accountant", "department_manager", "general_manager", "president", "operations_manager"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
@@ -156,7 +156,7 @@ const handleChangedEntity=async (id)=>{
                 </VerifyPermissions>
 
                 <VerifyPermissions
-                    expected={["chief_financial_officer","management_controller", "general_manager", "president", "operations_manager"]}
+                    expected={["chief_financial_officer","management_controller", "general_manager", "president", "operations_manager", "paymaster_general"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
@@ -169,7 +169,7 @@ const handleChangedEntity=async (id)=>{
                 </VerifyPermissions>
                 
                 <VerifyPermissions
-                    expected={["chief_financial_officer","management_controller", "general_manager", "president", "cashier", "operations_manager", "bank_mandate"]}
+                    expected={["chief_financial_officer","management_controller", "general_manager", "president", "cashier", "operations_manager", "bank_mandate", "paymaster_general"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
@@ -250,7 +250,7 @@ const handleChangedEntity=async (id)=>{
         >
             <ul className='space-y-4 text-sm text-green-500 flex flex-col md:flex overflow-y-auto'>
                 <VerifyPermissions
-                    expected={["accountant", "department_manager", "general_manager", "president", "operations_manager"]}
+                    expected={["accountant", "department_manager", "general_manager", "president", "operations_manager", "paymaster_general"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
@@ -268,7 +268,7 @@ const handleChangedEntity=async (id)=>{
                         </Link>
                     </li>
                 <VerifyPermissions
-                    expected={["accountant", "department_manager", "general_manager", "president", "operations_manager", "paymaster_general", "coordinator", "chief_financial_officer"]}
+                    expected={["accountant", "department_manager", "general_manager", "president", "operations_manager", "paymaster_general", "coordinator", "chief_financial_officer", "paymaster_general"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
@@ -280,7 +280,7 @@ const handleChangedEntity=async (id)=>{
                     </li>
                 </VerifyPermissions>
                 <VerifyPermissions
-                    expected={["chief_financial_officer", "general_manager", "president", "operations_manager"]}
+                    expected={["chief_financial_officer", "general_manager", "president", "operations_manager", "paymaster_general"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >
@@ -292,7 +292,7 @@ const handleChangedEntity=async (id)=>{
                     </li>
                 </VerifyPermissions>
                 <VerifyPermissions
-                    expected={["chief_financial_officer", "general_manager", "president", "cashier", "operations_manager"]}
+                    expected={["chief_financial_officer", "general_manager", "president", "cashier", "operations_manager", "paymaster_general"]}
                     roles={userInfo?.role?.name}
                     functions={userInfo?.Function?.name}
                 >

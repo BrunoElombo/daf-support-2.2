@@ -378,7 +378,7 @@ const highlightText = (text) => {
                         className='btn bg-green-500 text-white text-sm'
                         onClick={()=>setOpenApproModal(true)}
                       >
-                        Initier un supply.
+                        Initier un appro.
                       </button>
                     }
                 </VerifyPermissions>

@@ -113,8 +113,8 @@ function TreasuryPage() {
     const actualYear = new Date().getFullYear();
     try {
       const response = await fetchData(url+"/expensesheet/summary_by_year/?year="+actualYear+"&entity_id="+entityId);
-      if (response && response.annual_sums) {
-        setExpenseTotal(response.annual_sums[0].total_amount)
+      if (response && response?.annual_sums) {
+        setExpenseTotal(response?.annual_sums[0]?.total_amount)
       }
       
     } catch (error) {
@@ -141,8 +141,8 @@ function TreasuryPage() {
     const actualYear = new Date().getFullYear();
     try {
       const response = await fetchData(url+"/recipesheet/summary_by_year/?year="+actualYear+"&entity_id="+entityId);
-      if (response && response.annual_sums) {
-        setRecipeTotal(response.annual_sums[0].total_amount)
+      if (response && response?.annual_sums) {
+        setRecipeTotal(response?.annual_sums[0]?.total_amount)
       }
       
     } catch (error) {
